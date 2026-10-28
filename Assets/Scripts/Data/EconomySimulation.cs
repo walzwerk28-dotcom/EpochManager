@@ -50,7 +50,12 @@ namespace EpochCity
                 float multiplier = city.GetMultiplier(building);
                 var functions = building.Definition.GetActiveFunctions(city.UnlockedTechnologies);
 
-                building.Status = functions.Count == 0 ? "" : "läuft";
+                if (functions.Count == 0) building.Status = "";
+                else if (efficiency <= 0f) building.Status = building.ConnectionIssue;
+                else building.Status = efficiency < 1f ? $"läuft ({efficiency * 100f:0} %)" : "läuft";
+
+                // Ohne Anbindung steht das Gebäude still, auch wenn ein Zyklus schon voll ist
+                if (efficiency <= 0f) continue;
 
                 foreach (var function in functions)
                 {
@@ -77,11 +82,8 @@ namespace EpochCity
             }
         }
 
-        /// <summary>
-        /// Hier kommt später der Anbindungswert (Straße, Entfernung zum Lager) hinein.
-        /// Vorerst arbeitet jedes Gebäude mit voller Effizienz.
-        /// </summary>
-        private float GetEfficiency(BuildingInstance building) => 1f;
+        /// <summary>Anbindungswert des Gebäudes, berechnet von CityController.RefreshConnections.</summary>
+        private float GetEfficiency(BuildingInstance building) => building.Connection;
 
         private bool CanAfford(ResourceAmount[] inputs, out string missing)
         {
@@ -136,6 +138,7 @@ namespace EpochCity
 
             float upkeep = 0f;
             foreach (var building in city.Buildings) upkeep += building.Definition.upkeepPerMonth;
+            upkeep += city.RoadUpkeepPerMonth;
             city.AddMoney(-upkeep);
 
             LastMonthUpkeep = upkeep;

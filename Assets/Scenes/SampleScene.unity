@@ -547,6 +547,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 17dc914a28d30dc4dbfdea7b189c31bd, type: 2}
   - {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
   - {fileID: 11400000, guid: 2862c34a54bc6a54eaf19a1d72aaef60, type: 2}
+  road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
   invalidColor: {r: 1, g: 0.35, b: 0.35, a: 1}
 --- !u!4 &1216388726

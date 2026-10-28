@@ -35,20 +35,23 @@ Das ausführliche Game-Design-Dokument liegt als Doc in Claude (Titel: "Game-Des
 - Simulation: `GridMap`, `BuildingInstance`, `CityController` (Geld, Vorrat, Technologien, Platzieren und Abriss), `ResourceStock`, `GameClock` (Spielmonate, Geschwindigkeit), `EconomySimulation` (Produktion in festen Schritten, Unterhalt pro Monat).
 - Simulation: `ResearchSystem` (gemeinsamer Forschungspool: Forschung ist eine Ressource im Lager und fließt in genau ein gewähltes Projekt; Fortschritt bleibt pro Technologie erhalten; erforschbar ist, was Voraussetzungen erfüllt und dessen Epoche erreicht ist). `CityController` meldet Freischaltungen über das Event `TechnologyUnlocked`.
 - Simulation: `EpochProgression` (kennt alle Epochen, prüft die Bedingungen der nächsten, `TryAdvance` stellt nur die Epoche um). `CityController.SetEpoch` löst `EpochChanged` aus; `IsEpochReached` sperrt Gebäude und Technologien späterer Epochen. Technologien früherer Epochen bleiben nachholbar.
-- Presentation: `CityCameraController`, `BuildingPlacer` (Maus-Platzierung, Abriss), `CityHud`, `SimulationHud` und `ResearchHud` (bauen ihre uGUI zur Laufzeit selbst auf, gemeinsame Helfer in `UiFactory`).
-- Editor: `TestSetupGenerator` (Menü *EpochCity → Testaufbau erzeugen*) legt unter `Assets/Content/Test/` an: Epoche Antike (Währung Drachmen), Münzen, Weizen, Forschung, Feld, Markt, Bibliothek (5 Münzen → 5 Forschung pro 5 s), Technologien Bewässerung (Feld ×1,5), Schrift und Münzprägung (setzt Schrift voraus, Markt ×1,25), Epoche Mittelalter (Währung Pfennige; 2 von 3 Antike-Technologien und 1 Bibliothek nötig), Mühle (Mittelalter) sowie Platzhalter-Prefabs. Mehrfaches Ausführen überschreibt nur die Werte.
+- Data: `RoadDefinition` (Straßentyp: Kosten und Unterhalt pro Feld, Qualität, Prefab für ein Feld).
+- Simulation: Straßen liegen als eigene Ebene im `GridMap` (Gebäude und Straßen schließen sich aus; `LPath` liefert die L-förmige Strecke). `CityController` baut und reißt Straßen ab, führt `RoadUpkeepPerMonth` und berechnet in `RefreshConnections` den Anschluss jedes Gebäudes (`BuildingInstance.Connection`, `ConnectionIssue`), nur bei Änderungen, und meldet das über `ConnectionsChanged`. Vorerst gilt: angrenzende Straße = 100 %, sonst 0 % („keine Straße“). `EconomySimulation` nutzt `Connection` als Effizienz und rechnet den Straßenunterhalt mit ab.
+- Presentation: `CityCameraController`, `BuildingPlacer` (Maus-Platzierung, Abriss von Gebäuden und Straßen, Straßenmodus mit R: ziehen, L-Vorschau grün/rot), `CityHud` (inkl. Straßen-Button und Infozeile zum Gebäude unter der Maus), `SimulationHud` und `ResearchHud` (bauen ihre uGUI zur Laufzeit selbst auf, gemeinsame Helfer in `UiFactory`).
+- Editor: `TestSetupGenerator` (Menü *EpochCity → Testaufbau erzeugen*) legt unter `Assets/Content/Test/` an: Epoche Antike (Währung Drachmen), Münzen, Weizen, Forschung, Feld, Markt, Bibliothek (5 Münzen → 5 Forschung pro 5 s), Technologien Bewässerung (Feld ×1,5), Schrift und Münzprägung (setzt Schrift voraus, Markt ×1,25), Epoche Mittelalter (Währung Pfennige; 2 von 3 Antike-Technologien und 1 Bibliothek nötig), Mühle (Mittelalter), Straße Trampelpfad (5 pro Feld, Unterhalt 0,1) sowie Platzhalter-Prefabs. Mehrfaches Ausführen überschreibt nur die Werte.
 
 ## Teststand (2026-10-28, im Play-Modus geprüft)
 - Kompiliert ohne Fehler und Warnungen. `SampleScene` ist verdrahtet: Gebäudeleiste mit Feld, Markt, Bibliothek und Mühle, Startepoche Antike, `ResearchSystem` und `EpochProgression` (auf „Simulation“), `ResearchHud` (auf „ui“, zeigt auch Epochenbedingungen und den Wechsel-Button), sichtbarer Boden. Keine Starttechnologien.
 - Geprüft: Platzieren mit Kosten und Überlappung, Produktion und Verkauf, Monatsabrechnung, Technologie-Multiplikator, Denkmalschutz verhindert Abriss, HUD-Anzeige.
 - Forschung geprüft: Bibliothek liefert 1 Punkt pro Spielsekunde, Bewässerung und Schrift werden erforscht und wirken, Münzprägung ist bis zur Schrift gesperrt, ohne Projekt sammelt sich Forschung im Lager. Nicht geprüft: Fortschritt beim Projektwechsel (im Testaufbau gab es keine Gelegenheit dazu).
 - Epochenwechsel geprüft: Mühle in der Antike nicht baubar (ausgegraut), Wechsel erst bei 2/2 Technologien und 1/1 Bibliothek möglich, danach Mittelalter mit Pfennigen, Mühle baubar, alle Antike-Gebäude laufen unverändert weiter, Technologie-Boni bleiben, Münzprägung bleibt nachholbar, „Letzte Epoche erreicht“ wird angezeigt. Bedienung per Klick nicht geprüft.
-- Nicht geprüft: Bedienung mit Maus und Tastatur (Bauen, Abriss-Modus, Kamera). Im Test wurde per Code platziert.
+- Straßen geprüft: L-Strecke korrekt, Strecke durch Gebäude abgelehnt, Kosten nur für neue Felder, Gebäude nicht auf Straßen baubar, ohne Straße 0 % und „keine Straße“, mit Straße 100 % und Produktion, Abriss einzelner Felder trennt den Anschluss, Unterhalt erscheint in der Monatsabrechnung.
+- Nicht geprüft: Bedienung mit Maus und Tastatur (Bauen, Straßen ziehen samt Vorschau, Abriss-Modus, Infozeile beim Überfahren, Kamera). Im Test wurde per Code platziert.
 - Automatisierte Tests gibt es noch nicht.
 - Hinweis zum Testen per MCP: Ohne Fokus berechnet Unity im Play-Modus keine Frames. Für die laufende Sitzung `Application.runInBackground = true` setzen (die Projekteinstellung bleibt unverändert).
 
 ## Bekannte Lücken
-- `EconomySimulation.GetEfficiency` liefert überall 1 (Straßenanbindung und Entfernung fehlen).
+- Anbindung kennt noch keine Lager und keine Entfernung (nur „Straße grenzt an“), kein Overlay.
 - Es gibt ein gemeinsames Lager statt regionaler Lager.
 - Epochenwechsel bringt noch keine Boni und hat nur Gebäude-Meilensteine (Bevölkerung fehlt).
 - Keine Bevölkerung, keine Steuern, keine Zonen, keine Ereignisse, keine Regionen, kein sichtbarer Verkehr, kein Speichersystem.
@@ -62,7 +65,7 @@ Das ausführliche Game-Design-Dokument liegt als Doc in Claude (Titel: "Game-Des
 1. ~~Projekt kompilieren und mit einem Testaufbau prüfen~~ (erledigt, siehe Teststand).
 2. ~~Forschungssystem und Epochenwechsel mit Meilensteinen~~ (erledigt; Bevölkerungs-Meilensteine und Epochen-Boni folgen mit Schritt 3).
 3. Bevölkerung, Bedürfnisse, Zufriedenheit und Steuern.
-4. Anbindungswert über Straßen und Lagerhäuser, Overlay-Karte.
+4. Anbindungswert: ~~Teilschritt A Straßen und Anschluss~~ (erledigt). Als Nächstes Teilschritt B: Lager als Knotenpunkte (Einzugsweite, Abfallkurve als `AnimationCurve`, Mindestwert in `BuildingDefinition`), Entfernung über das Straßennetz in `ConnectionMap`, Status „kein Lager erreichbar“ / „zu weit vom Lager“, Overlay (Taste C). Entschieden: kein automatisches Startlager, regionale Bestände später.
 5. Zonen für Wohnen und Gewerbe.
 6. Speichersystem früh einplanen.
 

@@ -72,6 +72,7 @@ namespace EpochCity
 
             if (def.prefab != null)
                 placed.View = Instantiate(def.prefab, GetFootprintCenter(def, origin), Quaternion.identity, transform);
+            RefreshConnections();
             return true;
         }
 
@@ -90,7 +91,84 @@ namespace EpochCity
             Grid.Remove(inst);
             Buildings.Remove(inst);
             if (inst.View != null) Destroy(inst.View);
+            RefreshConnections();
             return true;
+        }
+
+        // ---------------------------------------------------------------- Straßen
+
+        /// <summary>Summe des Straßenunterhalts pro Spielmonat.</summary>
+        public float RoadUpkeepPerMonth { get; private set; }
+
+        /// <summary>Wird ausgelöst, nachdem der Anschluss aller Gebäude neu berechnet wurde.</summary>
+        public event Action ConnectionsChanged;
+
+        private readonly Dictionary<Vector2Int, GameObject> roadViews = new Dictionary<Vector2Int, GameObject>();
+
+        /// <summary>
+        /// Prüft eine Strecke: alle Felder im Raster und ohne Gebäude, Epoche erreicht, genug Geld.
+        /// Felder mit vorhandener Straße kosten nichts.
+        /// </summary>
+        public bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost)
+        {
+            cost = 0f;
+            if (road == null || path == null || path.Count == 0) return false;
+            if (!IsEpochReached(road.epoch)) return false;
+            foreach (var c in path)
+            {
+                if (!Grid.CanPlaceRoad(c)) return false;
+                if (!Grid.HasRoad(c)) cost += road.costPerCell;
+            }
+            return Money >= cost;
+        }
+
+        public bool TryBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path)
+        {
+            if (!CanBuildRoad(road, path, out float cost)) return false;
+
+            Money -= cost;
+            foreach (var c in path)
+            {
+                if (Grid.HasRoad(c)) continue;
+                Grid.SetRoad(c, road);
+                RoadUpkeepPerMonth += road.upkeepPerCellPerMonth;
+                if (road.prefab != null)
+                    roadViews[c] = Instantiate(road.prefab, Grid.CellCenterToWorld(c, transform.position),
+                        Quaternion.identity, transform);
+            }
+            RefreshConnections();
+            return true;
+        }
+
+        public bool TryRemoveRoad(Vector2Int cell)
+        {
+            var road = Grid.GetRoad(cell);
+            if (road == null) return false;
+
+            Grid.SetRoad(cell, null);
+            RoadUpkeepPerMonth = Mathf.Max(0f, RoadUpkeepPerMonth - road.upkeepPerCellPerMonth);
+            if (roadViews.TryGetValue(cell, out var view))
+            {
+                Destroy(view);
+                roadViews.Remove(cell);
+            }
+            RefreshConnections();
+            return true;
+        }
+
+        /// <summary>
+        /// Anschluss aller Gebäude neu berechnen. Läuft nur, wenn sich Straßen oder Gebäude ändern,
+        /// nicht in jedem Simulationsschritt. Vorerst zählt nur, ob eine Straße angrenzt.
+        /// </summary>
+        public void RefreshConnections()
+        {
+            foreach (var b in Buildings)
+            {
+                bool connected = Grid.TouchesRoad(b);
+                b.Connection = connected ? 1f : 0f;
+                b.ConnectionIssue = connected ? "" : "keine Straße";
+            }
+            ConnectionsChanged?.Invoke();
         }
 
         /// <summary>Wird ausgelöst, sobald eine Technologie neu freigeschaltet ist.</summary>

@@ -17,6 +17,12 @@ namespace EpochCity
         /// <summary>Kurzer Status für die Anzeige, z. B. "läuft" oder "wartet: Holz".</summary>
         public string Status { get; set; } = "";
 
+        /// <summary>Anbindungswert von 0 bis 1; multipliziert die Produktionsgeschwindigkeit.</summary>
+        public float Connection { get; set; }
+
+        /// <summary>Grund für fehlende oder schwache Anbindung, z. B. "keine Straße".</summary>
+        public string ConnectionIssue { get; set; } = "";
+
         /// <summary>Denkmalschutz: lässt sich nicht abreißen, bringt Kultur und Tourismus.</summary>
         public bool IsProtected { get; set; }
 

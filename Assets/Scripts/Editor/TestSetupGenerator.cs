@@ -8,7 +8,7 @@ namespace EpochCity
     /// Legt einen kleinen Testaufbau als Assets an: Epoche Antike, Münzen, Weizen und Forschung,
     /// Feld, Markt und Bibliothek sowie die Technologien Bewässerung (Feld x1,5), Schrift und
     /// Münzprägung (setzt Schrift voraus, Markt x1,25). Dazu das Mittelalter (2 der 3 Technologien
-    /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche.
+    /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche und die Straße Trampelpfad.
     /// Mehrfaches Ausführen überschreibt die Werte, erzeugt aber keine Duplikate.
     /// </summary>
     public static class TestSetupGenerator
@@ -164,9 +164,18 @@ namespace EpochCity
             mill.layers = new BuildingLayer[0];
             mill.prefab = CreatePrefab("Prefab_Muehle", mill.size, 4f, new Color(0.6f, 0.6f, 0.55f));
 
+            var path = GetOrCreate<RoadDefinition>("Road_Trampelpfad");
+            path.displayName = "Trampelpfad";
+            path.epoch = antike;
+            path.costPerCell = 5f;
+            path.upkeepPerCellPerMonth = 0.1f;
+            path.quality = 1f;
+            // Füllt das Feld ganz aus, damit die Straße ohne Lücken durchläuft
+            path.prefab = CreatePrefab("Prefab_Trampelpfad", Vector2Int.one, 0.05f, new Color(0.55f, 0.45f, 0.32f), 1f);
+
             foreach (var asset in new Object[]
                      { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
-                       field, market, library, mill })
+                       field, market, library, mill, path })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
 
@@ -188,7 +197,8 @@ namespace EpochCity
         /// Platzhalter-Prefab: ein Quader, der die Grundfläche ausfüllt. Der Ursprung liegt
         /// unten mittig, weil CityController das Prefab in die Mitte der Grundfläche setzt.
         /// </summary>
-        private static GameObject CreatePrefab(string name, Vector2Int size, float height, Color color)
+        private static GameObject CreatePrefab(string name, Vector2Int size, float height, Color color,
+            float footprint = 0.9f)
         {
             const float cellSize = 2f; // Standardwert von CityController.cellSize
 
@@ -207,7 +217,8 @@ namespace EpochCity
             var body = GameObject.CreatePrimitive(PrimitiveType.Cube);
             body.name = "Body";
             body.transform.SetParent(root.transform, false);
-            body.transform.localScale = new Vector3(size.x * cellSize * 0.9f, height, size.y * cellSize * 0.9f);
+            body.transform.localScale =
+                new Vector3(size.x * cellSize * footprint, height, size.y * cellSize * footprint);
             body.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
             body.GetComponent<Renderer>().sharedMaterial = material;
 

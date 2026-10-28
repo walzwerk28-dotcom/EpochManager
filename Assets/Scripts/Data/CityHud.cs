@@ -26,6 +26,9 @@ namespace EpochCity
         private TextMeshProUGUI epochText;
         private TextMeshProUGUI moneyText;
         private UnityEngine.UI.Image demolishImage;
+        private UnityEngine.UI.Image roadImage;
+        private TextMeshProUGUI hoverText;
+        private string lastHover;
         private readonly List<BuildingDefinition> buttonDefs = new List<BuildingDefinition>();
         private readonly List<UnityEngine.UI.Image> buttonImages = new List<UnityEngine.UI.Image>();
         private readonly List<TextMeshProUGUI> buttonLabels = new List<TextMeshProUGUI>();
@@ -67,6 +70,30 @@ namespace EpochCity
                 buttonLabels[i].alpha = reached ? 1f : 0.5f;
             }
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
+            if (roadImage != null) roadImage.color = placer.RoadMode ? selectedColor : buttonColor;
+
+            string hover = GetHoverInfo();
+            if (hover != lastHover)
+            {
+                hoverText.text = hover;
+                lastHover = hover;
+            }
+        }
+
+        /// <summary>Kurzinfo zu dem Gebäude oder der Straße unter der Maus.</summary>
+        private string GetHoverInfo()
+        {
+            if (!placer.TryGetHover(out var cell)) return "";
+
+            var building = city.Grid.GetAt(cell);
+            if (building != null)
+            {
+                string status = string.IsNullOrEmpty(building.Status) ? "" : $"  |  {building.Status}";
+                return $"{building.Definition.displayName}{status}  |  Anbindung {building.Connection * 100f:0} %";
+            }
+
+            var road = city.Grid.GetRoad(cell);
+            return road != null ? road.displayName : "";
         }
 
         // ---------------------------------------------------------------- Aufbau
@@ -113,19 +140,37 @@ namespace EpochCity
                 }
             }
 
+            if (placer != null && placer.road != null)
+            {
+                var road = placer.road;
+                string label = $"R  {road.displayName}\n{road.costPerCell:0} / Feld";
+                var roadButton = UiFactory.CreateButton(bottom, "RoadButton", label, new Vector2(170f, 88f),
+                    22f, buttonColor, textColor, () => placer.SelectRoad());
+                roadImage = (UnityEngine.UI.Image)roadButton.targetGraphic;
+            }
+
             var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "X  Abreißen", new Vector2(150f, 88f),
                 22f, buttonColor, textColor, () => { if (placer != null) placer.ToggleDemolish(); });
             demolishImage = (UnityEngine.UI.Image)demolish.targetGraphic;
 
-            var hint = UiFactory.CreateText("Hint", canvas,
-                "1-9: bauen  |  X: abreißen  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
-                20f, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.75f));
-            var hintRect = hint.rectTransform;
-            hintRect.anchorMin = new Vector2(0f, 0f);
-            hintRect.anchorMax = new Vector2(1f, 0f);
-            hintRect.pivot = new Vector2(0.5f, 0f);
-            hintRect.anchoredPosition = new Vector2(0f, 130f);
-            hintRect.sizeDelta = new Vector2(0f, 32f);
+            hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, 166f);
+            CreateBottomLine(canvas, "Hint",
+                "1-9: bauen  |  R: Straße ziehen  |  X: abreißen  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                20f, new Color(1f, 1f, 1f, 0.75f), 130f);
+        }
+
+        /// <summary>Zentrierte Textzeile über der unteren Leiste.</summary>
+        private static TextMeshProUGUI CreateBottomLine(Transform canvas, string name, string text, float size,
+            Color color, float y)
+        {
+            var line = UiFactory.CreateText(name, canvas, text, size, TextAlignmentOptions.Center, color);
+            var rect = line.rectTransform;
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, y);
+            rect.sizeDelta = new Vector2(0f, 32f);
+            return line;
         }
     }
 }
