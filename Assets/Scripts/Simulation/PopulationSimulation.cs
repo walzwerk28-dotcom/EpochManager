@@ -8,7 +8,8 @@ namespace EpochCity
     /// Bevölkerung, abstrakt pro Wohnhaus und einmal pro Spielmonat gerechnet:
     /// Waren werden aus dem Lager verbraucht, Dienste über ihre Reichweite im Straßennetz geprüft.
     /// Aus der gewichteten Erfüllung der Bedürfnisse ergibt sich die Zufriedenheit; die Einwohner bewegen
-    /// sich in Schritten auf Kapazität × Zufriedenheit zu (Zuzug und Wegzug).
+    /// sich in Schritten auf Kapazität × Zufriedenheit zu (Zuzug und Wegzug). Danach zahlen sie Steuern
+    /// nach dem Satz ihrer Stufe; der Satz senkt die Zufriedenheit über die Steuerkurve der Stufe.
     /// </summary>
     public class PopulationSimulation : MonoBehaviour
     {
@@ -18,8 +19,30 @@ namespace EpochCity
         [Range(0.01f, 1f)] public float maxChangePerMonth = 0.25f;
         [Tooltip("Ab dieser Erfüllung gilt ein Bedürfnis nicht mehr als fehlend")]
         [Range(0f, 1f)] public float missingThreshold = 0.5f;
+        [Tooltip("Alle Bevölkerungsstufen (für Steuerregler und Anzeige)")]
+        public PopulationTierDefinition[] tiers;
+
+        public const float MinTaxRate = 0f;
+        public const float MaxTaxRate = 2f;
 
         public int TotalResidents { get; private set; }
+
+        /// <summary>Steuereinnahmen des letzten Spielmonats.</summary>
+        public float LastMonthTaxes { get; private set; }
+
+        private readonly Dictionary<PopulationTierDefinition, float> taxRates =
+            new Dictionary<PopulationTierDefinition, float>();
+
+        /// <summary>Steuersatz der Stufe (1 = 100 %), Standard 100 %.</summary>
+        public float GetTaxRate(PopulationTierDefinition tier) =>
+            tier != null && taxRates.TryGetValue(tier, out float rate) ? rate : 1f;
+
+        public void SetTaxRate(PopulationTierDefinition tier, float rate)
+        {
+            if (tier == null) return;
+            // Auf ganze Prozent runden, damit Schritte von 10 % nicht abdriften
+            taxRates[tier] = Mathf.Clamp(Mathf.Round(rate * 100f) / 100f, MinTaxRate, MaxTaxRate);
+        }
 
         /// <summary>Durchschnittliche Zufriedenheit, gewichtet nach Wohnplätzen.</summary>
         public float AverageSatisfaction { get; private set; }
@@ -55,16 +78,22 @@ namespace EpochCity
             int residents = 0;
             float weightedSatisfaction = 0f;
             int totalCapacity = 0;
+            float taxes = 0f;
 
             foreach (var house in houses)
             {
                 UpdateHouse(house);
+                var tier = house.Definition.populationTier;
                 int capacity = house.Definition.GetCapacity(city.UnlockedTechnologies);
                 residents += house.Residents;
                 totalCapacity += capacity;
                 weightedSatisfaction += house.Satisfaction * capacity;
+                taxes += house.Residents * tier.taxPerResidentPerMonth * GetTaxRate(tier);
             }
 
+            // Steuern zahlen die Einwohner nach Zu- und Wegzug dieses Monats
+            city.AddMoney(taxes);
+            LastMonthTaxes = taxes;
             TotalResidents = residents;
             AverageSatisfaction = totalCapacity > 0 ? weightedSatisfaction / totalCapacity : 0f;
         }
@@ -122,7 +151,10 @@ namespace EpochCity
                 }
             }
 
-            house.Satisfaction = weightSum > 0f ? fulfilled / weightSum : 1f;
+            // Bedürfnisse ergeben die Grundzufriedenheit, der Steuersatz drückt sie über eine weiche Kurve
+            var tier = house.Definition.populationTier;
+            float needs = weightSum > 0f ? fulfilled / weightSum : 1f;
+            house.Satisfaction = needs * tier.TaxFactor(GetTaxRate(tier));
             house.MissingNeeds = missing.ToString();
 
             int capacity = house.Definition.GetCapacity(city.UnlockedTechnologies);

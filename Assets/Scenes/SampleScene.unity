@@ -705,6 +705,8 @@ MonoBehaviour:
   clock: {fileID: 2124652275}
   maxChangePerMonth: 0.25
   missingThreshold: 0.5
+  tiers:
+  - {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
 --- !u!1 &1719426577
 GameObject:
   m_ObjectHideFlags: 0

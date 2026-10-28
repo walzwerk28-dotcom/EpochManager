@@ -25,6 +25,15 @@ namespace EpochCity
 
         [Header("Steuern")]
         [Min(0f)] public float taxPerResidentPerMonth = 1f;
+        [Tooltip("Faktor auf die Zufriedenheit je Steuersatz: x = Satz (1 = 100 %), y = Faktor. " +
+                 "Kleine Erhöhungen fallen kaum auf, bei hohen Sätzen kippt die Stimmung.")]
+        public AnimationCurve satisfactionByTaxRate = new AnimationCurve(
+            new Keyframe(0f, 1f), new Keyframe(1f, 0.95f), new Keyframe(1.5f, 0.75f), new Keyframe(2f, 0.35f));
+
+        public float TaxFactor(float rate) =>
+            satisfactionByTaxRate != null && satisfactionByTaxRate.length > 0
+                ? Mathf.Clamp01(satisfactionByTaxRate.Evaluate(rate))
+                : 1f;
 
         /// <summary>Name aus der neuesten Epoche, die höchstens der aktuellen entspricht.</summary>
         public string GetName(EpochDefinition current)

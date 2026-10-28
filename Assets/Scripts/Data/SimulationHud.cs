@@ -23,6 +23,10 @@ namespace EpochCity
         [SerializeField] private Color textColor = Color.white;
 
         private TextMeshProUGUI infoText;
+        private readonly List<PopulationTierDefinition> taxTiers = new List<PopulationTierDefinition>();
+        private readonly List<TextMeshProUGUI> taxLabels = new List<TextMeshProUGUI>();
+        private const float TaxStep = 0.1f;
+        private const float TaxRowHeight = 52f;
         private readonly List<UnityEngine.UI.Image> speedImages = new List<UnityEngine.UI.Image>();
         private readonly StringBuilder builder = new StringBuilder();
         private float refreshTimer;
@@ -50,6 +54,7 @@ namespace EpochCity
                 builder.AppendLine($"Letzter Monat: +{economy.LastMonthIncome:0} / -{economy.LastMonthUpkeep:0}");
             if (population != null)
             {
+                builder.AppendLine($"Steuern: +{population.LastMonthTaxes:0}");
                 builder.AppendLine($"Einwohner: {population.TotalResidents} / {city.HousingCapacity}");
                 builder.AppendLine($"Zufriedenheit: {population.AverageSatisfaction * 100f:0} %");
             }
@@ -70,6 +75,10 @@ namespace EpochCity
             if (!any) builder.AppendLine("(leer)");
 
             infoText.text = builder.ToString();
+
+            for (int i = 0; i < taxTiers.Count; i++)
+                taxLabels[i].text =
+                    $"Steuer {taxTiers[i].GetName(city.currentEpoch)}: {population.GetTaxRate(taxTiers[i]) * 100f:0} %";
         }
 
         private void Build()
@@ -77,8 +86,14 @@ namespace EpochCity
             var canvas = UiFactory.CreateCanvas("SimulationHudCanvas", transform);
 
             // Panel oben links, unter der oberen Leiste von CityHud
+            if (population != null && population.tiers != null)
+                foreach (var tier in population.tiers)
+                    if (tier != null) taxTiers.Add(tier);
+            float taxArea = taxTiers.Count * TaxRowHeight;
+
             var panel = UiFactory.CreatePanel("SimulationPanel", canvas,
-                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(340f, 340f), panelColor);
+                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(340f, 380f + taxArea),
+                panelColor);
             panel.anchoredPosition = new Vector2(16f, -80f);
 
             // Reihe mit Geschwindigkeitstasten
@@ -108,8 +123,34 @@ namespace EpochCity
             var infoRect = infoText.rectTransform;
             infoRect.anchorMin = Vector2.zero;
             infoRect.anchorMax = Vector2.one;
-            infoRect.offsetMin = new Vector2(12f, 12f);
+            infoRect.offsetMin = new Vector2(12f, 12f + taxArea);
             infoRect.offsetMax = new Vector2(-12f, -68f);
+
+            // Steuerregler je Stufe am unteren Rand
+            for (int i = 0; i < taxTiers.Count; i++)
+                BuildTaxRow(panel, taxTiers[i], 8f + i * TaxRowHeight);
+        }
+
+        private void BuildTaxRow(RectTransform panel, PopulationTierDefinition tier, float y)
+        {
+            var rowGo = new GameObject("TaxRow_" + tier.name, typeof(RectTransform));
+            rowGo.transform.SetParent(panel, false);
+            var row = (RectTransform)rowGo.transform;
+            row.anchorMin = new Vector2(0f, 0f);
+            row.anchorMax = new Vector2(1f, 0f);
+            row.pivot = new Vector2(0.5f, 0f);
+            row.anchoredPosition = new Vector2(0f, y);
+            row.sizeDelta = new Vector2(-24f, 44f);
+            UiFactory.AddRow(rowGo, TextAnchor.MiddleLeft, 0, 8f);
+
+            var label = UiFactory.CreateText("Label", row, "", 20f, TextAlignmentOptions.MidlineLeft, textColor);
+            label.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+            taxLabels.Add(label);
+
+            UiFactory.CreateButton(row, "TaxDown", "-", new Vector2(44f, 40f), 24f, buttonColor, textColor,
+                () => population.SetTaxRate(tier, population.GetTaxRate(tier) - TaxStep));
+            UiFactory.CreateButton(row, "TaxUp", "+", new Vector2(44f, 40f), 24f, buttonColor, textColor,
+                () => population.SetTaxRate(tier, population.GetTaxRate(tier) + TaxStep));
         }
     }
 }

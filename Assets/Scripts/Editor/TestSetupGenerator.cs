@@ -232,6 +232,8 @@ namespace EpochCity
             };
             farmers.needs = new[] { food, marketNeed };
             farmers.taxPerResidentPerMonth = 1f;
+            farmers.satisfactionByTaxRate = new AnimationCurve(
+                new Keyframe(0f, 1f), new Keyframe(1f, 0.95f), new Keyframe(1.5f, 0.75f), new Keyframe(2f, 0.35f));
 
             var house = CreateZoneBuilding("Bld_Wohnhaus", "Wohnhaus", antike, BuildingCategory.Housing, residential,
                 6, new BuildingFunction[0], 1f, new Color(0.85f, 0.8f, 0.7f));
