@@ -47,6 +47,7 @@ namespace EpochCity
             builder.AppendLine(clock.DateString);
             if (economy != null)
                 builder.AppendLine($"Letzter Monat: +{economy.LastMonthIncome:0} / -{economy.LastMonthUpkeep:0}");
+            builder.AppendLine($"Wohnplätze: {city.HousingCapacity}");
             builder.AppendLine();
             builder.AppendLine("Vorrat:");
 

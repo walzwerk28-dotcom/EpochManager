@@ -102,8 +102,7 @@ namespace EpochCity
                 return;
             }
 
-            bool canPlace = city.Grid.CanPlace(selected, hoverCell) && city.Money >= selected.buildCost
-                            && city.IsEpochReached(selected.epoch);
+            bool canPlace = city.CanPlace(selected, hoverCell) && city.Money >= selected.buildCost;
 
             if (ghost != null)
             {

@@ -10,7 +10,7 @@ namespace EpochCity
     /// Münzprägung (setzt Schrift voraus, Markt x1,25). Dazu das Mittelalter (2 der 3 Technologien
     /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche, die Straße Trampelpfad
     /// und das Lager (Einzugsweite 20 Straßenfelder, Effizienz fällt linear von 100 % auf 25 %)
-    /// sowie die Zonen Wohnen und Gewerbe.
+    /// sowie die Zonen Wohnen und Gewerbe mit Wohnhaus und Laden (Antike) und Fachwerkhaus (Mittelalter).
     /// Mehrfaches Ausführen überschreibt die Werte, erzeugt aber keine Duplikate.
     /// </summary>
     public static class TestSetupGenerator
@@ -200,13 +200,53 @@ namespace EpochCity
             commercial.tilePrefab =
                 CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.38f, 0.55f, 0.85f), 0.96f);
 
+            var house = CreateZoneBuilding("Bld_Wohnhaus", "Wohnhaus", antike, BuildingCategory.Housing, residential,
+                6, new BuildingFunction[0], 1f, new Color(0.85f, 0.8f, 0.7f));
+
+            var shop = CreateZoneBuilding("Bld_Laden", "Laden", antike, BuildingCategory.Commerce, commercial, 0,
+                new[]
+                {
+                    new BuildingFunction
+                    {
+                        label = "Weizen verkaufen",
+                        inputs = new[] { new ResourceAmount { resource = wheat, amount = 2f } },
+                        outputs = new[] { new ResourceAmount { resource = coins, amount = 4f } },
+                        cycleSeconds = 5f
+                    }
+                }, 1.2f, new Color(0.55f, 0.65f, 0.9f));
+
+            // Nur zum Testen des Epochenbezugs: im Mittelalter wachsen Fachwerkhäuser statt Wohnhäusern
+            var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
+                BuildingCategory.Housing, residential, 10, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f));
+
             foreach (var asset in new Object[]
                      { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
-                       field, market, library, mill, path, storage, residential, commercial })
+                       field, market, library, mill, path, storage, residential, commercial,
+                       house, shop, timberHouse })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
 
             Debug.Log($"Testaufbau erzeugt unter {Root}.");
+        }
+
+        /// <summary>Zonengebäude: 1 × 1, kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>
+        private static BuildingDefinition CreateZoneBuilding(string assetName, string displayName,
+            EpochDefinition epoch, BuildingCategory category, ZoneDefinition zone, int capacity,
+            BuildingFunction[] functions, float height, Color color)
+        {
+            var def = GetOrCreate<BuildingDefinition>(assetName);
+            def.displayName = displayName;
+            def.epoch = epoch;
+            def.category = category;
+            def.zone = zone;
+            def.size = Vector2Int.one;
+            def.buildCost = 0f;
+            def.upkeepPerMonth = 0f;
+            def.baseCapacity = capacity;
+            def.baseFunctions = functions;
+            def.layers = new BuildingLayer[0];
+            def.prefab = CreatePrefab("Prefab_" + assetName.Substring(4), def.size, height, color, 0.8f);
+            return def;
         }
 
         private static T GetOrCreate<T>(string name) where T : ScriptableObject

@@ -74,24 +74,30 @@ namespace EpochCity
         }
 
         /// <summary>Zellen, die seitlich an die Grundfläche des Gebäudes grenzen (ohne Ecken).</summary>
-        public IEnumerable<Vector2Int> GetAdjacentCells(BuildingInstance inst)
+        public IEnumerable<Vector2Int> GetAdjacentCells(BuildingInstance inst) =>
+            GetAdjacentCells(inst.Origin, inst.Definition.size);
+
+        /// <summary>Zellen, die seitlich an eine Grundfläche grenzen (ohne Ecken).</summary>
+        public static IEnumerable<Vector2Int> GetAdjacentCells(Vector2Int origin, Vector2Int size)
         {
-            var size = inst.Definition.size;
             for (int x = 0; x < size.x; x++)
             {
-                yield return new Vector2Int(inst.Origin.x + x, inst.Origin.y - 1);
-                yield return new Vector2Int(inst.Origin.x + x, inst.Origin.y + size.y);
+                yield return new Vector2Int(origin.x + x, origin.y - 1);
+                yield return new Vector2Int(origin.x + x, origin.y + size.y);
             }
             for (int y = 0; y < size.y; y++)
             {
-                yield return new Vector2Int(inst.Origin.x - 1, inst.Origin.y + y);
-                yield return new Vector2Int(inst.Origin.x + size.x, inst.Origin.y + y);
+                yield return new Vector2Int(origin.x - 1, origin.y + y);
+                yield return new Vector2Int(origin.x + size.x, origin.y + y);
             }
         }
 
-        public bool TouchesRoad(BuildingInstance inst)
+        public bool TouchesRoad(BuildingInstance inst) => TouchesRoad(inst.Origin, inst.Definition.size);
+
+        /// <summary>Grenzt die Grundfläche an mindestens ein Straßenfeld?</summary>
+        public bool TouchesRoad(Vector2Int origin, Vector2Int size)
         {
-            foreach (var c in GetAdjacentCells(inst))
+            foreach (var c in GetAdjacentCells(origin, size))
                 if (HasRoad(c)) return true;
             return false;
         }

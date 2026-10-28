@@ -57,16 +57,55 @@ namespace EpochCity
             EpochChanged?.Invoke(epoch);
         }
 
+        /// <summary>
+        /// Lässt sich das Gebäude hier bauen? Freie Fläche, Epoche erreicht und mindestens ein angrenzendes
+        /// Straßenfeld – jedes Gebäude braucht beim Bau einen Straßenanschluss. Geld prüft TryPlace.
+        /// </summary>
+        public bool CanPlace(BuildingDefinition def, Vector2Int origin) =>
+            def != null && IsEpochReached(def.epoch) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size);
+
         public bool TryPlace(BuildingDefinition def, Vector2Int origin, out BuildingInstance placed)
         {
             placed = null;
-            if (def == null) return false;
-            if (!IsEpochReached(def.epoch)) return false;
-            if (Money < def.buildCost) return false;
-            if (!Grid.CanPlace(def, origin)) return false;
+            if (def == null || Money < def.buildCost || !CanPlace(def, origin)) return false;
 
             Money -= def.buildCost;
-            placed = new BuildingInstance(def, origin, currentEpoch);
+            placed = Place(def, origin);
+            return true;
+        }
+
+        /// <summary>
+        /// Lässt ein Zonengebäude wachsen: kostenlos (private Bauherren), nur auf Feldern seiner Zone
+        /// und wie jedes Gebäude nur mit angrenzender Straße.
+        /// </summary>
+        public bool TryGrow(BuildingDefinition def, Vector2Int origin, out BuildingInstance grown)
+        {
+            grown = null;
+            if (def == null || def.zone == null || !CanPlace(def, origin)) return false;
+            for (int x = 0; x < def.size.x; x++)
+                for (int y = 0; y < def.size.y; y++)
+                    if (Grid.GetZone(new Vector2Int(origin.x + x, origin.y + y)) != def.zone) return false;
+
+            grown = Place(def, origin);
+            return true;
+        }
+
+        /// <summary>Summe der Wohnplätze aller Wohngebäude, inklusive Zusatzkapazität durch Technologien.</summary>
+        public int HousingCapacity
+        {
+            get
+            {
+                int sum = 0;
+                foreach (var b in Buildings)
+                    if (b.Definition.category == BuildingCategory.Housing)
+                        sum += b.Definition.GetCapacity(UnlockedTechnologies);
+                return sum;
+            }
+        }
+
+        private BuildingInstance Place(BuildingDefinition def, Vector2Int origin)
+        {
+            var placed = new BuildingInstance(def, origin, currentEpoch);
 
             // Ein einzeln gesetztes Gebäude verdrängt die Zone unter sich; Zonengebäude behalten sie
             if (def.zone == null)
@@ -80,7 +119,7 @@ namespace EpochCity
             if (def.prefab != null)
                 placed.View = Instantiate(def.prefab, GetFootprintCenter(def, origin), Quaternion.identity, transform);
             RefreshConnections();
-            return true;
+            return placed;
         }
 
         /// <summary>Weltposition der Mitte der vom Gebäude belegten Fläche.</summary>
@@ -249,7 +288,7 @@ namespace EpochCity
             if (TryPlace(debugBuilding, debugCell, out var b))
                 Debug.Log($"Gebaut: {b.Definition.displayName} bei {b.Origin}, Multiplikator {GetMultiplier(b):0.00}");
             else
-                Debug.LogWarning("Platzieren nicht möglich (Zelle belegt, außerhalb oder zu wenig Geld).");
+                Debug.LogWarning("Platzieren nicht möglich (Zelle belegt, außerhalb, keine Straße angrenzend oder zu wenig Geld).");
         }
     }
 }
