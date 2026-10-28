@@ -29,6 +29,11 @@ namespace EpochCity
 
         public Color validColor = new Color(0.4f, 1f, 0.4f, 1f);
         public Color invalidColor = new Color(1f, 0.35f, 0.35f, 1f);
+        [Tooltip("Deckkraft der Bau-Vorschau")]
+        [Range(0.1f, 1f)] public float ghostAlpha = 0.55f;
+
+        /// <summary>Ist gerade ein Baumodus aktiv (Gebäude, Straße, Zone oder Abriss)?</summary>
+        public bool IsBuildMode => selected != null || roadMode || zoneMode || demolishMode;
 
         private BuildingDefinition selected;
         private bool demolishMode;
@@ -108,7 +113,7 @@ namespace EpochCity
             {
                 ghost.SetActive(true);
                 ghost.transform.position = city.GetFootprintCenter(selected, hoverCell);
-                Tint(ghostRenderers, canPlace ? validColor : invalidColor);
+                Tint(ghostRenderers, GhostColor(canPlace ? validColor : invalidColor));
             }
 
             if (!overUi && mouse.leftButton.wasPressedThisFrame && canPlace)
@@ -131,7 +136,7 @@ namespace EpochCity
 
             var path = dragging ? GridMap.LPath(dragStart, hoverCell) : new List<Vector2Int> { hoverCell };
             bool canBuild = city.CanBuildRoad(road, path, out _);
-            roadGhosts.Show(city, road.prefab, path, _ => canBuild, validColor, invalidColor);
+            roadGhosts.Show(city, road.prefab, path, _ => canBuild, GhostColor(validColor), GhostColor(invalidColor));
 
             if (dragging && mouse.leftButton.wasReleasedThisFrame)
             {
@@ -162,7 +167,7 @@ namespace EpochCity
             zoneGhosts.Show(city, prefab, cells, c => selectedZone == null
                     ? city.Grid.GetZone(c) != null
                     : city.Grid.CanZone(c) && city.Grid.GetZone(c) != selectedZone,
-                validColor, invalidColor);
+                GhostColor(validColor), GhostColor(invalidColor));
 
             if (dragging && mouse.leftButton.wasReleasedThisFrame)
             {
@@ -316,23 +321,26 @@ namespace EpochCity
             }
         }
 
+        /// <summary>Vorschau-Kopie eines Prefabs: ohne Collider, durchscheinend und ohne Schattenwurf.</summary>
         private static GameObject CreateGhost(GameObject prefab, out Renderer[] renderers)
         {
             var go = Instantiate(prefab);
             foreach (var c in go.GetComponentsInChildren<Collider>()) c.enabled = false;
             renderers = go.GetComponentsInChildren<Renderer>();
+            foreach (var r in renderers)
+            {
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                MaterialUtil.SetTransparent(r.material); // r.material erzeugt eine Kopie, nur für die Vorschau
+            }
             return go;
         }
+
+        private Color GhostColor(Color color) => new Color(color.r, color.g, color.b, ghostAlpha);
 
         private static void Tint(Renderer[] renderers, Color color)
         {
             if (renderers == null) return;
-            foreach (var r in renderers)
-            {
-                var mat = r.material; // erzeugt eine Kopie, nur für die Vorschau
-                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
-                else if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
-            }
+            foreach (var r in renderers) MaterialUtil.SetColor(r.material, color);
         }
     }
 }

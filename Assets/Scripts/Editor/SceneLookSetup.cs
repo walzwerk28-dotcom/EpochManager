@@ -8,7 +8,8 @@ using UnityEngine.Rendering.Universal;
 namespace EpochCity
 {
     /// <summary>
-    /// Richtet Boden, Horizont, Licht und Post-Processing der offenen Szene ein (stilisierter, warmer Look).
+    /// Richtet Boden, Horizont, Licht und Post-Processing der offenen Szene ein (stilisierter, warmer Look)
+    /// sowie das Bau-Raster und die Kartengrenze (GridOverlay).
     /// Erzeugte Assets liegen unter Assets/Content/Look/. Mehrfaches Ausführen überschreibt nur die Werte.
     /// </summary>
     public static class SceneLookSetup
@@ -33,6 +34,7 @@ namespace EpochCity
             SetupLight();
             SetupShadows();
             SetupPostProcessing();
+            SetupGridOverlay();
 
             AssetDatabase.SaveAssets();
             var scene = EditorSceneManager.GetActiveScene();
@@ -201,6 +203,60 @@ namespace EpochCity
             EditorUtility.SetDirty(profile);
         }
 
+        // ---------------------------------------------------------------- Raster und Kartengrenze
+
+        private static void SetupGridOverlay()
+        {
+            var gridTex = CreateGridTexture($"{Root}/Tex_Grid.png", 64, 2);
+
+            var grid = GetOrCreateMaterial("Mat_Grid", "Universal Render Pipeline/Unlit");
+            grid.SetTexture("_BaseMap", gridTex);
+            grid.SetColor("_BaseColor", Color.white);
+            MaterialUtil.SetTransparent(grid);
+            EditorUtility.SetDirty(grid);
+
+            var border = GetOrCreateMaterial("Mat_Border", "Universal Render Pipeline/Unlit");
+            border.SetColor("_BaseColor", new Color(0.24f, 0.28f, 0.19f));
+            EditorUtility.SetDirty(border);
+
+            var go = GameObject.Find("GridOverlay");
+            if (go == null) go = new GameObject("GridOverlay");
+            var overlay = go.GetComponent<GridOverlay>();
+            if (overlay == null) overlay = go.AddComponent<GridOverlay>();
+
+            var so = new SerializedObject(overlay);
+            so.FindProperty("city").objectReferenceValue = Object.FindAnyObjectByType<CityController>();
+            so.FindProperty("placer").objectReferenceValue = Object.FindAnyObjectByType<BuildingPlacer>();
+            so.FindProperty("gridMaterial").objectReferenceValue = grid;
+            so.FindProperty("borderMaterial").objectReferenceValue = border;
+            so.ApplyModifiedProperties();
+        }
+
+        /// <summary>Kachel mit heller Linie am linken und unteren Rand; aneinandergereiht ergibt das ein Raster.</summary>
+        private static Texture2D CreateGridTexture(string path, int size, int lineWidth)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                    pixels[y * size + x] = x < lineWidth || y < lineWidth
+                        ? new Color(1f, 1f, 1f, 0.2f)
+                        : new Color(1f, 1f, 1f, 0f);
+            tex.SetPixels(pixels);
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Repeat;
+            importer.filterMode = FilterMode.Trilinear;
+            importer.mipmapEnabled = true;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
         private static T GetOrAdd<T>(VolumeProfile profile) where T : VolumeComponent
         {
             if (!profile.TryGet<T>(out var component))
@@ -214,12 +270,12 @@ namespace EpochCity
             return component;
         }
 
-        private static Material GetOrCreateMaterial(string name)
+        private static Material GetOrCreateMaterial(string name, string shader = "Universal Render Pipeline/Lit")
         {
             string path = $"{Root}/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat != null) return mat;
-            mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            mat = new Material(Shader.Find(shader));
             AssetDatabase.CreateAsset(mat, path);
             return mat;
         }

@@ -644,6 +644,7 @@ MonoBehaviour:
   commercialZone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
   invalidColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+  ghostAlpha: 0.55
 --- !u!4 &1216388726
 Transform:
   m_ObjectHideFlags: 0
@@ -797,6 +798,55 @@ MonoBehaviour:
   missingThreshold: 0.5
   tiers:
   - {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
+--- !u!1 &1627082945
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1627082947}
+  - component: {fileID: 1627082946}
+  m_Layer: 0
+  m_Name: GridOverlay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1627082946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1627082945}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b69f8a7cdd83a1f4f90ee945db1de7ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.GridOverlay
+  city: {fileID: 440537052}
+  placer: {fileID: 1216388725}
+  gridMaterial: {fileID: 2100000, guid: a8d75ba8adba5bd43bde7defb17f29b5, type: 2}
+  borderMaterial: {fileID: 2100000, guid: f2c62b459eff53b40a65dfbd36a73e33, type: 2}
+  borderWidth: 0.3
+--- !u!4 &1627082947
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1627082945}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1719426577
 GameObject:
   m_ObjectHideFlags: 0
@@ -1074,3 +1124,4 @@ SceneRoots:
   - {fileID: 1732010459}
   - {fileID: 1719426580}
   - {fileID: 232995003}
+  - {fileID: 1627082947}

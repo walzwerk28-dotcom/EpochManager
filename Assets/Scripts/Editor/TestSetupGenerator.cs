@@ -194,12 +194,12 @@ namespace EpochCity
             var residential = GetOrCreate<ZoneDefinition>("Zone_Wohnen");
             residential.displayName = "Wohnzone";
             residential.tilePrefab =
-                CreatePrefab("Prefab_Zone_Wohnen", Vector2Int.one, 0.02f, new Color(0.45f, 0.72f, 0.4f), 0.96f);
+                CreatePrefab("Prefab_Zone_Wohnen", Vector2Int.one, 0.02f, new Color(0.62f, 0.95f, 0.45f, 0.4f), 0.92f, true);
 
             var commercial = GetOrCreate<ZoneDefinition>("Zone_Gewerbe");
             commercial.displayName = "Gewerbezone";
             commercial.tilePrefab =
-                CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.38f, 0.55f, 0.85f), 0.96f);
+                CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.40f, 0.62f, 1f, 0.45f), 0.92f, true);
 
             var food = GetOrCreate<NeedDefinition>("Need_Nahrung");
             food.displayName = "Nahrung";
@@ -302,8 +302,9 @@ namespace EpochCity
         /// Platzhalter-Prefab: ein Quader, der die Grundfläche ausfüllt. Der Ursprung liegt
         /// unten mittig, weil CityController das Prefab in die Mitte der Grundfläche setzt.
         /// </summary>
+        /// <param name="transparent">Für Anzeigen wie Zonen: halbtransparent (Alpha aus der Farbe), ohne Schatten.</param>
         private static GameObject CreatePrefab(string name, Vector2Int size, float height, Color color,
-            float footprint = 0.9f)
+            float footprint = 0.9f, bool transparent = false)
         {
             const float cellSize = 2f; // Standardwert von CityController.cellSize
 
@@ -318,6 +319,7 @@ namespace EpochCity
             else material.color = color;
             // Matte Oberflächen passen zum stilisierten Look; der Standardwert glänzt im Sonnenlicht zu stark
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.15f);
+            if (transparent) MaterialUtil.SetTransparent(material);
             EditorUtility.SetDirty(material);
 
             var root = new GameObject(name);
@@ -328,6 +330,11 @@ namespace EpochCity
                 new Vector3(size.x * cellSize * footprint, height, size.y * cellSize * footprint);
             body.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
             body.GetComponent<Renderer>().sharedMaterial = material;
+            if (transparent)
+            {
+                body.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                Object.DestroyImmediate(body.GetComponent<Collider>());
+            }
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{Root}/{name}.prefab");
             Object.DestroyImmediate(root);
