@@ -521,6 +521,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1216388726}
   - component: {fileID: 1216388725}
+  - component: {fileID: 1216388727}
   m_Layer: 0
   m_Name: BuildingPlacer
   m_TagString: Untagged
@@ -547,6 +548,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 17dc914a28d30dc4dbfdea7b189c31bd, type: 2}
   - {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
   - {fileID: 11400000, guid: 2862c34a54bc6a54eaf19a1d72aaef60, type: 2}
+  - {fileID: 11400000, guid: 911b3c535dfd3894180a58eee9d20787, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
   invalidColor: {r: 1, g: 0.35, b: 0.35, a: 1}
@@ -565,6 +567,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1216388727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1216388724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81ea1d19c45bb8747a245a19a35813f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ConnectionOverlay
+  city: {fileID: 440537052}
+  goodColor: {r: 0.25, g: 0.8, b: 0.3, a: 1}
+  mediumColor: {r: 0.95, g: 0.85, b: 0.2, a: 1}
+  badColor: {r: 0.9, g: 0.2, b: 0.2, a: 1}
 --- !u!1 &1598712634
 GameObject:
   m_ObjectHideFlags: 0
@@ -842,6 +860,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.CityHud
   city: {fileID: 440537052}
   placer: {fileID: 1216388725}
+  overlay: {fileID: 1216388727}
   panelColor: {r: 0.08, g: 0.09, b: 0.12, a: 0.88}
   buttonColor: {r: 0.22, g: 0.25, b: 0.32, a: 1}
   selectedColor: {r: 0.25, g: 0.55, b: 0.35, a: 1}

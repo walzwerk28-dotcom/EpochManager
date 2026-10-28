@@ -14,6 +14,7 @@ namespace EpochCity
         [Header("Referenzen")]
         [SerializeField] private CityController city;
         [SerializeField] private BuildingPlacer placer;
+        [SerializeField] private ConnectionOverlay overlay;
 
         [Header("Aussehen")]
         [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.88f);
@@ -27,6 +28,7 @@ namespace EpochCity
         private TextMeshProUGUI moneyText;
         private UnityEngine.UI.Image demolishImage;
         private UnityEngine.UI.Image roadImage;
+        private UnityEngine.UI.Image overlayImage;
         private TextMeshProUGUI hoverText;
         private string lastHover;
         private readonly List<BuildingDefinition> buttonDefs = new List<BuildingDefinition>();
@@ -71,6 +73,7 @@ namespace EpochCity
             }
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
             if (roadImage != null) roadImage.color = placer.RoadMode ? selectedColor : buttonColor;
+            if (overlayImage != null) overlayImage.color = overlay.Visible ? selectedColor : buttonColor;
 
             string hover = GetHoverInfo();
             if (hover != lastHover)
@@ -153,9 +156,16 @@ namespace EpochCity
                 22f, buttonColor, textColor, () => { if (placer != null) placer.ToggleDemolish(); });
             demolishImage = (UnityEngine.UI.Image)demolish.targetGraphic;
 
+            if (overlay != null)
+            {
+                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "C  Anbindung", new Vector2(150f, 88f),
+                    22f, buttonColor, textColor, () => overlay.Toggle());
+                overlayImage = (UnityEngine.UI.Image)overlayButton.targetGraphic;
+            }
+
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, 166f);
             CreateBottomLine(canvas, "Hint",
-                "1-9: bauen  |  R: Straße ziehen  |  X: abreißen  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                "1-9: bauen  |  R: Straße ziehen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
                 20f, new Color(1f, 1f, 1f, 0.75f), 130f);
         }
 

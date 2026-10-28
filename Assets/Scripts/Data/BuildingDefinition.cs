@@ -30,6 +30,24 @@ namespace EpochCity
         [Header("Schichten durch Technologien")]
         public BuildingLayer[] layers;
 
+        [Header("Lager (nur Kategorie Storage)")]
+        [Tooltip("Einzugsweite über das Straßennetz, in Straßenfeldern (bessere Straßen zählen kürzer)")]
+        [Min(1f)] public float catchmentRange = 20f;
+        [Tooltip("Effizienz über die Entfernung: x = 0 am Lager bis 1 an der Einzugsgrenze, y = Effizienz")]
+        public AnimationCurve efficiencyByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.25f);
+        [Tooltip("Mindestwert, solange ein Gebäude über Straßen mit dem Lager verbunden ist")]
+        [Range(0f, 1f)] public float minEfficiency = 0.25f;
+
+        /// <summary>Effizienz eines Gebäudes in dieser Entfernung zu diesem Lager.</summary>
+        public float EvaluateStorageEfficiency(float distance)
+        {
+            if (distance > catchmentRange) return minEfficiency;
+            float e = efficiencyByDistance != null && efficiencyByDistance.length > 0
+                ? efficiencyByDistance.Evaluate(distance / catchmentRange)
+                : 1f;
+            return Mathf.Clamp(e, minEfficiency, 1f);
+        }
+
         /// <summary>Gesamt-Multiplikator aller freigeschalteten Schichten.</summary>
         public float GetOutputMultiplier(HashSet<TechnologyDefinition> unlocked)
         {

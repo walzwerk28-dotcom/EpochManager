@@ -8,7 +8,8 @@ namespace EpochCity
     /// Legt einen kleinen Testaufbau als Assets an: Epoche Antike, Münzen, Weizen und Forschung,
     /// Feld, Markt und Bibliothek sowie die Technologien Bewässerung (Feld x1,5), Schrift und
     /// Münzprägung (setzt Schrift voraus, Markt x1,25). Dazu das Mittelalter (2 der 3 Technologien
-    /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche und die Straße Trampelpfad.
+    /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche, die Straße Trampelpfad
+    /// und das Lager (Einzugsweite 20 Straßenfelder, Effizienz fällt linear von 100 % auf 25 %).
     /// Mehrfaches Ausführen überschreibt die Werte, erzeugt aber keine Duplikate.
     /// </summary>
     public static class TestSetupGenerator
@@ -173,9 +174,24 @@ namespace EpochCity
             // Füllt das Feld ganz aus, damit die Straße ohne Lücken durchläuft
             path.prefab = CreatePrefab("Prefab_Trampelpfad", Vector2Int.one, 0.05f, new Color(0.55f, 0.45f, 0.32f), 1f);
 
+            var storage = GetOrCreate<BuildingDefinition>("Bld_Lager");
+            storage.displayName = "Lager";
+            storage.epoch = antike;
+            storage.category = BuildingCategory.Storage;
+            storage.size = new Vector2Int(2, 2);
+            storage.buildCost = 120f;
+            storage.upkeepPerMonth = 2f;
+            storage.baseCapacity = 0;
+            storage.baseFunctions = new BuildingFunction[0];
+            storage.layers = new BuildingLayer[0];
+            storage.catchmentRange = 20f;
+            storage.efficiencyByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.25f);
+            storage.minEfficiency = 0.25f;
+            storage.prefab = CreatePrefab("Prefab_Lager", storage.size, 1.5f, new Color(0.5f, 0.38f, 0.25f));
+
             foreach (var asset in new Object[]
                      { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
-                       field, market, library, mill, path })
+                       field, market, library, mill, path, storage })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
 

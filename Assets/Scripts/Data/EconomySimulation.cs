@@ -52,7 +52,10 @@ namespace EpochCity
 
                 if (functions.Count == 0) building.Status = "";
                 else if (efficiency <= 0f) building.Status = building.ConnectionIssue;
-                else building.Status = efficiency < 1f ? $"läuft ({efficiency * 100f:0} %)" : "läuft";
+                else if (efficiency >= 1f) building.Status = "läuft";
+                else if (string.IsNullOrEmpty(building.ConnectionIssue))
+                    building.Status = $"läuft ({efficiency * 100f:0} %)";
+                else building.Status = $"läuft ({efficiency * 100f:0} %, {building.ConnectionIssue})";
 
                 // Ohne Anbindung steht das Gebäude still, auch wenn ein Zyklus schon voll ist
                 if (efficiency <= 0f) continue;

@@ -156,18 +156,19 @@ namespace EpochCity
             return true;
         }
 
+        /// <summary>Anbindungswerte über das Straßennetz, auch je Straßenfeld (für das Overlay).</summary>
+        public ConnectionMap Connections { get; } = new ConnectionMap();
+
+        /// <summary>Platzierte Straßenfelder und ihre Darstellung.</summary>
+        public IReadOnlyDictionary<Vector2Int, GameObject> RoadViews => roadViews;
+
         /// <summary>
         /// Anschluss aller Gebäude neu berechnen. Läuft nur, wenn sich Straßen oder Gebäude ändern,
-        /// nicht in jedem Simulationsschritt. Vorerst zählt nur, ob eine Straße angrenzt.
+        /// nicht in jedem Simulationsschritt.
         /// </summary>
         public void RefreshConnections()
         {
-            foreach (var b in Buildings)
-            {
-                bool connected = Grid.TouchesRoad(b);
-                b.Connection = connected ? 1f : 0f;
-                b.ConnectionIssue = connected ? "" : "keine Straße";
-            }
+            Connections.Recalculate(Grid, Buildings);
             ConnectionsChanged?.Invoke();
         }
 
