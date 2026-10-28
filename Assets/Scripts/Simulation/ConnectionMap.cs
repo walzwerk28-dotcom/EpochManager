@@ -91,8 +91,11 @@ namespace EpochCity
             }
         }
 
-        /// <summary>Dijkstra über Straßenfelder; Startfelder haben die Entfernung 0.</summary>
-        private static Dictionary<Vector2Int, float> ShortestDistances(GridMap grid, IEnumerable<Vector2Int> starts)
+        /// <summary>
+        /// Dijkstra über Straßenfelder; Startfelder haben die Entfernung 0. Bessere Straßen zählen kürzer.
+        /// Auch für die Reichweite von Diensten genutzt.
+        /// </summary>
+        public static Dictionary<Vector2Int, float> ShortestDistances(GridMap grid, IEnumerable<Vector2Int> starts)
         {
             var dist = new Dictionary<Vector2Int, float>();
             var open = new SortedSet<(float d, int x, int y)>();

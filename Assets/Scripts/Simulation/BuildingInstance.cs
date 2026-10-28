@@ -23,6 +23,15 @@ namespace EpochCity
         /// <summary>Grund für fehlende oder schwache Anbindung, z. B. "keine Straße".</summary>
         public string ConnectionIssue { get; set; } = "";
 
+        /// <summary>Nur Wohngebäude: aktuelle Einwohner.</summary>
+        public int Residents { get; set; }
+
+        /// <summary>Nur Wohngebäude: Zufriedenheit von 0 bis 1, einmal pro Spielmonat berechnet.</summary>
+        public float Satisfaction { get; set; }
+
+        /// <summary>Nur Wohngebäude: schlecht erfüllte Bedürfnisse, z. B. "Markt, Nahrung".</summary>
+        public string MissingNeeds { get; set; } = "";
+
         /// <summary>Denkmalschutz: lässt sich nicht abreißen, bringt Kultur und Tourismus.</summary>
         public bool IsProtected { get; set; }
 

@@ -14,6 +14,7 @@ namespace EpochCity
         [SerializeField] private CityController city;
         [SerializeField] private GameClock clock;
         [SerializeField] private EconomySimulation economy;
+        [SerializeField] private PopulationSimulation population;
 
         [Header("Aussehen")]
         [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.88f);
@@ -47,7 +48,15 @@ namespace EpochCity
             builder.AppendLine(clock.DateString);
             if (economy != null)
                 builder.AppendLine($"Letzter Monat: +{economy.LastMonthIncome:0} / -{economy.LastMonthUpkeep:0}");
-            builder.AppendLine($"Wohnplätze: {city.HousingCapacity}");
+            if (population != null)
+            {
+                builder.AppendLine($"Einwohner: {population.TotalResidents} / {city.HousingCapacity}");
+                builder.AppendLine($"Zufriedenheit: {population.AverageSatisfaction * 100f:0} %");
+            }
+            else
+            {
+                builder.AppendLine($"Wohnplätze: {city.HousingCapacity}");
+            }
             builder.AppendLine();
             builder.AppendLine("Vorrat:");
 

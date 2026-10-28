@@ -11,6 +11,7 @@ namespace EpochCity
     /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche, die Straße Trampelpfad
     /// und das Lager (Einzugsweite 20 Straßenfelder, Effizienz fällt linear von 100 % auf 25 %)
     /// sowie die Zonen Wohnen und Gewerbe mit Wohnhaus und Laden (Antike) und Fachwerkhaus (Mittelalter).
+    /// Bevölkerungsstufe 1 (Bauern) mit den Bedürfnissen Nahrung (Weizen, Gewicht 2) und Markt (Gewicht 1).
     /// Mehrfaches Ausführen überschreibt die Werte, erzeugt aber keine Duplikate.
     /// </summary>
     public static class TestSetupGenerator
@@ -200,6 +201,38 @@ namespace EpochCity
             commercial.tilePrefab =
                 CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.38f, 0.55f, 0.85f), 0.96f);
 
+            var food = GetOrCreate<NeedDefinition>("Need_Nahrung");
+            food.displayName = "Nahrung";
+            food.epoch = antike;
+            food.pyramidLevel = 1;
+            food.weight = 2f;
+            food.kind = NeedKind.Goods;
+            food.resource = wheat;
+            food.amountPerResidentPerMonth = 0.5f;
+            food.providers = new BuildingDefinition[0];
+
+            var marketNeed = GetOrCreate<NeedDefinition>("Need_Markt");
+            marketNeed.displayName = "Markt";
+            marketNeed.epoch = antike;
+            marketNeed.pyramidLevel = 3;
+            marketNeed.weight = 1f;
+            marketNeed.kind = NeedKind.Service;
+            marketNeed.resource = null;
+            marketNeed.providers = new[] { market };
+            marketNeed.range = 15f;
+            marketNeed.coverageByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.2f);
+
+            var farmers = GetOrCreate<PopulationTierDefinition>("Tier_1");
+            farmers.tier = 1;
+            farmers.displayName = "Bauern";
+            farmers.namesByEpoch = new[]
+            {
+                new EpochName { epoch = antike, name = "Bauern" },
+                new EpochName { epoch = mittelalter, name = "Leibeigene und Bauern" }
+            };
+            farmers.needs = new[] { food, marketNeed };
+            farmers.taxPerResidentPerMonth = 1f;
+
             var house = CreateZoneBuilding("Bld_Wohnhaus", "Wohnhaus", antike, BuildingCategory.Housing, residential,
                 6, new BuildingFunction[0], 1f, new Color(0.85f, 0.8f, 0.7f));
 
@@ -219,10 +252,13 @@ namespace EpochCity
             var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
                 BuildingCategory.Housing, residential, 10, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f));
 
+            house.populationTier = farmers;
+            timberHouse.populationTier = farmers;
+
             foreach (var asset in new Object[]
                      { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
                        field, market, library, mill, path, storage, residential, commercial,
-                       house, shop, timberHouse })
+                       house, shop, timberHouse, food, marketNeed, farmers })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
 

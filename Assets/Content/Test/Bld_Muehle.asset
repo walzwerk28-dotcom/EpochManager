@@ -18,6 +18,7 @@ MonoBehaviour:
   prefab: {fileID: 4917071075688941662, guid: 3e63add51c01a674d8e21c3995f1abde, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
+  populationTier: {fileID: 0}
   buildCost: 300
   upkeepPerMonth: 5
   baseCapacity: 0

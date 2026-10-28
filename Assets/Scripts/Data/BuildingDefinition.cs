@@ -19,6 +19,8 @@ namespace EpochCity
         public Vector2Int size = Vector2Int.one;
         [Tooltip("Zone, in der dieses Gebäude von selbst wächst. Leer = nur einzeln platzierbar.")]
         public ZoneDefinition zone;
+        [Tooltip("Nur Wohngebäude: Bevölkerungsstufe der Bewohner; Kapazität = Wohnplätze")]
+        public PopulationTierDefinition populationTier;
 
         [Header("Kosten")]
         public float buildCost = 100f;

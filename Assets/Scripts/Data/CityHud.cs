@@ -98,8 +98,17 @@ namespace EpochCity
             var building = city.Grid.GetAt(cell);
             if (building != null)
             {
+                var def = building.Definition;
+                string connection = $"Anbindung {building.Connection * 100f:0} %";
+                if (def.populationTier != null)
+                {
+                    string missing = string.IsNullOrEmpty(building.MissingNeeds) ? "" : $"  |  fehlt: {building.MissingNeeds}";
+                    return $"{def.displayName}  |  {building.Residents} / {def.GetCapacity(city.UnlockedTechnologies)} " +
+                           $"{def.populationTier.GetName(city.currentEpoch)}  |  Zufriedenheit {building.Satisfaction * 100f:0} %" +
+                           $"{missing}  |  {connection}";
+                }
                 string status = string.IsNullOrEmpty(building.Status) ? "" : $"  |  {building.Status}";
-                return $"{building.Definition.displayName}{status}  |  Anbindung {building.Connection * 100f:0} %";
+                return $"{def.displayName}{status}  |  {connection}";
             }
 
             var road = city.Grid.GetRoad(cell);
