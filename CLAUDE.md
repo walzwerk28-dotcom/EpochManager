@@ -57,6 +57,8 @@ Das ausführliche Game-Design-Dokument liegt als Doc in Claude (Titel: "Game-Des
 - Ordner weichen von der Struktur ab: `CityHud`, `SimulationHud` (Presentation) sowie `EconomySimulation`, `GameClock`, `ResourceStock` (Simulation) liegen noch unter `Data/`. Beim Verschieben die `.meta`-Dateien mitnehmen.
 
 ## Nächste Schritte (Vorschlag)
+**Priorität (entschieden):** Erst die Antike zu einem vollständigen, spielbaren Kern ausbauen, bevor weitere Epochen Inhalte bekommen. Das Mittelalter bleibt vorerst nur Testepoche für den Wechsel; neue Mechaniken werden zuerst mit Antike-Inhalten gebaut und geprüft.
+
 1. ~~Projekt kompilieren und mit einem Testaufbau prüfen~~ (erledigt, siehe Teststand).
 2. ~~Forschungssystem und Epochenwechsel mit Meilensteinen~~ (erledigt; Bevölkerungs-Meilensteine und Epochen-Boni folgen mit Schritt 3).
 3. Bevölkerung, Bedürfnisse, Zufriedenheit und Steuern.
