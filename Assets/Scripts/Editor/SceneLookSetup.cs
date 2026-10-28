@@ -9,7 +9,7 @@ namespace EpochCity
 {
     /// <summary>
     /// Richtet Boden, Horizont, Licht und Post-Processing der offenen Szene ein (stilisierter, warmer Look)
-    /// sowie das Bau-Raster und die Kartengrenze (GridOverlay).
+    /// sowie das Bau-Raster und die Kartengrenze (GridOverlay) und die verbundenen Straßenstücke (RoadVisuals).
     /// Erzeugte Assets liegen unter Assets/Content/Look/. Mehrfaches Ausführen überschreibt nur die Werte.
     /// </summary>
     public static class SceneLookSetup
@@ -35,6 +35,7 @@ namespace EpochCity
             SetupShadows();
             SetupPostProcessing();
             SetupGridOverlay();
+            SetupRoadVisuals();
 
             AssetDatabase.SaveAssets();
             var scene = EditorSceneManager.GetActiveScene();
@@ -229,6 +230,20 @@ namespace EpochCity
             so.FindProperty("placer").objectReferenceValue = Object.FindAnyObjectByType<BuildingPlacer>();
             so.FindProperty("gridMaterial").objectReferenceValue = grid;
             so.FindProperty("borderMaterial").objectReferenceValue = border;
+            so.ApplyModifiedProperties();
+        }
+
+        /// <summary>Straßenstücke verbinden sich automatisch mit ihren Nachbarn (RoadVisuals).</summary>
+        private static void SetupRoadVisuals()
+        {
+            var go = GameObject.Find("RoadVisuals");
+            if (go == null) go = new GameObject("RoadVisuals");
+            var visuals = go.GetComponent<RoadVisuals>();
+            if (visuals == null) visuals = go.AddComponent<RoadVisuals>();
+
+            var so = new SerializedObject(visuals);
+            so.FindProperty("city").objectReferenceValue = Object.FindAnyObjectByType<CityController>();
+            so.FindProperty("edgeWidth").floatValue = 0.22f;
             so.ApplyModifiedProperties();
         }
 

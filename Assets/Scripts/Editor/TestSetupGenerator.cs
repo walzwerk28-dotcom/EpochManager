@@ -173,8 +173,9 @@ namespace EpochCity
             path.costPerCell = 5f;
             path.upkeepPerCellPerMonth = 0.1f;
             path.quality = 1f;
-            // Füllt das Feld ganz aus, damit die Straße ohne Lücken durchläuft
-            path.prefab = CreatePrefab("Prefab_Trampelpfad", Vector2Int.one, 0.05f, new Color(0.55f, 0.45f, 0.32f), 1f);
+            path.visualWidth = 1.3f;
+            path.prefab = CreateRoadPrefab("Prefab_Trampelpfad",
+                new Color(0.66f, 0.56f, 0.41f), new Color(0.38f, 0.31f, 0.22f));
 
             var storage = GetOrCreate<BuildingDefinition>("Bld_Lager");
             storage.displayName = "Lager";
@@ -265,6 +266,52 @@ namespace EpochCity
             AssetDatabase.SaveAssets();
 
             Debug.Log($"Testaufbau erzeugt unter {Root}.");
+        }
+
+        /// <summary>
+        /// Straßen-Prefab für RoadVisuals: ein MeshFilter mit Fahrbahn- und Randmaterial. Das gespeicherte Mesh
+        /// ist nur die Vorschau beim Ziehen (ein volles Feld); im Spiel setzt RoadVisuals das passende Stück.
+        /// </summary>
+        private static GameObject CreateRoadPrefab(string name, Color surfaceColor, Color edgeColor)
+        {
+            const float cellSize = 2f; // Standardwert von CityController.cellSize
+
+            string meshPath = $"{Root}/Mesh_{name}_Vorschau.asset";
+            if (AssetDatabase.LoadAssetAtPath<Mesh>(meshPath) != null) AssetDatabase.DeleteAsset(meshPath);
+            var previewMesh = RoadMeshBuilder.Build(RoadMeshBuilder.East | RoadMeshBuilder.West |
+                                                    RoadMeshBuilder.North | RoadMeshBuilder.South,
+                cellSize, cellSize * 0.95f, 0f);
+            AssetDatabase.CreateAsset(previewMesh, meshPath);
+
+            var surface = CreateMatteMaterial($"Mat_{name}", surfaceColor);
+            var edge = CreateMatteMaterial($"Mat_{name}_Rand", edgeColor);
+
+            var root = new GameObject(name);
+            var body = new GameObject("Surface", typeof(MeshFilter), typeof(MeshRenderer));
+            body.transform.SetParent(root.transform, false);
+            body.GetComponent<MeshFilter>().sharedMesh = previewMesh;
+            var renderer = body.GetComponent<MeshRenderer>();
+            renderer.sharedMaterials = new[] { surface, edge };
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{Root}/{name}.prefab");
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static Material CreateMatteMaterial(string name, Color color)
+        {
+            string path = $"{Root}/{name}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.SetColor("_BaseColor", color);
+            material.SetFloat("_Smoothness", 0.15f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         /// <summary>Zonengebäude: 1 × 1, kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>

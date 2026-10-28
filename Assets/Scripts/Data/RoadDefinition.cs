@@ -10,6 +10,8 @@ namespace EpochCity
         public EpochDefinition epoch;
         [Tooltip("Platzhalter oder Modell für genau ein Rasterfeld")]
         public GameObject prefab;
+        [Tooltip("Breite der Fahrbahn in Metern; Stücke verbinden sich automatisch mit den Nachbarfeldern")]
+        [Min(0.1f)] public float visualWidth = 1.3f;
 
         [Header("Kosten")]
         [Min(0f)] public float costPerCell = 5f;

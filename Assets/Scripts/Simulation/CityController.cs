@@ -149,6 +149,9 @@ namespace EpochCity
         /// <summary>Wird ausgelöst, nachdem der Anschluss aller Gebäude neu berechnet wurde.</summary>
         public event Action ConnectionsChanged;
 
+        /// <summary>Wird mit den gebauten oder entfernten Straßenfeldern ausgelöst (für die Darstellung).</summary>
+        public event Action<IReadOnlyList<Vector2Int>> RoadsChanged;
+
         private readonly Dictionary<Vector2Int, GameObject> roadViews = new Dictionary<Vector2Int, GameObject>();
 
         /// <summary>
@@ -173,6 +176,7 @@ namespace EpochCity
             if (!CanBuildRoad(road, path, out float cost)) return false;
 
             Money -= cost;
+            var built = new List<Vector2Int>();
             foreach (var c in path)
             {
                 if (Grid.HasRoad(c)) continue;
@@ -182,8 +186,10 @@ namespace EpochCity
                 if (road.prefab != null)
                     roadViews[c] = Instantiate(road.prefab, Grid.CellCenterToWorld(c, transform.position),
                         Quaternion.identity, transform);
+                built.Add(c);
             }
             RefreshConnections();
+            if (built.Count > 0) RoadsChanged?.Invoke(built);
             return true;
         }
 
@@ -200,6 +206,7 @@ namespace EpochCity
                 roadViews.Remove(cell);
             }
             RefreshConnections();
+            RoadsChanged?.Invoke(new[] { cell });
             return true;
         }
 
