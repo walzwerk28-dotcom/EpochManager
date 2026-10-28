@@ -550,6 +550,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2862c34a54bc6a54eaf19a1d72aaef60, type: 2}
   - {fileID: 11400000, guid: 911b3c535dfd3894180a58eee9d20787, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
+  residentialZone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
+  commercialZone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
   invalidColor: {r: 1, g: 0.35, b: 0.35, a: 1}
 --- !u!4 &1216388726

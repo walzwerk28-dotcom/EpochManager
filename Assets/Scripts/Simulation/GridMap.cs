@@ -12,6 +12,8 @@ namespace EpochCity
 
         private readonly BuildingInstance[,] cells;
         private readonly RoadDefinition[,] roads;
+        private readonly ZoneDefinition[,] zones;
+        private readonly HashSet<Vector2Int> zonedCells = new HashSet<Vector2Int>();
 
         private static readonly Vector2Int[] Neighbours =
             { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
@@ -23,6 +25,7 @@ namespace EpochCity
             CellSize = cellSize;
             cells = new BuildingInstance[width, height];
             roads = new RoadDefinition[width, height];
+            zones = new ZoneDefinition[width, height];
         }
 
         public bool InBounds(Vector2Int c) => c.x >= 0 && c.y >= 0 && c.x < Width && c.y < Height;
@@ -110,6 +113,35 @@ namespace EpochCity
             for (int y = from.y + stepY; y != to.y + stepY; y += stepY)
                 path.Add(new Vector2Int(to.x, y));
             return path;
+        }
+
+        // ---------------------------------------------------------------- Zonen
+
+        public ZoneDefinition GetZone(Vector2Int c) => InBounds(c) ? zones[c.x, c.y] : null;
+
+        /// <summary>Alle Felder mit Zone (auch bebaute), damit nicht das ganze Raster durchsucht werden muss.</summary>
+        public IReadOnlyCollection<Vector2Int> ZonedCells => zonedCells;
+
+        /// <summary>Auf diesem Feld darf eine Zone angelegt werden (im Raster, frei von Gebäude und Straße).</summary>
+        public bool CanZone(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null && roads[c.x, c.y] == null;
+
+        /// <summary>Setzt oder entfernt (null) die Zone eines Felds.</summary>
+        public void SetZone(Vector2Int c, ZoneDefinition zone)
+        {
+            if (!InBounds(c)) return;
+            zones[c.x, c.y] = zone;
+            if (zone != null) zonedCells.Add(c);
+            else zonedCells.Remove(c);
+        }
+
+        /// <summary>Alle Felder im Rechteck zwischen zwei Ecken (beide eingeschlossen).</summary>
+        public static List<Vector2Int> RectCells(Vector2Int a, Vector2Int b)
+        {
+            var list = new List<Vector2Int>();
+            for (int x = Mathf.Min(a.x, b.x); x <= Mathf.Max(a.x, b.x); x++)
+                for (int y = Mathf.Min(a.y, b.y); y <= Mathf.Max(a.y, b.y); y++)
+                    list.Add(new Vector2Int(x, y));
+            return list;
         }
 
         // ---------------------------------------------------------------- Umrechnung

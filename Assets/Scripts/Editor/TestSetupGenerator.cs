@@ -9,7 +9,8 @@ namespace EpochCity
     /// Feld, Markt und Bibliothek sowie die Technologien Bewässerung (Feld x1,5), Schrift und
     /// Münzprägung (setzt Schrift voraus, Markt x1,25). Dazu das Mittelalter (2 der 3 Technologien
     /// und eine Bibliothek nötig) mit der Mühle als erstem Gebäude der neuen Epoche, die Straße Trampelpfad
-    /// und das Lager (Einzugsweite 20 Straßenfelder, Effizienz fällt linear von 100 % auf 25 %).
+    /// und das Lager (Einzugsweite 20 Straßenfelder, Effizienz fällt linear von 100 % auf 25 %)
+    /// sowie die Zonen Wohnen und Gewerbe.
     /// Mehrfaches Ausführen überschreibt die Werte, erzeugt aber keine Duplikate.
     /// </summary>
     public static class TestSetupGenerator
@@ -189,9 +190,19 @@ namespace EpochCity
             storage.minEfficiency = 0.25f;
             storage.prefab = CreatePrefab("Prefab_Lager", storage.size, 1.5f, new Color(0.5f, 0.38f, 0.25f));
 
+            var residential = GetOrCreate<ZoneDefinition>("Zone_Wohnen");
+            residential.displayName = "Wohnzone";
+            residential.tilePrefab =
+                CreatePrefab("Prefab_Zone_Wohnen", Vector2Int.one, 0.02f, new Color(0.45f, 0.72f, 0.4f), 0.96f);
+
+            var commercial = GetOrCreate<ZoneDefinition>("Zone_Gewerbe");
+            commercial.displayName = "Gewerbezone";
+            commercial.tilePrefab =
+                CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.38f, 0.55f, 0.85f), 0.96f);
+
             foreach (var asset in new Object[]
                      { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
-                       field, market, library, mill, path, storage })
+                       field, market, library, mill, path, storage, residential, commercial })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
 

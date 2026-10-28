@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afdcce9be4018704bba9ac079f0c454e, type: 3}
+  m_Name: Zone_Wohnen
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneDefinition
+  displayName: Wohnzone
+  tilePrefab: {fileID: 328253906637148315, guid: 6b1510f06e6f83f4490ab60c8c882cce, type: 3}

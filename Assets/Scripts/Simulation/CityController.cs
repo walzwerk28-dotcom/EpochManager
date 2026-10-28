@@ -67,6 +67,13 @@ namespace EpochCity
 
             Money -= def.buildCost;
             placed = new BuildingInstance(def, origin, currentEpoch);
+
+            // Ein einzeln gesetztes Gebäude verdrängt die Zone unter sich; Zonengebäude behalten sie
+            if (def.zone == null)
+                for (int x = 0; x < def.size.x; x++)
+                    for (int y = 0; y < def.size.y; y++)
+                        ClearZone(new Vector2Int(origin.x + x, origin.y + y));
+
             Grid.Place(placed);
             Buildings.Add(placed);
 
@@ -130,6 +137,7 @@ namespace EpochCity
             foreach (var c in path)
             {
                 if (Grid.HasRoad(c)) continue;
+                ClearZone(c); // Straßen verdrängen Zonen
                 Grid.SetRoad(c, road);
                 RoadUpkeepPerMonth += road.upkeepPerCellPerMonth;
                 if (road.prefab != null)
@@ -153,6 +161,52 @@ namespace EpochCity
                 roadViews.Remove(cell);
             }
             RefreshConnections();
+            return true;
+        }
+
+        // ---------------------------------------------------------------- Zonen
+
+        /// <summary>Wird ausgelöst, nachdem Zonen gesetzt oder entfernt wurden.</summary>
+        public event Action ZonesChanged;
+
+        private readonly Dictionary<Vector2Int, GameObject> zoneViews = new Dictionary<Vector2Int, GameObject>();
+
+        /// <summary>
+        /// Setzt die Zone auf allen freien Feldern; mit zone = null wird sie entfernt (auch unter Gebäuden,
+        /// die stehen bleiben). Zonen kosten nichts. Gibt die Anzahl der geänderten Felder zurück.
+        /// </summary>
+        public int SetZone(ZoneDefinition zone, IEnumerable<Vector2Int> cells)
+        {
+            int changed = 0;
+            foreach (var c in cells)
+            {
+                if (zone == null)
+                {
+                    if (ClearZone(c)) changed++;
+                    continue;
+                }
+                if (!Grid.CanZone(c) || Grid.GetZone(c) == zone) continue;
+
+                ClearZone(c);
+                Grid.SetZone(c, zone);
+                if (zone.tilePrefab != null)
+                    zoneViews[c] = Instantiate(zone.tilePrefab, Grid.CellCenterToWorld(c, transform.position),
+                        Quaternion.identity, transform);
+                changed++;
+            }
+            if (changed > 0) ZonesChanged?.Invoke();
+            return changed;
+        }
+
+        private bool ClearZone(Vector2Int c)
+        {
+            if (Grid.GetZone(c) == null) return false;
+            Grid.SetZone(c, null);
+            if (zoneViews.TryGetValue(c, out var view))
+            {
+                Destroy(view);
+                zoneViews.Remove(c);
+            }
             return true;
         }
 

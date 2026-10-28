@@ -17,6 +17,8 @@ namespace EpochCity
         public GameObject prefab;
         [Tooltip("Größe auf dem Raster in Zellen")]
         public Vector2Int size = Vector2Int.one;
+        [Tooltip("Zone, in der dieses Gebäude von selbst wächst. Leer = nur einzeln platzierbar.")]
+        public ZoneDefinition zone;
 
         [Header("Kosten")]
         public float buildCost = 100f;

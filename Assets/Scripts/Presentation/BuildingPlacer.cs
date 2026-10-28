@@ -9,6 +9,7 @@ namespace EpochCity
     /// Platzieren und Abreißen per Maus (neues Input System).
     /// 1-9: Gebäude aus der Liste wählen · R: Straße · Linksklick: bauen / abreißen
     /// Straße: Maustaste halten und ziehen, die Strecke folgt dem Raster in L-Form
+    /// Z / G: Wohn- / Gewerbezone, U: Zone aufheben – jeweils ein Rechteck ziehen
     /// Rechtsklick oder Esc: Auswahl aufheben · X: Abriss-Modus an/aus (Gebäude und Straßen)
     /// </summary>
     public class BuildingPlacer : MonoBehaviour
@@ -19,6 +20,12 @@ namespace EpochCity
         public BuildingDefinition[] hotbar;
         [Tooltip("Straße, die mit R gewählt wird")]
         public RoadDefinition road;
+
+        [Header("Zonen")]
+        [Tooltip("Zone für Taste Z")]
+        public ZoneDefinition residentialZone;
+        [Tooltip("Zone für Taste G")]
+        public ZoneDefinition commercialZone;
 
         public Color validColor = new Color(0.4f, 1f, 0.4f, 1f);
         public Color invalidColor = new Color(1f, 0.35f, 0.35f, 1f);
@@ -31,9 +38,12 @@ namespace EpochCity
         private Vector2Int hoverCell;
         private bool hasHover;
 
-        // Straßenvorschau: ein Platzhalter pro Feld der Strecke, wiederverwendet
-        private readonly List<GameObject> roadGhosts = new List<GameObject>();
-        private readonly List<Renderer[]> roadGhostRenderers = new List<Renderer[]>();
+        private bool zoneMode;
+        private ZoneDefinition selectedZone; // im Zonenmodus: null = Zone aufheben
+
+        // Vorschau beim Ziehen: ein Platzhalter pro Feld, wiederverwendet
+        private readonly CellGhostPool roadGhosts = new CellGhostPool();
+        private readonly CellGhostPool zoneGhosts = new CellGhostPool();
         private bool dragging;
         private Vector2Int dragStart;
 
@@ -58,6 +68,8 @@ namespace EpochCity
                 HandleDemolish(mouse, overUi);
             else if (roadMode)
                 HandleRoad(mouse, overUi);
+            else if (zoneMode)
+                HandleZone(mouse, overUi);
             else
                 HandlePlacement(mouse, overUi);
 
@@ -77,6 +89,9 @@ namespace EpochCity
             if (kb.escapeKey.wasPressedThisFrame) ClearSelection();
             if (kb.xKey.wasPressedThisFrame) ToggleDemolish();
             if (kb.rKey.wasPressedThisFrame) SelectRoad();
+            if (kb.zKey.wasPressedThisFrame && residentialZone != null) SelectZone(residentialZone);
+            if (kb.gKey.wasPressedThisFrame && commercialZone != null) SelectZone(commercialZone);
+            if (kb.uKey.wasPressedThisFrame) SelectZone(null);
         }
 
         private void HandlePlacement(Mouse mouse, bool overUi)
@@ -111,18 +126,49 @@ namespace EpochCity
 
             if (!hasHover && !dragging)
             {
-                ShowRoadGhosts(null, false);
+                roadGhosts.Hide();
                 return;
             }
 
             var path = dragging ? GridMap.LPath(dragStart, hoverCell) : new List<Vector2Int> { hoverCell };
             bool canBuild = city.CanBuildRoad(road, path, out _);
-            ShowRoadGhosts(path, canBuild);
+            roadGhosts.Show(city, road.prefab, path, _ => canBuild, validColor, invalidColor);
 
             if (dragging && mouse.leftButton.wasReleasedThisFrame)
             {
                 dragging = false;
                 city.TryBuildRoad(road, path);
+            }
+        }
+
+        private void HandleZone(Mouse mouse, bool overUi)
+        {
+            if (!dragging && !overUi && hasHover && mouse.leftButton.wasPressedThisFrame)
+            {
+                dragging = true;
+                dragStart = hoverCell;
+            }
+
+            if (!hasHover && !dragging)
+            {
+                zoneGhosts.Hide();
+                return;
+            }
+
+            var cells = dragging ? GridMap.RectCells(dragStart, hoverCell) : new List<Vector2Int> { hoverCell };
+
+            // Grün: Feld wird geändert, Rot: Feld bleibt, wie es ist
+            var previewZone = selectedZone != null ? selectedZone : residentialZone;
+            var prefab = previewZone != null ? previewZone.tilePrefab : null;
+            zoneGhosts.Show(city, prefab, cells, c => selectedZone == null
+                    ? city.Grid.GetZone(c) != null
+                    : city.Grid.CanZone(c) && city.Grid.GetZone(c) != selectedZone,
+                validColor, invalidColor);
+
+            if (dragging && mouse.leftButton.wasReleasedThisFrame)
+            {
+                dragging = false;
+                city.SetZone(selectedZone, cells);
             }
         }
 
@@ -159,6 +205,11 @@ namespace EpochCity
         /// <summary>Ist der Straßenbau aktiv?</summary>
         public bool RoadMode => roadMode;
 
+        /// <summary>Ist der Zonenmodus aktiv? SelectedZone null bedeutet dann: Zone aufheben.</summary>
+        public bool ZoneMode => zoneMode;
+
+        public ZoneDefinition SelectedZone => selectedZone;
+
         /// <summary>Zelle unter der Maus, falls sie im Raster liegt.</summary>
         public bool TryGetHover(out Vector2Int cell)
         {
@@ -179,6 +230,14 @@ namespace EpochCity
             roadMode = road != null;
         }
 
+        /// <summary>Zonenmodus; zone = null hebt Zonen auf.</summary>
+        public void SelectZone(ZoneDefinition zone)
+        {
+            ClearSelection();
+            zoneMode = true;
+            selectedZone = zone;
+        }
+
         public void Select(BuildingDefinition def)
         {
             ClearSelection();
@@ -194,9 +253,12 @@ namespace EpochCity
             selected = null;
             demolishMode = false;
             roadMode = false;
+            zoneMode = false;
+            selectedZone = null;
             dragging = false;
             DestroyGhost();
-            ShowRoadGhosts(null, false);
+            roadGhosts.Hide();
+            zoneGhosts.Hide();
         }
 
         private void DestroyGhost()
@@ -206,25 +268,52 @@ namespace EpochCity
             ghostRenderers = null;
         }
 
-        private void ShowRoadGhosts(List<Vector2Int> path, bool valid)
+        /// <summary>Vorschau-Platzhalter für einzelne Rasterfelder, wiederverwendet zwischen den Frames.</summary>
+        private class CellGhostPool
         {
-            int count = path != null && road != null && road.prefab != null ? path.Count : 0;
-            while (roadGhosts.Count < count)
+            private readonly List<GameObject> ghosts = new List<GameObject>();
+            private readonly List<Renderer[]> renderers = new List<Renderer[]>();
+            private GameObject prefab;
+
+            public void Show(CityController city, GameObject newPrefab, IReadOnlyList<Vector2Int> cells,
+                System.Func<Vector2Int, bool> isValid, Color valid, Color invalid)
             {
-                roadGhosts.Add(CreateGhost(road.prefab, out var renderers));
-                roadGhostRenderers.Add(renderers);
+                if (newPrefab != prefab)
+                {
+                    Clear();
+                    prefab = newPrefab;
+                }
+
+                int count = prefab != null && cells != null ? cells.Count : 0;
+                while (ghosts.Count < count)
+                {
+                    ghosts.Add(CreateGhost(prefab, out var r));
+                    renderers.Add(r);
+                }
+
+                for (int i = 0; i < ghosts.Count; i++)
+                {
+                    bool active = i < count;
+                    ghosts[i].SetActive(active);
+                    if (!active) continue;
+
+                    // Leicht angehoben, damit die Vorschau nicht mit Vorhandenem flimmert
+                    ghosts[i].transform.position =
+                        city.Grid.CellCenterToWorld(cells[i], city.transform.position) + Vector3.up * 0.03f;
+                    Tint(renderers[i], isValid(cells[i]) ? valid : invalid);
+                }
             }
 
-            for (int i = 0; i < roadGhosts.Count; i++)
+            public void Hide()
             {
-                bool active = i < count;
-                roadGhosts[i].SetActive(active);
-                if (!active) continue;
+                foreach (var g in ghosts) g.SetActive(false);
+            }
 
-                // Leicht angehoben, damit die Vorschau nicht mit vorhandenen Straßen flimmert
-                roadGhosts[i].transform.position =
-                    city.Grid.CellCenterToWorld(path[i], city.transform.position) + Vector3.up * 0.03f;
-                Tint(roadGhostRenderers[i], valid ? validColor : invalidColor);
+            private void Clear()
+            {
+                foreach (var g in ghosts) UnityEngine.Object.Destroy(g);
+                ghosts.Clear();
+                renderers.Clear();
             }
         }
 

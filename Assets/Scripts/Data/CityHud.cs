@@ -29,6 +29,9 @@ namespace EpochCity
         private UnityEngine.UI.Image demolishImage;
         private UnityEngine.UI.Image roadImage;
         private UnityEngine.UI.Image overlayImage;
+        private UnityEngine.UI.Image unzoneImage;
+        private readonly Dictionary<ZoneDefinition, UnityEngine.UI.Image> zoneButtons =
+            new Dictionary<ZoneDefinition, UnityEngine.UI.Image>();
         private TextMeshProUGUI hoverText;
         private string lastHover;
         private readonly List<BuildingDefinition> buttonDefs = new List<BuildingDefinition>();
@@ -74,6 +77,10 @@ namespace EpochCity
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
             if (roadImage != null) roadImage.color = placer.RoadMode ? selectedColor : buttonColor;
             if (overlayImage != null) overlayImage.color = overlay.Visible ? selectedColor : buttonColor;
+            foreach (var entry in zoneButtons)
+                entry.Value.color = placer.ZoneMode && placer.SelectedZone == entry.Key ? selectedColor : buttonColor;
+            if (unzoneImage != null)
+                unzoneImage.color = placer.ZoneMode && placer.SelectedZone == null ? demolishColor : buttonColor;
 
             string hover = GetHoverInfo();
             if (hover != lastHover)
@@ -96,7 +103,10 @@ namespace EpochCity
             }
 
             var road = city.Grid.GetRoad(cell);
-            return road != null ? road.displayName : "";
+            if (road != null) return road.displayName;
+
+            var zone = city.Grid.GetZone(cell);
+            return zone != null ? $"{zone.displayName} (frei)" : "";
         }
 
         // ---------------------------------------------------------------- Aufbau
@@ -135,7 +145,7 @@ namespace EpochCity
                     if (def == null) continue;
 
                     string label = $"{i + 1}  {def.displayName}\n{Mathf.FloorToInt(def.buildCost)}";
-                    var button = UiFactory.CreateButton(bottom, "Build_" + def.name, label, new Vector2(170f, 88f),
+                    var button = UiFactory.CreateButton(bottom, "Build_" + def.name, label, new Vector2(150f, 88f),
                         22f, buttonColor, textColor, () => placer.Select(def));
                     buttonDefs.Add(def);
                     buttonImages.Add((UnityEngine.UI.Image)button.targetGraphic);
@@ -147,26 +157,43 @@ namespace EpochCity
             {
                 var road = placer.road;
                 string label = $"R  {road.displayName}\n{road.costPerCell:0} / Feld";
-                var roadButton = UiFactory.CreateButton(bottom, "RoadButton", label, new Vector2(170f, 88f),
+                var roadButton = UiFactory.CreateButton(bottom, "RoadButton", label, new Vector2(150f, 88f),
                     22f, buttonColor, textColor, () => placer.SelectRoad());
                 roadImage = (UnityEngine.UI.Image)roadButton.targetGraphic;
             }
 
-            var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "X  Abreißen", new Vector2(150f, 88f),
+            if (placer != null)
+            {
+                AddZoneButton(bottom, placer.residentialZone, "Z");
+                AddZoneButton(bottom, placer.commercialZone, "G");
+                var unzone = UiFactory.CreateButton(bottom, "UnzoneButton", "U  Zone\naufheben", new Vector2(140f, 88f),
+                    22f, buttonColor, textColor, () => placer.SelectZone(null));
+                unzoneImage = (UnityEngine.UI.Image)unzone.targetGraphic;
+            }
+
+            var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "X  Abreißen", new Vector2(140f, 88f),
                 22f, buttonColor, textColor, () => { if (placer != null) placer.ToggleDemolish(); });
             demolishImage = (UnityEngine.UI.Image)demolish.targetGraphic;
 
             if (overlay != null)
             {
-                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "C  Anbindung", new Vector2(150f, 88f),
+                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "C  Anbindung", new Vector2(140f, 88f),
                     22f, buttonColor, textColor, () => overlay.Toggle());
                 overlayImage = (UnityEngine.UI.Image)overlayButton.targetGraphic;
             }
 
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, 166f);
             CreateBottomLine(canvas, "Hint",
-                "1-9: bauen  |  R: Straße ziehen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                "1-9: bauen  |  R: Straße  |  Z / G / U: Zonen ziehen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
                 20f, new Color(1f, 1f, 1f, 0.75f), 130f);
+        }
+
+        private void AddZoneButton(Transform bottom, ZoneDefinition zone, string key)
+        {
+            if (zone == null) return;
+            var button = UiFactory.CreateButton(bottom, "Zone_" + zone.name, $"{key}  {zone.displayName}",
+                new Vector2(140f, 88f), 22f, buttonColor, textColor, () => placer.SelectZone(zone));
+            zoneButtons[zone] = (UnityEngine.UI.Image)button.targetGraphic;
         }
 
         /// <summary>Zentrierte Textzeile über der unteren Leiste.</summary>
