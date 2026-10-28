@@ -1,0 +1,62 @@
+# Epochen-City-Builder (Unity)
+
+## Projekt in einem Satz
+3D-City-Builder für den PC, der in der Antike beginnt und bis in die Zukunft reicht. Gebäude behalten ihr Aussehen und ihre Funktion beim Epochenwechsel; neue Epochen und Technologien legen nur Schichten darüber.
+
+## Feste Entscheidungen
+- Friedlicher Aufbau, keine Gegner. Eine Karte mit wenigen, großen, freischaltbaren Regionen.
+- Zuerst Endlos-Modus, später zusätzlicher Modus mit Zielen (Ziele als austauschbare Daten).
+- Sechs Epochen: Antike, Mittelalter, Renaissance, Industrialisierung, Moderne, Zukunft. Vertical Slice zuerst mit Antike, Mittelalter, Industrialisierung.
+- Bauweise: Zonen für Wohnen und Gewerbe, Einzelplatzierung für Produktion, Dienstleistungen, Wunderbauten, Denkmäler. Gebäude werden nie automatisch ersetzt; Zonen füllen sich mit Gebäuden der aktuellen Epoche. Abriss nur durch den Spieler, Denkmalschutz verhindert Abriss.
+- Wirtschaft: regionale Lager, Straßenanbindung als Effizienzfaktor (0 bis 100 %), weiche Abfallkurve mit der Entfernung. Verkehr ist sichtbar, aber reine Visualisierung und beeinflusst die Simulation nie.
+- Bevölkerung: drei Stufen, Bedürfnispyramide, neue Epochen fügen Bedürfnisse hinzu und entfernen keine. Abstrakt simuliert (Zahlen pro Viertel).
+- Geld: eine gemeinsame Stadtkasse, eine interne Währung mit epochenabhängigem Anzeigenamen. Unterhalt alter Gebäude wächst kaum mit den Epochen.
+- Technologien: verzweigter Baum mit vier Pfaden (Handel, Kultur, Industrie, Wissenschaft), gemeinsamer Forschungspool, Epochenwechsel über Schlüsseltechnologien und Stadt-Meilensteine.
+- Ereignisse: einstellbare Häufigkeit, Warnphase, keine dauerhafte Zerstörung von Gebäuden.
+- Wunderbauten sind einmalig pro Spiel.
+
+Das ausführliche Game-Design-Dokument liegt als Doc in Claude (Titel: "Game-Design-Dokument: Epochen-City-Builder").
+
+## Technik
+- Unity mit Universal Render Pipeline, neues Input System (Active Input Handling: Input System Package (New)), TextMeshPro, uGUI.
+- Namespace: `EpochCity`. Scripts unter `Assets/Scripts/` in den Ordnern `Data`, `Simulation`, `Presentation`.
+- **Datengetrieben:** Epochen, Ressourcen, Technologien und Gebäude sind ScriptableObjects. Neue Inhalte und Balancing ohne Codeänderung.
+- **Simulation und Optik getrennt:** `Simulation` rechnet mit Zahlen, `Presentation` zeigt sie nur an.
+
+## Vorhandene Scripts
+- Data: `EpochDefinition` (mit Bedingungen, um diese Epoche zu erreichen: Schlüsseltechnologien, wie viele davon nötig sind, Gebäude-Meilensteine), `ResourceDefinition` (mit `isCurrency`), `TechnologyDefinition`, `BuildingTypes` (Funktionen, Schichten), `BuildingDefinition` (Grundfunktion plus Schichten durch Technologien).
+- Simulation: `GridMap`, `BuildingInstance`, `CityController` (Geld, Vorrat, Technologien, Platzieren und Abriss), `ResourceStock`, `GameClock` (Spielmonate, Geschwindigkeit), `EconomySimulation` (Produktion in festen Schritten, Unterhalt pro Monat).
+- Simulation: `ResearchSystem` (gemeinsamer Forschungspool: Forschung ist eine Ressource im Lager und fließt in genau ein gewähltes Projekt; Fortschritt bleibt pro Technologie erhalten; erforschbar ist, was Voraussetzungen erfüllt und dessen Epoche erreicht ist). `CityController` meldet Freischaltungen über das Event `TechnologyUnlocked`.
+- Simulation: `EpochProgression` (kennt alle Epochen, prüft die Bedingungen der nächsten, `TryAdvance` stellt nur die Epoche um). `CityController.SetEpoch` löst `EpochChanged` aus; `IsEpochReached` sperrt Gebäude und Technologien späterer Epochen. Technologien früherer Epochen bleiben nachholbar.
+- Presentation: `CityCameraController`, `BuildingPlacer` (Maus-Platzierung, Abriss), `CityHud`, `SimulationHud` und `ResearchHud` (bauen ihre uGUI zur Laufzeit selbst auf, gemeinsame Helfer in `UiFactory`).
+- Editor: `TestSetupGenerator` (Menü *EpochCity → Testaufbau erzeugen*) legt unter `Assets/Content/Test/` an: Epoche Antike (Währung Drachmen), Münzen, Weizen, Forschung, Feld, Markt, Bibliothek (5 Münzen → 5 Forschung pro 5 s), Technologien Bewässerung (Feld ×1,5), Schrift und Münzprägung (setzt Schrift voraus, Markt ×1,25), Epoche Mittelalter (Währung Pfennige; 2 von 3 Antike-Technologien und 1 Bibliothek nötig), Mühle (Mittelalter) sowie Platzhalter-Prefabs. Mehrfaches Ausführen überschreibt nur die Werte.
+
+## Teststand (2026-10-28, im Play-Modus geprüft)
+- Kompiliert ohne Fehler und Warnungen. `SampleScene` ist verdrahtet: Gebäudeleiste mit Feld, Markt, Bibliothek und Mühle, Startepoche Antike, `ResearchSystem` und `EpochProgression` (auf „Simulation“), `ResearchHud` (auf „ui“, zeigt auch Epochenbedingungen und den Wechsel-Button), sichtbarer Boden. Keine Starttechnologien.
+- Geprüft: Platzieren mit Kosten und Überlappung, Produktion und Verkauf, Monatsabrechnung, Technologie-Multiplikator, Denkmalschutz verhindert Abriss, HUD-Anzeige.
+- Forschung geprüft: Bibliothek liefert 1 Punkt pro Spielsekunde, Bewässerung und Schrift werden erforscht und wirken, Münzprägung ist bis zur Schrift gesperrt, ohne Projekt sammelt sich Forschung im Lager. Nicht geprüft: Fortschritt beim Projektwechsel (im Testaufbau gab es keine Gelegenheit dazu).
+- Epochenwechsel geprüft: Mühle in der Antike nicht baubar (ausgegraut), Wechsel erst bei 2/2 Technologien und 1/1 Bibliothek möglich, danach Mittelalter mit Pfennigen, Mühle baubar, alle Antike-Gebäude laufen unverändert weiter, Technologie-Boni bleiben, Münzprägung bleibt nachholbar, „Letzte Epoche erreicht“ wird angezeigt. Bedienung per Klick nicht geprüft.
+- Nicht geprüft: Bedienung mit Maus und Tastatur (Bauen, Abriss-Modus, Kamera). Im Test wurde per Code platziert.
+- Automatisierte Tests gibt es noch nicht.
+- Hinweis zum Testen per MCP: Ohne Fokus berechnet Unity im Play-Modus keine Frames. Für die laufende Sitzung `Application.runInBackground = true` setzen (die Projekteinstellung bleibt unverändert).
+
+## Bekannte Lücken
+- `EconomySimulation.GetEfficiency` liefert überall 1 (Straßenanbindung und Entfernung fehlen).
+- Es gibt ein gemeinsames Lager statt regionaler Lager.
+- Epochenwechsel bringt noch keine Boni und hat nur Gebäude-Meilensteine (Bevölkerung fehlt).
+- Keine Bevölkerung, keine Steuern, keine Zonen, keine Ereignisse, keine Regionen, kein sichtbarer Verkehr, kein Speichersystem.
+- Geld kann ins Minus gehen, Folgen fehlen.
+- `GetActiveFunctions` baut pro Simulationsschritt eine neue Liste (später zwischenspeichern).
+- Ordner weichen von der Struktur ab: `CityHud`, `SimulationHud` (Presentation) sowie `EconomySimulation`, `GameClock`, `ResourceStock` (Simulation) liegen noch unter `Data/`. Beim Verschieben die `.meta`-Dateien mitnehmen.
+
+## Nächste Schritte (Vorschlag)
+1. ~~Projekt kompilieren und mit einem Testaufbau prüfen~~ (erledigt, siehe Teststand).
+2. ~~Forschungssystem und Epochenwechsel mit Meilensteinen~~ (erledigt; Bevölkerungs-Meilensteine und Epochen-Boni folgen mit Schritt 3).
+3. Bevölkerung, Bedürfnisse, Zufriedenheit und Steuern.
+4. Anbindungswert über Straßen und Lagerhäuser, Overlay-Karte.
+5. Zonen für Wohnen und Gewerbe.
+6. Speichersystem früh einplanen.
+
+## Arbeitsweise
+- Antworten und Kommentare auf Deutsch, Code und Bezeichner auf Englisch oder wie im bestehenden Code.
+- Kleine, getestete Schritte; Entscheidungen, die das Konzept ändern, vorher mit dem Entwickler abstimmen.

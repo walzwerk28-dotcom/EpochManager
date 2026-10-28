@@ -1,0 +1,146 @@
+using UnityEngine;
+
+namespace EpochCity
+{
+    /// <summary>
+    /// Rechnet die Wirtschaft in festen Zeitschritten: jedes Gebäude arbeitet seine
+    /// aktiven Funktionen ab (Grundfunktionen plus durch Technologien freigeschaltete).
+    /// Reine Zahlen, keine Optik. Einmal pro Spielmonat wird der Unterhalt abgezogen.
+    /// </summary>
+    public class EconomySimulation : MonoBehaviour
+    {
+        [SerializeField] private CityController city;
+        [SerializeField] private GameClock clock;
+        [Tooltip("Länge eines Simulationsschritts in Spielsekunden")]
+        [SerializeField, Min(0.1f)] private float stepSeconds = 1f;
+
+        public float LastMonthIncome { get; private set; }
+        public float LastMonthUpkeep { get; private set; }
+
+        private float accumulator;
+        private float incomeThisMonth;
+
+        private void OnEnable()
+        {
+            if (clock != null) clock.MonthPassed += OnMonthPassed;
+        }
+
+        private void OnDisable()
+        {
+            if (clock != null) clock.MonthPassed -= OnMonthPassed;
+        }
+
+        private void Update()
+        {
+            if (city == null || clock == null || city.Grid == null) return;
+
+            accumulator += Time.deltaTime * clock.Speed;
+            while (accumulator >= stepSeconds)
+            {
+                accumulator -= stepSeconds;
+                Step(stepSeconds);
+            }
+        }
+
+        private void Step(float dt)
+        {
+            foreach (var building in city.Buildings)
+            {
+                float efficiency = GetEfficiency(building);
+                float multiplier = city.GetMultiplier(building);
+                var functions = building.Definition.GetActiveFunctions(city.UnlockedTechnologies);
+
+                building.Status = functions.Count == 0 ? "" : "läuft";
+
+                foreach (var function in functions)
+                {
+                    if (function == null) continue;
+
+                    building.Progress.TryGetValue(function, out float progress);
+                    progress = Mathf.Min(progress + dt * efficiency, function.cycleSeconds);
+
+                    if (progress >= function.cycleSeconds)
+                    {
+                        if (CanAfford(function.inputs, out string missing))
+                        {
+                            Consume(function.inputs);
+                            Produce(function.outputs, multiplier);
+                            progress -= function.cycleSeconds;
+                        }
+                        else
+                        {
+                            building.Status = "wartet: " + missing;
+                        }
+                    }
+                    building.Progress[function] = progress;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Hier kommt später der Anbindungswert (Straße, Entfernung zum Lager) hinein.
+        /// Vorerst arbeitet jedes Gebäude mit voller Effizienz.
+        /// </summary>
+        private float GetEfficiency(BuildingInstance building) => 1f;
+
+        private bool CanAfford(ResourceAmount[] inputs, out string missing)
+        {
+            missing = null;
+            if (inputs == null) return true;
+            foreach (var input in inputs)
+            {
+                if (input.resource == null) continue;
+                float have = input.resource.isCurrency ? city.Money : city.Stock.Get(input.resource);
+                if (have < input.amount)
+                {
+                    missing = input.resource.displayName;
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void Consume(ResourceAmount[] inputs)
+        {
+            if (inputs == null) return;
+            foreach (var input in inputs)
+            {
+                if (input.resource == null) continue;
+                if (input.resource.isCurrency) city.AddMoney(-input.amount);
+                else city.Stock.Add(input.resource, -input.amount);
+            }
+        }
+
+        private void Produce(ResourceAmount[] outputs, float multiplier)
+        {
+            if (outputs == null) return;
+            foreach (var output in outputs)
+            {
+                if (output.resource == null) continue;
+                float amount = output.amount * multiplier;
+                if (output.resource.isCurrency)
+                {
+                    city.AddMoney(amount);
+                    incomeThisMonth += amount;
+                }
+                else
+                {
+                    city.Stock.Add(output.resource, amount);
+                }
+            }
+        }
+
+        private void OnMonthPassed()
+        {
+            if (city == null) return;
+
+            float upkeep = 0f;
+            foreach (var building in city.Buildings) upkeep += building.Definition.upkeepPerMonth;
+            city.AddMoney(-upkeep);
+
+            LastMonthUpkeep = upkeep;
+            LastMonthIncome = incomeThisMonth;
+            incomeThisMonth = 0f;
+        }
+    }
+}

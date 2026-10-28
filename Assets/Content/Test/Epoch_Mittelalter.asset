@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3535d2a4a1afa343a2a0540f1361341, type: 3}
+  m_Name: Epoch_Mittelalter
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.EpochDefinition
+  order: 2
+  displayName: Mittelalter
+  currencyName: Pfennige
+  description: Testepoche
+  keyTechnologies:
+  - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
+  - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
+  - {fileID: 11400000, guid: 29672d44702cb7340a292d7b6ebb2e4f, type: 2}
+  requiredKeyTechnologies: 2
+  milestones:
+  - building: {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
+    count: 1

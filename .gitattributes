@@ -1,0 +1,19 @@
+# Zeilenenden vereinheitlichen; Unity-YAML-Dateien als Text behandeln
+* text=auto
+*.cs text diff=csharp
+*.unity text eol=lf
+*.prefab text eol=lf
+*.asset text eol=lf
+*.mat text eol=lf
+*.meta text eol=lf
+*.inputactions text
+
+# Binärdateien
+*.png binary
+*.jpg binary
+*.psd binary
+*.fbx binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+*.otf binary

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 940d9108773fac84ab420d97f53a3ac3, type: 3}
+  m_Name: Bld_Feld
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingDefinition
+  displayName: Feld
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  category: 2
+  prefab: {fileID: 5819556223460821451, guid: 1e78104dde9e7b84592d757afcb3d07c, type: 3}
+  size: {x: 2, y: 2}
+  buildCost: 100
+  upkeepPerMonth: 2
+  baseCapacity: 0
+  baseFunctions:
+  - label: Weizen anbauen
+    inputs: []
+    outputs:
+    - resource: {fileID: 11400000, guid: b9da7e50e2a7d754e81441b65fc186b3, type: 2}
+      amount: 5
+    cycleSeconds: 5
+  layers:
+  - requiredTechnology: {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
+    outputMultiplier: 1.5
+    additionalFunctions: []
+    extraCapacity: 0
