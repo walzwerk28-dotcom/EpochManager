@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Wohnhaus
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 0
-  prefab: {fileID: 7694926522634821064, guid: 27cebced9a3a06e4e8d3068b1615bd1f, type: 3}
+  prefab: {fileID: 5492809138433809551, guid: 4010cbb93cd2db545b5f52603e6a40ac, type: 3}
   size: {x: 1, y: 1}
   zone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}

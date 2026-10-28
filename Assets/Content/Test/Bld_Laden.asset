@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Laden
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 1
-  prefab: {fileID: 1268225679984783813, guid: 0aac27f9631532244b56e8f6e273c421, type: 3}
+  prefab: {fileID: 3692883439782610655, guid: 24354b87be71c3846844b3a9385c225b, type: 3}
   size: {x: 1, y: 1}
   zone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   populationTier: {fileID: 0}

@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "M\xFChle"
   epoch: {fileID: 11400000, guid: 4de510f11000d9c4da020a5ed405e18c, type: 2}
   category: 2
-  prefab: {fileID: 4917071075688941662, guid: 3e63add51c01a674d8e21c3995f1abde, type: 3}
+  prefab: {fileID: 8078297813546776093, guid: 20cac7ba37e175d43930ea3f59857c10, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

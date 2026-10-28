@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Lager
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 4
-  prefab: {fileID: 6934517690685343411, guid: 5c6532eee0ff0fc4383aeac0e9a6ecd3, type: 3}
+  prefab: {fileID: 8983512790318005749, guid: 831b21064379f864ab92ca49d48399d3, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

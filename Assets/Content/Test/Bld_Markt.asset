@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Markt
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 1
-  prefab: {fileID: 2934878888065029023, guid: bed59e470e9ad45458d882a2b27e420f, type: 3}
+  prefab: {fileID: 903691428116548711, guid: 8b1a3e538a42bba4fbf18f3d5c85b1ee, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

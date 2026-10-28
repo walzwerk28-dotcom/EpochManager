@@ -117,9 +117,25 @@ namespace EpochCity
             Buildings.Add(placed);
 
             if (def.prefab != null)
-                placed.View = Instantiate(def.prefab, GetFootprintCenter(def, origin), Quaternion.identity, transform);
+                placed.View = Instantiate(def.prefab, GetFootprintCenter(def, origin),
+                    Quaternion.Euler(0f, GetFacingAngle(def, origin), 0f), transform);
             RefreshConnections();
             return placed;
+        }
+
+        /// <summary>
+        /// Drehung um die Hochachse, damit die Vorderseite eines Modells (im Prefab nach −z/Süden) zu einer
+        /// angrenzenden Straße zeigt. Bevorzugt Süden, dann Osten, Westen, Norden. Nur bei quadratischer
+        /// Grundfläche, damit sich die belegten Felder nicht ändern. Reine Darstellung.
+        /// </summary>
+        public float GetFacingAngle(BuildingDefinition def, Vector2Int origin)
+        {
+            if (def == null || def.size.x != def.size.y || Grid == null) return 0f;
+            if (Grid.SideHasRoad(origin, def.size, Vector2Int.down)) return 0f;
+            if (Grid.SideHasRoad(origin, def.size, Vector2Int.right)) return 270f;
+            if (Grid.SideHasRoad(origin, def.size, Vector2Int.left)) return 90f;
+            if (Grid.SideHasRoad(origin, def.size, Vector2Int.up)) return 180f;
+            return 0f;
         }
 
         /// <summary>Weltposition der Mitte der vom Gebäude belegten Fläche.</summary>

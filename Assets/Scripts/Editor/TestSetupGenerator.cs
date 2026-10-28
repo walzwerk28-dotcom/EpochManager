@@ -90,7 +90,7 @@ namespace EpochCity
             {
                 new BuildingLayer { requiredTechnology = irrigation, outputMultiplier = 1.5f }
             };
-            field.prefab = CreatePrefab("Prefab_Feld", field.size, 0.3f, new Color(0.85f, 0.75f, 0.3f));
+            field.prefab = KeepModel(field.prefab, () => CreatePrefab("Prefab_Feld", field.size, 0.3f, new Color(0.85f, 0.75f, 0.3f)));
 
             var market = GetOrCreate<BuildingDefinition>("Bld_Markt");
             market.displayName = "Markt";
@@ -114,7 +114,7 @@ namespace EpochCity
             {
                 new BuildingLayer { requiredTechnology = minting, outputMultiplier = 1.25f }
             };
-            market.prefab = CreatePrefab("Prefab_Markt", market.size, 2f, new Color(0.75f, 0.35f, 0.25f));
+            market.prefab = KeepModel(market.prefab, () => CreatePrefab("Prefab_Markt", market.size, 2f, new Color(0.75f, 0.35f, 0.25f)));
 
             var library = GetOrCreate<BuildingDefinition>("Bld_Bibliothek");
             library.displayName = "Bibliothek";
@@ -135,7 +135,7 @@ namespace EpochCity
                 }
             };
             library.layers = new BuildingLayer[0];
-            library.prefab = CreatePrefab("Prefab_Bibliothek", library.size, 3f, new Color(0.35f, 0.45f, 0.8f));
+            library.prefab = KeepModel(library.prefab, () => CreatePrefab("Prefab_Bibliothek", library.size, 3f, new Color(0.35f, 0.45f, 0.8f)));
 
             var mittelalter = GetOrCreate<EpochDefinition>("Epoch_Mittelalter");
             mittelalter.order = 2;
@@ -165,7 +165,7 @@ namespace EpochCity
                 }
             };
             mill.layers = new BuildingLayer[0];
-            mill.prefab = CreatePrefab("Prefab_Muehle", mill.size, 4f, new Color(0.6f, 0.6f, 0.55f));
+            mill.prefab = KeepModel(mill.prefab, () => CreatePrefab("Prefab_Muehle", mill.size, 4f, new Color(0.6f, 0.6f, 0.55f)));
 
             var path = GetOrCreate<RoadDefinition>("Road_Trampelpfad");
             path.displayName = "Trampelpfad";
@@ -190,7 +190,7 @@ namespace EpochCity
             storage.catchmentRange = 20f;
             storage.efficiencyByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.25f);
             storage.minEfficiency = 0.25f;
-            storage.prefab = CreatePrefab("Prefab_Lager", storage.size, 1.5f, new Color(0.5f, 0.38f, 0.25f));
+            storage.prefab = KeepModel(storage.prefab, () => CreatePrefab("Prefab_Lager", storage.size, 1.5f, new Color(0.5f, 0.38f, 0.25f)));
 
             var residential = GetOrCreate<ZoneDefinition>("Zone_Wohnen");
             residential.displayName = "Wohnzone";
@@ -264,6 +264,7 @@ namespace EpochCity
                        house, shop, timberHouse, food, marketNeed, farmers })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
+            KenneyBuildingFactory.ReimportPrefabs(Root);
 
             Debug.Log($"Testaufbau erzeugt unter {Root}.");
         }
@@ -276,12 +277,11 @@ namespace EpochCity
         {
             const float cellSize = 2f; // Standardwert von CityController.cellSize
 
-            string meshPath = $"{Root}/Mesh_{name}_Vorschau.asset";
-            if (AssetDatabase.LoadAssetAtPath<Mesh>(meshPath) != null) AssetDatabase.DeleteAsset(meshPath);
-            var previewMesh = RoadMeshBuilder.Build(RoadMeshBuilder.East | RoadMeshBuilder.West |
-                                                    RoadMeshBuilder.North | RoadMeshBuilder.South,
-                cellSize, cellSize * 0.95f, 0f);
-            AssetDatabase.CreateAsset(previewMesh, meshPath);
+            var previewMesh = KenneyBuildingFactory.SaveMeshAsset(
+                RoadMeshBuilder.Build(RoadMeshBuilder.East | RoadMeshBuilder.West |
+                                      RoadMeshBuilder.North | RoadMeshBuilder.South,
+                    cellSize, cellSize * 0.95f, 0f),
+                $"{Root}/Mesh_{name}_Vorschau.asset");
 
             var surface = CreateMatteMaterial($"Mat_{name}", surfaceColor);
             var edge = CreateMatteMaterial($"Mat_{name}_Rand", edgeColor);
@@ -314,6 +314,16 @@ namespace EpochCity
             return material;
         }
 
+        /// <summary>
+        /// Behält ein echtes Modell (z. B. aus „Gebäude-Modelle erzeugen“) und legt nur dann einen Platzhalter-Würfel
+        /// an, wenn noch keins oder nur ein Platzhalter aus diesem Ordner zugewiesen ist.
+        /// </summary>
+        private static GameObject KeepModel(GameObject current, System.Func<GameObject> createPlaceholder)
+        {
+            if (current != null && !AssetDatabase.GetAssetPath(current).StartsWith(Root)) return current;
+            return createPlaceholder();
+        }
+
         /// <summary>Zonengebäude: 1 × 1, kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>
         private static BuildingDefinition CreateZoneBuilding(string assetName, string displayName,
             EpochDefinition epoch, BuildingCategory category, ZoneDefinition zone, int capacity,
@@ -330,7 +340,7 @@ namespace EpochCity
             def.baseCapacity = capacity;
             def.baseFunctions = functions;
             def.layers = new BuildingLayer[0];
-            def.prefab = CreatePrefab("Prefab_" + assetName.Substring(4), def.size, height, color, 0.8f);
+            def.prefab = KeepModel(def.prefab, () => CreatePrefab("Prefab_" + assetName.Substring(4), def.size, height, color, 0.8f));
             return def;
         }
 

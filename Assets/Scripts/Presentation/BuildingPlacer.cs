@@ -112,7 +112,8 @@ namespace EpochCity
             if (ghost != null)
             {
                 ghost.SetActive(true);
-                ghost.transform.position = city.GetFootprintCenter(selected, hoverCell);
+                ghost.transform.SetPositionAndRotation(city.GetFootprintCenter(selected, hoverCell),
+                    Quaternion.Euler(0f, city.GetFacingAngle(selected, hoverCell), 0f));
                 Tint(ghostRenderers, GhostColor(canPlace ? validColor : invalidColor));
             }
 
@@ -330,7 +331,8 @@ namespace EpochCity
             foreach (var r in renderers)
             {
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                MaterialUtil.SetTransparent(r.material); // r.material erzeugt eine Kopie, nur für die Vorschau
+                // r.materials erzeugt Kopien aller Materialien, nur für die Vorschau
+                foreach (var m in r.materials) MaterialUtil.SetTransparent(m);
             }
             return go;
         }
@@ -340,7 +342,8 @@ namespace EpochCity
         private static void Tint(Renderer[] renderers, Color color)
         {
             if (renderers == null) return;
-            foreach (var r in renderers) MaterialUtil.SetColor(r.material, color);
+            foreach (var r in renderers)
+                foreach (var m in r.materials) MaterialUtil.SetColor(m, color);
         }
     }
 }

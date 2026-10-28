@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Bibliothek
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 3
-  prefab: {fileID: 2461191453157393291, guid: 02a5ba29c46ccb64885360cdf53a6863, type: 3}
+  prefab: {fileID: 3305194376863544600, guid: 238e4883b729cf24b9ec6cba5f642741, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

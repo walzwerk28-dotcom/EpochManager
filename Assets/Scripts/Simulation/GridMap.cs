@@ -92,6 +92,24 @@ namespace EpochCity
             }
         }
 
+        /// <summary>Liegt an dieser Seite der Grundfläche mindestens ein Straßenfeld?</summary>
+        public bool SideHasRoad(Vector2Int origin, Vector2Int size, Vector2Int side)
+        {
+            if (side == Vector2Int.down || side == Vector2Int.up)
+            {
+                int y = side == Vector2Int.down ? origin.y - 1 : origin.y + size.y;
+                for (int x = 0; x < size.x; x++)
+                    if (HasRoad(new Vector2Int(origin.x + x, y))) return true;
+            }
+            else
+            {
+                int x = side == Vector2Int.left ? origin.x - 1 : origin.x + size.x;
+                for (int y = 0; y < size.y; y++)
+                    if (HasRoad(new Vector2Int(x, origin.y + y))) return true;
+            }
+            return false;
+        }
+
         public bool TouchesRoad(BuildingInstance inst) => TouchesRoad(inst.Origin, inst.Definition.size);
 
         /// <summary>Grenzt die Grundfläche an mindestens ein Straßenfeld?</summary>
