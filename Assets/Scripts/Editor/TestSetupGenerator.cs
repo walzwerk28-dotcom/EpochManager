@@ -316,6 +316,8 @@ namespace EpochCity
             }
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
             else material.color = color;
+            // Matte Oberflächen passen zum stilisierten Look; der Standardwert glänzt im Sonnenlicht zu stark
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.15f);
             EditorUtility.SetDirty(material);
 
             var root = new GameObject(name);
