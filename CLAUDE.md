@@ -3,6 +3,13 @@
 ## Projekt in einem Satz
 3D-City-Builder für den PC, der in der Antike beginnt und bis in die Zukunft reicht. Gebäude behalten ihr Aussehen und ihre Funktion beim Epochenwechsel; neue Epochen und Technologien legen nur Schichten darüber.
 
+## Vorbilder
+Spielerische Vorbilder sind **Cities: Skylines** und die **Anno-Reihe**. Sie dienen als Maßstab für Spielgefühl und Bedienung, nicht als Vorlage zum Nachbauen; Namen, Inhalte und Grafik bleiben eigenständig.
+- Von Cities: Skylines: Straßenbau und Zonen (Wohnen, Gewerbe), Dienstleistungen mit Reichweite, Overlay-Karten, sichtbarer Verkehr, eine frei bewegliche 3D-Kamera.
+- Von Anno: Produktionsketten, Bevölkerungsstufen mit Bedürfnispyramide, Lager mit Straßenanbindung, Regionen mit eigenen Rohstoffen und Handel zwischen ihnen, Forschung und Freischaltungen.
+- Eigenes Merkmal: der Epochenwechsel, bei dem alte Gebäude stehen bleiben und weiterarbeiten.
+- Bei neuen Mechaniken und bei der Bedienung zuerst prüfen, wie die Vorbilder es lösen, und die Abweichung bewusst begründen.
+
 ## Feste Entscheidungen
 - Friedlicher Aufbau, keine Gegner. Eine Karte mit wenigen, großen, freischaltbaren Regionen.
 - Zuerst Endlos-Modus, später zusätzlicher Modus mit Zielen (Ziele als austauschbare Daten).
