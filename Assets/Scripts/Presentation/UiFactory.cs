@@ -193,6 +193,60 @@ namespace EpochCity
             return image;
         }
 
+        /// <summary>Zeile mit Beschriftung, Balken und Wert; Set aktualisiert Füllstand, Farbe und Wert.</summary>
+        public class StatBar
+        {
+            public GameObject Root;
+            public RectTransform Fill;
+            public Image FillImage;
+            public TextMeshProUGUI Label;
+            public TextMeshProUGUI Value;
+
+            public void Set(float value01, Color color, string valueText)
+            {
+                Fill.anchorMax = new Vector2(Mathf.Clamp01(value01), 1f);
+                FillImage.color = color;
+                Value.text = valueText;
+            }
+        }
+
+        public static StatBar CreateBar(Transform parent, string label, UiTheme theme, float labelWidth = 130f,
+            float valueWidth = 90f)
+        {
+            var row = new GameObject("Bar_" + label, typeof(RectTransform));
+            row.transform.SetParent(parent, false);
+            AddRow(row, TextAnchor.MiddleLeft, 0, 10f);
+
+            var labelText = CreateText("Label", row.transform, label, theme.smallSize, TextAlignmentOptions.MidlineLeft,
+                theme.textMuted);
+            labelText.textWrappingMode = TextWrappingModes.NoWrap;
+            labelText.overflowMode = TextOverflowModes.Ellipsis;
+            labelText.gameObject.AddComponent<LayoutElement>().preferredWidth = labelWidth;
+
+            var track = CreatePanel("Track", row.transform, Vector2.zero, Vector2.zero, Vector2.zero,
+                new Vector2(100f, 12f), theme.track, PanelStyle.Flat);
+            var trackLayout = track.gameObject.AddComponent<LayoutElement>();
+            trackLayout.flexibleWidth = 1f;
+            trackLayout.preferredHeight = trackLayout.minHeight = 12f;
+
+            var fill = CreatePanel("Fill", track, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f), Vector2.zero,
+                theme.accent, PanelStyle.Flat);
+            fill.offsetMin = fill.offsetMax = Vector2.zero;
+
+            var value = CreateText("Value", row.transform, "", theme.smallSize, TextAlignmentOptions.MidlineRight, theme.text);
+            value.textWrappingMode = TextWrappingModes.NoWrap;
+            value.gameObject.AddComponent<LayoutElement>().preferredWidth = valueWidth;
+
+            return new StatBar
+            {
+                Root = row, Fill = fill, FillImage = fill.GetComponent<Image>(), Label = labelText, Value = value
+            };
+        }
+
+        /// <summary>Ampelfarbe für Werte von 0 bis 1: gut (grün), mittel (Gold), schlecht (rot).</summary>
+        public static Color QualityColor(float value01, UiTheme theme) =>
+            value01 >= 0.75f ? theme.accent : value01 >= 0.4f ? theme.heading : theme.danger;
+
         /// <summary>Kopfzeile eines Fensters: Titel in der Überschriftfarbe, rechts ein Schließen-Button.</summary>
         public static TextMeshProUGUI WindowHeader(Transform window, string title, UiTheme theme, UnityAction onClose)
         {

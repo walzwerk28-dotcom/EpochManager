@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -6,9 +8,11 @@ using UnityEngine.UI;
 namespace EpochCity
 {
     /// <summary>
-    /// Infofenster links unten zum ausgewählten Gebäude (Linksklick außerhalb der Baumodi): Bau-Epoche, Status,
-    /// Anbindung, Produktion pro Zyklus inklusive Technologie-Multiplikator, Unterhalt, bei Wohnhäusern Einwohner
-    /// und Zufriedenheit. Unten Denkmalschutz an/aus und Abreißen. Baut sich wie die anderen HUDs selbst auf.
+    /// Infofenster links unten zum ausgewählten Gebäude (Linksklick außerhalb der Baumodi, wie in Anno): Kopf mit
+    /// Kategoriesymbol, Kategorie und Bau-Epoche, dann Balken für Anbindung, bei Wohnhäusern Belegung und
+    /// Zufriedenheit samt fehlenden Bedürfnissen, bei Produktion den Fortschritt je Funktion mit Ein- und Ausgaben
+    /// (inklusive Technologie-Multiplikator), darunter Unterhalt und Besonderheiten. Unten Denkmalschutz an/aus und
+    /// Abreißen. Der Inhalt wird beim Wechsel des Gebäudes neu aufgebaut und danach nur noch aktualisiert.
     /// </summary>
     public class BuildingInfoPanel : MonoBehaviour
     {
@@ -19,27 +23,21 @@ namespace EpochCity
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
         [SerializeField] private UiTheme theme;
 
-        private Color panelColor, buttonColor, activeColor, demolishColor, lockedColor, textColor;
-
         private RectTransform panel;
+        private RectTransform content;
         private TextMeshProUGUI title;
-        private TextMeshProUGUI body;
+        private Image categoryIcon;
         private Button protectButton;
         private TextMeshProUGUI protectLabel;
         private Button demolishButton;
-        private readonly StringBuilder builder = new StringBuilder();
+        private readonly List<Action> updaters = new List<Action>();
         private BuildingInstance shown;
+        private int shownFunctions;
         private float refreshTimer;
 
         private void Start()
         {
             theme = UiTheme.Resolve(theme);
-            panelColor = theme.panel;
-            buttonColor = theme.button;
-            activeColor = theme.accent;
-            demolishColor = theme.danger;
-            lockedColor = theme.locked;
-            textColor = theme.text;
             UiFactory.EnsureEventSystem();
             Build();
         }
@@ -63,56 +61,115 @@ namespace EpochCity
                 return;
             }
 
+            // Fortschrittsbalken laufen flüssig; nur bei neuem Gebäude oder neuen Funktionen wird neu aufgebaut
+            int functions = building.Definition.GetActiveFunctions(city.UnlockedTechnologies).Count;
+            if (building != shown || functions != shownFunctions)
+            {
+                shown = building;
+                shownFunctions = functions;
+                Rebuild(building);
+                refreshTimer = 0f;
+            }
+
             refreshTimer -= Time.unscaledDeltaTime;
-            if (building == shown && refreshTimer > 0f) return;
-            refreshTimer = 0.25f;
-            shown = building;
-            Refresh(building);
+            if (refreshTimer > 0f) return;
+            refreshTimer = 0.1f;
+            foreach (var update in updaters) update();
+            RefreshButtons(building);
         }
 
-        private void Refresh(BuildingInstance b)
+        private void RefreshButtons(BuildingInstance b)
         {
+            protectLabel.text = b.IsProtected ? "Denkmalschutz: an" : "Denkmalschutz: aus";
+            protectButton.targetGraphic.color = b.IsProtected ? theme.accent : theme.button;
+            demolishButton.interactable = !b.IsProtected;
+            demolishButton.targetGraphic.color = b.IsProtected ? theme.locked : theme.danger;
+        }
+
+        // ---------------------------------------------------------------- Inhalt
+
+        private void Rebuild(BuildingInstance b)
+        {
+            for (int i = content.childCount - 1; i >= 0; i--) Destroy(content.GetChild(i).gameObject);
+            updaters.Clear();
+
             var def = b.Definition;
             title.text = def.displayName;
+            var icon = theme.icons != null ? theme.icons.ForCategory(def.category) : null;
+            categoryIcon.sprite = icon;
+            categoryIcon.gameObject.SetActive(icon != null);
 
-            builder.Clear();
-            string built = b.BuiltInEpoch != null ? $"gebaut in der {b.BuiltInEpoch.displayName}" : "";
-            builder.AppendLine($"{CategoryName(def.category)}  ·  {built}");
-            if (!string.IsNullOrEmpty(b.Status)) builder.AppendLine($"Status: {b.Status}");
+            Line(theme.textMuted, () =>
+            {
+                string built = b.BuiltInEpoch != null ? $"  ·  gebaut in der {b.BuiltInEpoch.displayName}" : "";
+                string protectedNote = b.IsProtected ? "  ·  Denkmalschutz" : "";
+                return CategoryName(def.category) + built + protectedNote;
+            });
 
-            string issue = string.IsNullOrEmpty(b.ConnectionIssue) ? "" : $" ({b.ConnectionIssue})";
-            builder.AppendLine($"Anbindung: {b.Connection * 100f:0} %{issue}");
+            var connection = UiFactory.CreateBar(content, "Anbindung", theme);
+            updaters.Add(() => connection.Set(b.Connection, UiFactory.QualityColor(b.Connection, theme),
+                $"{b.Connection * 100f:0} %"));
+            Line(theme.textMuted, () => b.ConnectionIssue);
 
             if (def.populationTier != null)
             {
-                int capacity = def.GetCapacity(city.UnlockedTechnologies);
-                builder.AppendLine($"Einwohner: {b.Residents} / {capacity} {def.populationTier.GetName(city.currentEpoch)}");
-                builder.AppendLine($"Zufriedenheit: {b.Satisfaction * 100f:0} %");
-                if (!string.IsNullOrEmpty(b.MissingNeeds)) builder.AppendLine($"Fehlt: {b.MissingNeeds}");
+                var residents = UiFactory.CreateBar(content, "Einwohner", theme);
+                updaters.Add(() =>
+                {
+                    int capacity = def.GetCapacity(city.UnlockedTechnologies);
+                    residents.Set(capacity > 0 ? (float)b.Residents / capacity : 0f, theme.accent,
+                        $"{b.Residents} / {capacity}");
+                    residents.Label.text = def.populationTier.GetName(city.currentEpoch);
+                });
+                var satisfaction = UiFactory.CreateBar(content, "Zufriedenheit", theme);
+                updaters.Add(() => satisfaction.Set(b.Satisfaction, UiFactory.QualityColor(b.Satisfaction, theme),
+                    $"{b.Satisfaction * 100f:0} %"));
+                Line(theme.danger, () => string.IsNullOrEmpty(b.MissingNeeds) ? "" : $"Fehlt: {b.MissingNeeds}");
             }
 
-            float multiplier = city.GetMultiplier(b);
             foreach (var function in def.GetActiveFunctions(city.UnlockedTechnologies))
             {
                 if (function == null) continue;
-                string inputs = Amounts(function.inputs, 1f);
-                string outputs = Amounts(function.outputs, multiplier);
-                string arrow = string.IsNullOrEmpty(inputs) ? outputs : $"{inputs} → {outputs}";
-                builder.AppendLine($"{function.label}: {arrow} je {function.cycleSeconds:0.#} s");
+                var f = function;
+                var bar = UiFactory.CreateBar(content, f.label, theme);
+                updaters.Add(() =>
+                {
+                    b.Progress.TryGetValue(f, out float progress);
+                    bar.Set(progress / f.cycleSeconds, theme.accent, $"{progress:0.0} / {f.cycleSeconds:0.#} s");
+                });
+                Line(theme.textMuted, () =>
+                {
+                    float multiplier = city.GetMultiplier(b);
+                    string inputs = Amounts(f.inputs, 1f);
+                    string outputs = Amounts(f.outputs, multiplier);
+                    return string.IsNullOrEmpty(inputs) ? $"ergibt {outputs}" : $"{inputs} → {outputs}";
+                });
             }
-            if (multiplier > 1f) builder.AppendLine($"Technologie-Bonus: ×{multiplier:0.##}");
+            if (def.GetActiveFunctions(city.UnlockedTechnologies).Count > 0)
+                Line(theme.text, () => string.IsNullOrEmpty(b.Status) ? "" : $"Status: {b.Status}");
 
-            if (def.category == BuildingCategory.Storage)
-                builder.AppendLine($"Einzugsweite: {def.catchmentRange:0} Straßenfelder");
+            Line(theme.text, () =>
+            {
+                var sb = new StringBuilder();
+                float multiplier = city.GetMultiplier(b);
+                if (multiplier > 1f) sb.AppendLine($"Technologie-Bonus ×{multiplier:0.##}");
+                if (def.category == BuildingCategory.Storage)
+                    sb.AppendLine($"Einzugsweite {def.catchmentRange:0} Straßenfelder");
+                if (def.upkeepPerMonth > 0f) sb.Append($"Unterhalt {def.upkeepPerMonth:0.#} {Currency()} pro Monat");
+                return sb.ToString().TrimEnd();
+            });
+        }
 
-            builder.AppendLine($"Unterhalt: {def.upkeepPerMonth:0.#} {Currency()} pro Monat");
-            if (b.IsProtected) builder.AppendLine("Steht unter Denkmalschutz");
-            body.text = builder.ToString().TrimEnd();
-
-            protectLabel.text = b.IsProtected ? "Denkmalschutz: an" : "Denkmalschutz: aus";
-            protectButton.targetGraphic.color = b.IsProtected ? activeColor : buttonColor;
-            demolishButton.interactable = !b.IsProtected;
-            demolishButton.targetGraphic.color = b.IsProtected ? lockedColor : demolishColor;
+        /// <summary>Textzeile, die sich bei jeder Aktualisierung neu füllt und bei leerem Text verschwindet.</summary>
+        private void Line(Color color, Func<string> text)
+        {
+            var line = UiFactory.CreateText("Line", content, "", theme.smallSize, TextAlignmentOptions.TopLeft, color);
+            updaters.Add(() =>
+            {
+                string value = text() ?? "";
+                line.text = value;
+                line.gameObject.SetActive(value.Length > 0);
+            });
         }
 
         /// <summary>„2 Weizen + 5 Drachmen“; Geld erscheint unter dem Währungsnamen der Epoche.</summary>
@@ -154,23 +211,31 @@ namespace EpochCity
 
             // Links unten über der Bauleiste; Höhe passt sich dem Inhalt an
             panel = UiFactory.CreatePanel("BuildingInfo", canvas,
-                Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(440f, 0f), panelColor);
+                Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(440f, 0f), theme.panel);
             panel.anchoredPosition = new Vector2(16f, 112f);
             UiFactory.AddColumn(panel.gameObject, 14, 10f);
             panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             title = UiFactory.WindowHeader(panel, "", theme, () => placer.Inspect(null));
+            categoryIcon = UiFactory.AddIcon(title.transform.parent, null, 30f, theme.heading);
+            categoryIcon.transform.SetAsFirstSibling();
 
-            body = UiFactory.CreateText("Body", panel, "", 20f, TextAlignmentOptions.TopLeft, textColor);
+            var contentGo = new GameObject("Content", typeof(RectTransform));
+            contentGo.transform.SetParent(panel, false);
+            content = (RectTransform)contentGo.transform;
+            UiFactory.AddColumn(contentGo, 0, 6f);
 
             var actions = new GameObject("Actions", typeof(RectTransform));
             actions.transform.SetParent(panel, false);
             UiFactory.AddRow(actions, TextAnchor.MiddleLeft, 0, 10f);
+            var icons = theme.icons;
             protectButton = UiFactory.CreateButton(actions.transform, "Protect", "Denkmalschutz: aus",
-                new Vector2(220f, 52f), 20f, buttonColor, textColor, ToggleProtection);
+                new Vector2(236f, 48f), theme.smallSize + 1f, theme.button, theme.text, ToggleProtection,
+                icons != null ? icons.monument : null);
             protectLabel = protectButton.GetComponentInChildren<TextMeshProUGUI>();
             demolishButton = UiFactory.CreateButton(actions.transform, "Demolish", "Abreißen",
-                new Vector2(160f, 52f), 20f, demolishColor, textColor, Demolish);
+                new Vector2(160f, 48f), theme.smallSize + 1f, theme.danger, theme.text, Demolish,
+                icons != null ? icons.demolish : null);
 
             panel.gameObject.SetActive(false);
         }
