@@ -81,12 +81,18 @@ namespace EpochCity
         public bool TryGrow(BuildingDefinition def, Vector2Int origin, out BuildingInstance grown)
         {
             grown = null;
+            if (!CanGrow(def, origin)) return false;
+            grown = Place(def, origin);
+            return true;
+        }
+
+        /// <summary>Passt das Zonengebäude hier hin: ganze Grundfläche in seiner Zone, frei, mit Straße?</summary>
+        public bool CanGrow(BuildingDefinition def, Vector2Int origin)
+        {
             if (def == null || def.zone == null || !CanPlace(def, origin)) return false;
             for (int x = 0; x < def.size.x; x++)
                 for (int y = 0; y < def.size.y; y++)
                     if (Grid.GetZone(new Vector2Int(origin.x + x, origin.y + y)) != def.zone) return false;
-
-            grown = Place(def, origin);
             return true;
         }
 

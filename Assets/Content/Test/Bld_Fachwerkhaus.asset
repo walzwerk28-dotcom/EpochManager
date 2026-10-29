@@ -16,12 +16,12 @@ MonoBehaviour:
   epoch: {fileID: 11400000, guid: 4de510f11000d9c4da020a5ed405e18c, type: 2}
   category: 0
   prefab: {fileID: 4441107223760376507, guid: 5ffbb552d03cfa94fbb99f287a6b0288, type: 3}
-  size: {x: 1, y: 1}
+  size: {x: 2, y: 2}
   zone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   buildCost: 0
   upkeepPerMonth: 0
-  baseCapacity: 10
+  baseCapacity: 16
   baseFunctions: []
   layers: []
   catchmentRange: 20

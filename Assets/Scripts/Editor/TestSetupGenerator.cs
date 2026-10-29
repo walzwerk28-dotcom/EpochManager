@@ -240,28 +240,33 @@ namespace EpochCity
                 6, new BuildingFunction[0], 1f, new Color(0.85f, 0.8f, 0.7f));
 
             var shop = CreateZoneBuilding("Bld_Laden", "Laden", antike, BuildingCategory.Commerce, commercial, 0,
-                new[]
-                {
-                    new BuildingFunction
-                    {
-                        label = "Weizen verkaufen",
-                        inputs = new[] { new ResourceAmount { resource = wheat, amount = 2f } },
-                        outputs = new[] { new ResourceAmount { resource = coins, amount = 4f } },
-                        cycleSeconds = 5f
-                    }
-                }, 1.2f, new Color(0.55f, 0.65f, 0.9f));
+                SellWheat(wheat, coins, 2f, 4f), 1.2f, new Color(0.55f, 0.65f, 0.9f));
+
+            // Größere Zonengebäude: Kapazität und Umsatz grob nach Fläche (etwa 4 Einwohner pro Feld)
+            var townHouse = CreateZoneBuilding("Bld_Stadthaus", "Stadthaus", antike, BuildingCategory.Housing,
+                residential, 16, new BuildingFunction[0], 1.6f, new Color(0.85f, 0.8f, 0.7f), 2);
+            var domus = CreateZoneBuilding("Bld_Domus", "Domus", antike, BuildingCategory.Housing,
+                residential, 36, new BuildingFunction[0], 1.8f, new Color(0.85f, 0.8f, 0.7f), 3);
+            var insula = CreateZoneBuilding("Bld_Insula", "Insula", antike, BuildingCategory.Housing,
+                residential, 64, new BuildingFunction[0], 3f, new Color(0.85f, 0.8f, 0.7f), 4);
+            var workshop = CreateZoneBuilding("Bld_Werkstatt", "Werkstatt", antike, BuildingCategory.Commerce,
+                commercial, 0, SellWheat(wheat, coins, 4f, 10f), 1.5f, new Color(0.55f, 0.65f, 0.9f), 2);
+            var workyard = CreateZoneBuilding("Bld_Werkstatthof", "Werkstatthof", antike, BuildingCategory.Commerce,
+                commercial, 0, SellWheat(wheat, coins, 8f, 22f), 1.8f, new Color(0.55f, 0.65f, 0.9f), 3);
+            var tradeHouse = CreateZoneBuilding("Bld_Handelshaus", "Handelshaus", antike, BuildingCategory.Commerce,
+                commercial, 0, SellWheat(wheat, coins, 14f, 40f), 2.4f, new Color(0.55f, 0.65f, 0.9f), 4);
 
             // Nur zum Testen des Epochenbezugs: im Mittelalter wachsen Fachwerkhäuser statt Wohnhäusern
             var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
-                BuildingCategory.Housing, residential, 10, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f));
+                BuildingCategory.Housing, residential, 16, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f), 2);
 
-            house.populationTier = farmers;
-            timberHouse.populationTier = farmers;
+            foreach (var home in new[] { house, townHouse, domus, insula, timberHouse }) home.populationTier = farmers;
 
             foreach (var asset in new Object[]
                      { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
                        field, market, library, mill, path, storage, residential, commercial,
-                       house, shop, timberHouse, food, marketNeed, farmers })
+                       house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse, timberHouse,
+                       food, marketNeed, farmers })
                 EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
             KenneyBuildingFactory.ReimportPrefabs(Root);
@@ -324,17 +329,17 @@ namespace EpochCity
             return createPlaceholder();
         }
 
-        /// <summary>Zonengebäude: 1 × 1, kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>
+        /// <summary>Zonengebäude (size × size Felder): kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>
         private static BuildingDefinition CreateZoneBuilding(string assetName, string displayName,
             EpochDefinition epoch, BuildingCategory category, ZoneDefinition zone, int capacity,
-            BuildingFunction[] functions, float height, Color color)
+            BuildingFunction[] functions, float height, Color color, int size = 1)
         {
             var def = GetOrCreate<BuildingDefinition>(assetName);
             def.displayName = displayName;
             def.epoch = epoch;
             def.category = category;
             def.zone = zone;
-            def.size = Vector2Int.one;
+            def.size = new Vector2Int(size, size);
             def.buildCost = 0f;
             def.upkeepPerMonth = 0f;
             def.baseCapacity = capacity;
@@ -343,6 +348,20 @@ namespace EpochCity
             def.prefab = KeepModel(def.prefab, () => CreatePrefab("Prefab_" + assetName.Substring(4), def.size, height, color, 0.8f));
             return def;
         }
+
+        /// <summary>Gewerbe-Funktion: Weizen gegen Geld verkaufen.</summary>
+        private static BuildingFunction[] SellWheat(ResourceDefinition wheat, ResourceDefinition coins,
+            float wheatIn, float coinsOut) =>
+            new[]
+            {
+                new BuildingFunction
+                {
+                    label = "Weizen verkaufen",
+                    inputs = new[] { new ResourceAmount { resource = wheat, amount = wheatIn } },
+                    outputs = new[] { new ResourceAmount { resource = coins, amount = coinsOut } },
+                    cycleSeconds = 5f
+                }
+            };
 
         private static T GetOrCreate<T>(string name) where T : ScriptableObject
         {

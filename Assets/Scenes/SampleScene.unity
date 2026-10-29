@@ -823,9 +823,20 @@ MonoBehaviour:
   clock: {fileID: 2124652275}
   zoneBuildings:
   - {fileID: 11400000, guid: 2612fafcd8002c840920eb9c887cd606, type: 2}
+  - {fileID: 11400000, guid: 259f598fb1f45c745af72bc7877f97f0, type: 2}
+  - {fileID: 11400000, guid: 5d2355364223c67418eadf24db6eedf6, type: 2}
+  - {fileID: 11400000, guid: 121bebbadf434af4f9e1bdaa11ce78ed, type: 2}
   - {fileID: 11400000, guid: 462ddd5cf7420f74493cc1190a5b683c, type: 2}
+  - {fileID: 11400000, guid: 8abd32c8f57d4ff468673245370adbae, type: 2}
+  - {fileID: 11400000, guid: 39f7c53390593254292e04c022f44521, type: 2}
+  - {fileID: 11400000, guid: 3572addee9bb1184db6be1a3b5e829fd, type: 2}
   - {fileID: 11400000, guid: 64566615b35b8a747bf424cfcb349267, type: 2}
   growthInterval: 2
+  sizeWeights:
+  - 1
+  - 2
+  - 2
+  - 2
 --- !u!114 &1598712641
 MonoBehaviour:
   m_ObjectHideFlags: 0
