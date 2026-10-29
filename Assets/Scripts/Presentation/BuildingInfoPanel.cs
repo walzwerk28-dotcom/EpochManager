@@ -159,13 +159,7 @@ namespace EpochCity
             UiFactory.AddColumn(panel.gameObject, 14, 10f);
             panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var header = new GameObject("Header", typeof(RectTransform));
-            header.transform.SetParent(panel, false);
-            UiFactory.AddRow(header, TextAnchor.MiddleLeft, 0, 8f);
-            title = UiFactory.CreateText("Title", header.transform, "", 28f, TextAlignmentOptions.MidlineLeft, theme.heading);
-            title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
-            UiFactory.CreateButton(header.transform, "Close", "×", new Vector2(44f, 40f), 26f, buttonColor, textColor,
-                () => placer.Inspect(null));
+            title = UiFactory.WindowHeader(panel, "", theme, () => placer.Inspect(null));
 
             body = UiFactory.CreateText("Body", panel, "", 20f, TextAlignmentOptions.TopLeft, textColor);
 

@@ -145,6 +145,19 @@ namespace EpochCity
             return button;
         }
 
+        /// <summary>Kopfzeile eines Fensters: Titel in der Überschriftfarbe, rechts ein Schließen-Button.</summary>
+        public static TextMeshProUGUI WindowHeader(Transform window, string title, UiTheme theme, UnityAction onClose)
+        {
+            var header = new GameObject("Header", typeof(RectTransform));
+            header.transform.SetParent(window, false);
+            AddRow(header, TextAnchor.MiddleLeft, 0, 8f);
+            var text = CreateText("Title", header.transform, title, theme.titleSize, TextAlignmentOptions.MidlineLeft,
+                theme.heading);
+            text.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            CreateButton(header.transform, "Close", "×", new Vector2(40f, 36f), 24f, theme.button, theme.text, onClose);
+            return text;
+        }
+
         // ---------------------------------------------------------------- Stil
 
         /// <summary>

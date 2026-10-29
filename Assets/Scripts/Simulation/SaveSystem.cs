@@ -28,6 +28,9 @@ namespace EpochCity
         public event Action<SaveGame> Loaded;
 
         /// <summary>Ergebnis des letzten Speicherns oder Ladens für die Anzeige, mit Zeitpunkt (unskalierte Zeit).</summary>
+        /// <summary>Ergebnis von Speichern oder Laden als Meldung (Text, erfolgreich?), z. B. für Toasts.</summary>
+        public event Action<string, bool> Reported;
+
         public string LastMessage { get; private set; } = "";
         public float LastMessageTime { get; private set; } = float.NegativeInfinity;
 
@@ -63,7 +66,7 @@ namespace EpochCity
             catch (Exception e)
             {
                 Debug.LogException(e);
-                Report("Speichern fehlgeschlagen");
+                Report("Speichern fehlgeschlagen", false);
                 return false;
             }
         }
@@ -72,7 +75,7 @@ namespace EpochCity
         {
             if (!HasSave(slot))
             {
-                Report("Kein Spielstand vorhanden");
+                Report("Kein Spielstand vorhanden", false);
                 return false;
             }
 
@@ -84,12 +87,12 @@ namespace EpochCity
             catch (Exception e)
             {
                 Debug.LogException(e);
-                Report("Spielstand ist beschädigt");
+                Report("Spielstand ist beschädigt", false);
                 return false;
             }
             if (data == null || data.version > SaveGame.CurrentVersion)
             {
-                Report("Spielstand stammt aus einer neueren Version");
+                Report("Spielstand stammt aus einer neueren Version", false);
                 return false;
             }
 
@@ -108,10 +111,11 @@ namespace EpochCity
 
         private string DateText() => clock != null ? clock.DateString : "";
 
-        private void Report(string message)
+        private void Report(string message, bool success = true)
         {
             LastMessage = message;
             LastMessageTime = Time.unscaledTime;
+            Reported?.Invoke(message, success);
         }
 
         // ---------------------------------------------------------------- Speichern

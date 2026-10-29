@@ -7,15 +7,17 @@ using UnityEngine.UI;
 namespace EpochCity
 {
     /// <summary>
-    /// Panel oben rechts: aktuelles Forschungsprojekt, Forschungspool, je ein Button pro Technologie
-    /// und darunter die Bedingungen der nächsten Epoche mit dem Button für den Wechsel.
-    /// Baut sich wie CityHud zur Laufzeit selbst auf.
+    /// Forschungsfenster oben rechts (über TopBar „Forschung“ geöffnet, wie in Anno): aktuelles Projekt,
+    /// Forschungspool, je ein Button pro Technologie und darunter die Bedingungen der nächsten Epoche mit dem
+    /// Button für den Wechsel. Baut sich wie die anderen HUDs selbst auf.
     /// </summary>
     public class ResearchHud : MonoBehaviour
     {
         [SerializeField] private CityController city;
         [SerializeField] private ResearchSystem research;
         [SerializeField] private EpochProgression progression;
+        [Tooltip("Beim Start geöffnet")]
+        [SerializeField] private bool startVisible;
 
         [Header("Aussehen")]
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
@@ -23,6 +25,7 @@ namespace EpochCity
 
         private Color panelColor, buttonColor, selectedColor, unlockedColor, lockedColor, textColor;
 
+        private RectTransform panel;
         private TextMeshProUGUI statusText;
         private TextMeshProUGUI epochText;
         private Button advanceButton;
@@ -32,7 +35,18 @@ namespace EpochCity
         private readonly List<TextMeshProUGUI> labels = new List<TextMeshProUGUI>();
         private float refreshTimer;
 
-        private void Start()
+        public bool Visible => panel != null && panel.gameObject.activeSelf;
+
+        public void Toggle() => SetVisible(!Visible);
+
+        public void SetVisible(bool visible)
+        {
+            if (panel == null) return;
+            panel.gameObject.SetActive(visible);
+            refreshTimer = 0f;
+        }
+
+        private void Awake()
         {
             theme = UiTheme.Resolve(theme);
             panelColor = theme.panel;
@@ -43,11 +57,12 @@ namespace EpochCity
             textColor = theme.text;
             UiFactory.EnsureEventSystem();
             Build();
+            SetVisible(startVisible);
         }
 
         private void Update()
         {
-            if (city == null || research == null || statusText == null) return;
+            if (city == null || research == null || statusText == null || !Visible) return;
 
             refreshTimer -= Time.unscaledDeltaTime;
             if (refreshTimer > 0f) return;
@@ -111,14 +126,14 @@ namespace EpochCity
         {
             var canvas = UiFactory.CreateCanvas("ResearchHudCanvas", transform);
 
-            // Panel oben rechts, unter der oberen Leiste von CityHud; Höhe passt sich dem Inhalt an
-            var panel = UiFactory.CreatePanel("ResearchPanel", canvas,
+            // Fenster oben rechts unter der TopBar; Höhe passt sich dem Inhalt an
+            panel = UiFactory.CreatePanel("ResearchPanel", canvas,
                 new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(340f, 0f), panelColor);
-            panel.anchoredPosition = new Vector2(-16f, -80f);
+            panel.anchoredPosition = new Vector2(-16f, -TopBar.Height - 12f);
             UiFactory.AddColumn(panel.gameObject, 12, 8f);
             panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            UiFactory.CreateText("Title", panel, "Forschung", theme.titleSize, TextAlignmentOptions.Left, theme.heading);
+            UiFactory.WindowHeader(panel, "Forschung", theme, () => SetVisible(false));
             statusText = UiFactory.CreateText("Status", panel, "", 20f, TextAlignmentOptions.TopLeft, textColor);
 
             BuildTechButtons(panel);

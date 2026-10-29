@@ -5,9 +5,10 @@ using UnityEngine;
 namespace EpochCity
 {
     /// <summary>
-    /// Einfache Spiel-Oberfläche (uGUI + TextMeshPro), die sich beim Start selbst aufbaut:
-    /// oben Epoche, Nachfrage-Balken der Zonen und Geld, unten die Bauleiste mit Kategorien (Straßen, Zonen, Gebäudekategorien aus den
-    /// Daten), deren Werkzeuge in einer Reihe darüber aufklappen, dazu Abriss und Anbindungs-Overlay.
+    /// Bauleiste (uGUI + TextMeshPro), die sich beim Start selbst aufbaut: unten die Kategorien (Straßen, Zonen,
+    /// Gebäudekategorien aus den Daten), deren Werkzeuge in einer Reihe darüber aufklappen, dazu Abriss und
+    /// Anbindungs-Overlay, darüber die Infozeile zum Feld unter der Maus und die Tastenhilfe (über TopBar „?“).
+    /// Epoche, Geld und Nachfrage zeigt die TopBar.
     /// Es muss weder ein Canvas noch ein EventSystem manuell angelegt werden.
     /// </summary>
     public class CityHud : MonoBehaviour
@@ -16,7 +17,6 @@ namespace EpochCity
         [SerializeField] private CityController city;
         [SerializeField] private BuildingPlacer placer;
         [SerializeField] private ConnectionOverlay overlay;
-        [SerializeField] private ZoneDemand demand;
 
         [Header("Aussehen")]
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
@@ -24,25 +24,16 @@ namespace EpochCity
 
         private Color panelColor, buttonColor, selectedColor, demolishColor, lockedColor, textColor;
 
-        private TextMeshProUGUI epochText;
-        private TextMeshProUGUI moneyText;
         private UnityEngine.UI.Image demolishImage;
         private UnityEngine.UI.Image overlayImage;
         private TextMeshProUGUI hoverText;
         private TextMeshProUGUI hintText;
         private string lastHover;
-        private string lastEpoch;
-        private string lastMoney;
 
-        /// <summary>Nachfrage-Balken einer Zone in der oberen Leiste.</summary>
-        private class DemandBar
-        {
-            public ZoneDefinition Zone;
-            public RectTransform Fill;
-            public TextMeshProUGUI Value;
-        }
+        /// <summary>Tastenhilfe über der Bauleiste; anfangs verborgen, TopBar schaltet sie mit „?“.</summary>
+        public bool HintsVisible { get; private set; }
 
-        private readonly List<DemandBar> demandBars = new List<DemandBar>();
+        public void ToggleHints() => HintsVisible = !HintsVisible;
 
         // Bauleiste: unten die Kategorien, darüber klappt die Reihe der offenen Kategorie auf
         private enum TabKind { Roads, Zones, Buildings }
@@ -97,31 +88,7 @@ namespace EpochCity
 
         private void Update()
         {
-            if (city == null) return;
-
-            string epoch = city.currentEpoch != null ? city.currentEpoch.displayName : "-";
-            if (epoch != lastEpoch)
-            {
-                epochText.text = epoch;
-                lastEpoch = epoch;
-            }
-
-            string currency = city.currentEpoch != null ? city.currentEpoch.currencyName : "";
-            string money = $"{Mathf.FloorToInt(city.Money)} {currency}";
-            if (money != lastMoney)
-            {
-                moneyText.text = money;
-                lastMoney = money;
-            }
-
-            foreach (var bar in demandBars)
-            {
-                float value = demand.GetDemand(bar.Zone);
-                bar.Fill.anchorMax = new Vector2(value, 1f);
-                bar.Value.text = $"{value * 100f:0} %";
-            }
-
-            if (placer == null) return;
+            if (city == null || placer == null) return;
             FollowPlacer();
 
             foreach (var tab in tabs)
@@ -139,8 +106,8 @@ namespace EpochCity
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
             if (overlayImage != null) overlayImage.color = overlay.Visible ? selectedColor : buttonColor;
 
-            // Die Tastenhilfe würde das Infofenster links unten überdecken
-            hintText.enabled = placer.Inspected == null;
+            // Nur auf Wunsch; sie würde sonst das Infofenster links unten überdecken
+            hintText.enabled = HintsVisible && placer.Inspected == null;
 
             string hover = GetHoverInfo();
             if (hover != lastHover)
@@ -183,52 +150,7 @@ namespace EpochCity
         private void BuildUi()
         {
             var canvas = UiFactory.CreateCanvas("CityHudCanvas", transform);
-            BuildTopBar(canvas);
             BuildBottomBar(canvas);
-        }
-
-        private void BuildTopBar(Transform canvas)
-        {
-            var top = UiFactory.CreatePanel("TopBar", canvas,
-                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 64f), panelColor);
-            UiFactory.AddRow(top.gameObject, TextAnchor.MiddleLeft, 16, 24f);
-
-            epochText = UiFactory.CreateText("EpochText", top, "", 30f, TextAlignmentOptions.MidlineLeft, theme.heading);
-            epochText.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-
-            // Nachfrage wie in Cities: Skylines: ein Balken je Zone in ihrer Farbe
-            if (demand != null && demand.zones != null)
-                foreach (var zone in demand.zones)
-                    if (zone != null) AddDemandBar(top, zone);
-
-            moneyText = UiFactory.CreateText("MoneyText", top, "", 30f, TextAlignmentOptions.MidlineRight, textColor);
-            moneyText.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 420f;
-        }
-
-        private void AddDemandBar(Transform parent, ZoneDefinition zone)
-        {
-            var group = new GameObject("Demand_" + zone.name, typeof(RectTransform));
-            group.transform.SetParent(parent, false);
-            UiFactory.AddRow(group, TextAnchor.MiddleLeft, 0, 8f);
-
-            var label = UiFactory.CreateText("Label", group.transform, zone.displayName, 20f,
-                TextAlignmentOptions.MidlineRight, textColor);
-            label.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 150f;
-
-            var track = UiFactory.CreatePanel("Track", group.transform, Vector2.zero, Vector2.zero, Vector2.zero,
-                new Vector2(120f, 16f), theme.track, PanelStyle.Flat);
-            var trackLayout = track.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
-            trackLayout.preferredWidth = 120f;
-            trackLayout.preferredHeight = 16f;
-
-            var fill = UiFactory.CreatePanel("Fill", track, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f),
-                Vector2.zero, zone.demandColor, PanelStyle.Flat);
-            fill.offsetMin = fill.offsetMax = Vector2.zero;
-
-            var value = UiFactory.CreateText("Value", group.transform, "", 18f, TextAlignmentOptions.MidlineLeft, textColor);
-            value.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 56f;
-
-            demandBars.Add(new DemandBar { Zone = zone, Fill = fill, Value = value });
         }
 
         private const float BarHeight = 96f;
