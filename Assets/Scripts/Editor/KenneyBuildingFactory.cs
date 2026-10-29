@@ -145,6 +145,8 @@ namespace EpochCity
         /// <summary>Markt: Brunnen in der Mitte, Stände ringsum.</summary>
         private static void Market(Builder b)
         {
+            // Eigenes, einfarbiges Wasser statt des Kenney-Materials
+            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
             b.Put(FT + "fountain-round", Vector3.zero, 0f);
             b.Put(FT + "stall-red", new Vector3(-1.6f, 0f, 1.6f), 0f);
             b.Put(FT + "stall-green", new Vector3(1.6f, 0f, 1.6f), 0f);
