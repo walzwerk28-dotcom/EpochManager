@@ -7,8 +7,12 @@ using UnityEngine.UI;
 
 namespace EpochCity
 {
+    /// <summary>Aussehen eines Panels: Fenster mit Schatten, flache Fläche (Balken, Leisten) oder ohne Grafik.</summary>
+    public enum PanelStyle { Window, Flat, Plain }
+
     /// <summary>
-    /// Gemeinsame Helfer für die HUDs, die ihre uGUI zur Laufzeit selbst aufbauen.
+    /// Gemeinsame Helfer für die HUDs, die ihre uGUI zur Laufzeit selbst aufbauen. Form, Schatten und Button-Zustände
+    /// kommen aus UiTheme.Current; die abgerundete Grafik entsteht im Code als 9-Slice-Sprite (keine Bilddateien).
     /// </summary>
     public static class UiFactory
     {
@@ -48,7 +52,8 @@ namespace EpochCity
         }
 
         public static RectTransform CreatePanel(string name, Transform parent,
-            Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 sizeDelta, Color color)
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 sizeDelta, Color color,
+            PanelStyle style = PanelStyle.Window)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
@@ -60,7 +65,10 @@ namespace EpochCity
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = sizeDelta;
 
-            go.GetComponent<Image>().color = color;
+            var image = go.GetComponent<Image>();
+            image.color = color;
+            if (style != PanelStyle.Plain) MakeRounded(image);
+            if (style == PanelStyle.Window) AddShadow(go);
             return rt;
         }
 
@@ -112,6 +120,7 @@ namespace EpochCity
 
             var image = go.GetComponent<Image>();
             image.color = color;
+            MakeRounded(image);
 
             var element = go.GetComponent<LayoutElement>();
             element.preferredWidth = size.x;
@@ -119,6 +128,7 @@ namespace EpochCity
 
             var button = go.GetComponent<Button>();
             button.targetGraphic = image;
+            button.colors = ButtonColors();
             button.onClick.AddListener(onClick);
 
             var text = CreateText("Label", go.transform, label, fontSize, TextAlignmentOptions.Center, textColor);
@@ -133,6 +143,80 @@ namespace EpochCity
             rt.offsetMax = new Vector2(-8f, -6f);
 
             return button;
+        }
+
+        // ---------------------------------------------------------------- Stil
+
+        /// <summary>
+        /// Zustände als Helligkeit über der Grundfarbe: Die HUDs setzen die Grundfarbe je nach Zustand (ausgewählt,
+        /// gesperrt, …) direkt am Image, der Button dunkelt sie im Ruhezustand leicht ab und zeigt sie beim Überfahren voll.
+        /// </summary>
+        public static ColorBlock ButtonColors()
+        {
+            var theme = UiTheme.Resolve(null);
+            float idle = theme.idleBrightness, pressed = theme.pressedBrightness;
+            var block = ColorBlock.defaultColorBlock;
+            block.normalColor = new Color(idle, idle, idle, 1f);
+            block.highlightedColor = Color.white;
+            block.pressedColor = new Color(pressed, pressed, pressed, 1f);
+            block.selectedColor = block.normalColor;
+            block.disabledColor = new Color(idle, idle, idle, 0.9f);
+            block.colorMultiplier = 1f;
+            block.fadeDuration = 0.08f;
+            return block;
+        }
+
+        /// <summary>Abgerundete Ecken über ein 9-Slice-Sprite mit dem Radius aus dem Farbschema.</summary>
+        public static void MakeRounded(Image image)
+        {
+            var sprite = RoundedSprite(UiTheme.Resolve(null).cornerRadius);
+            if (sprite == null) return;
+            image.sprite = sprite;
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = 1f;
+        }
+
+        public static void AddShadow(GameObject go)
+        {
+            var theme = UiTheme.Resolve(null);
+            var shadow = go.AddComponent<Shadow>();
+            shadow.effectColor = theme.shadow;
+            shadow.effectDistance = theme.shadowOffset;
+        }
+
+        private static Sprite rounded;
+        private static int roundedRadius = -1;
+
+        /// <summary>Weißes Quadrat mit weich abgerundeten Ecken; bei kleinen Flächen verkleinert Unity die Ränder (Pillenform).</summary>
+        private static Sprite RoundedSprite(int radius)
+        {
+            if (radius <= 0) return null;
+            if (rounded != null && roundedRadius == radius) return rounded;
+
+            int size = radius * 2 + 4;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "UiRounded", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear
+            };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    // Abstand zum nächsten Eckmittelpunkt; innen 1, an der Kante weich auf 0
+                    var p = new Vector2(x + 0.5f, y + 0.5f);
+                    var c = new Vector2(Mathf.Clamp(p.x, radius, size - radius), Mathf.Clamp(p.y, radius, size - radius));
+                    float alpha = Mathf.Clamp01(radius - Vector2.Distance(p, c) + 0.5f);
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+
+            float border = radius + 1;
+            rounded = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            rounded.name = "UiRounded";
+            roundedRadius = radius;
+            return rounded;
         }
     }
 }

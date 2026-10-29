@@ -19,12 +19,10 @@ namespace EpochCity
         [SerializeField] private ZoneDemand demand;
 
         [Header("Aussehen")]
-        [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.88f);
-        [SerializeField] private Color buttonColor = new Color(0.22f, 0.25f, 0.32f, 1f);
-        [SerializeField] private Color selectedColor = new Color(0.25f, 0.55f, 0.35f, 1f);
-        [SerializeField] private Color demolishColor = new Color(0.6f, 0.25f, 0.22f, 1f);
-        [SerializeField] private Color lockedColor = new Color(0.14f, 0.15f, 0.18f, 1f);
-        [SerializeField] private Color textColor = Color.white;
+        [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
+        [SerializeField] private UiTheme theme;
+
+        private Color panelColor, buttonColor, selectedColor, demolishColor, lockedColor, textColor;
 
         private TextMeshProUGUI epochText;
         private TextMeshProUGUI moneyText;
@@ -86,6 +84,13 @@ namespace EpochCity
 
         private void Awake()
         {
+            theme = UiTheme.Resolve(theme);
+            panelColor = theme.panel;
+            buttonColor = theme.button;
+            selectedColor = theme.accent;
+            demolishColor = theme.danger;
+            lockedColor = theme.locked;
+            textColor = theme.text;
             UiFactory.EnsureEventSystem();
             BuildUi();
         }
@@ -188,7 +193,7 @@ namespace EpochCity
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 64f), panelColor);
             UiFactory.AddRow(top.gameObject, TextAnchor.MiddleLeft, 16, 24f);
 
-            epochText = UiFactory.CreateText("EpochText", top, "", 30f, TextAlignmentOptions.MidlineLeft, textColor);
+            epochText = UiFactory.CreateText("EpochText", top, "", 30f, TextAlignmentOptions.MidlineLeft, theme.heading);
             epochText.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
 
             // Nachfrage wie in Cities: Skylines: ein Balken je Zone in ihrer Farbe
@@ -211,13 +216,13 @@ namespace EpochCity
             label.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 150f;
 
             var track = UiFactory.CreatePanel("Track", group.transform, Vector2.zero, Vector2.zero, Vector2.zero,
-                new Vector2(120f, 16f), new Color(1f, 1f, 1f, 0.12f));
+                new Vector2(120f, 16f), theme.track, PanelStyle.Flat);
             var trackLayout = track.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
             trackLayout.preferredWidth = 120f;
             trackLayout.preferredHeight = 16f;
 
             var fill = UiFactory.CreatePanel("Fill", track, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f),
-                Vector2.zero, zone.demandColor);
+                Vector2.zero, zone.demandColor, PanelStyle.Flat);
             fill.offsetMin = fill.offsetMax = Vector2.zero;
 
             var value = UiFactory.CreateText("Value", group.transform, "", 18f, TextAlignmentOptions.MidlineLeft, textColor);
@@ -238,7 +243,7 @@ namespace EpochCity
             // Aufklappende Reihe direkt über der Leiste, zunächst verborgen
             subMenu = UiFactory.CreatePanel("SubMenu", canvas,
                 new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, SubMenuHeight),
-                new Color(panelColor.r, panelColor.g, panelColor.b, panelColor.a * 0.9f));
+                theme.panelSoft);
             subMenu.anchoredPosition = new Vector2(0f, BarHeight + 6f);
             UiFactory.AddRow(subMenu.gameObject, TextAnchor.MiddleCenter, 10, 10f);
             subMenu.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>().horizontalFit =
@@ -271,7 +276,7 @@ namespace EpochCity
             float above = BarHeight + SubMenuHeight + 12f;
             hintText = CreateBottomLine(canvas, "Hint",
                 "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
-                18f, new Color(1f, 1f, 1f, 0.7f), above);
+                18f, theme.textMuted, above);
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, above + 28f);
         }
 
@@ -361,7 +366,6 @@ namespace EpochCity
             var button = UiFactory.CreateButton(subMenu, "Entry_" + entries.Count, label, new Vector2(160f, 76f),
                 22f, buttonColor, textColor, onClick);
             // Eigene Einfärbung statt der Button-Farbübergänge (auch für gesperrte Einträge)
-            button.transition = UnityEngine.UI.Selectable.Transition.None;
             var entry = new Entry
             {
                 Button = button,

@@ -1077,10 +1077,7 @@ MonoBehaviour:
   economy: {fileID: 1598712635}
   population: {fileID: 1598712641}
   saveSystem: {fileID: 1598712642}
-  panelColor: {r: 0.08, g: 0.09, b: 0.12, a: 0.88}
-  buttonColor: {r: 0.22, g: 0.25, b: 0.32, a: 1}
-  selectedColor: {r: 0.25, g: 0.55, b: 0.35, a: 1}
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!4 &1732010459
 Transform:
   m_ObjectHideFlags: 0
@@ -1111,12 +1108,7 @@ MonoBehaviour:
   city: {fileID: 440537052}
   research: {fileID: 1598712638}
   progression: {fileID: 1598712639}
-  panelColor: {r: 0.08, g: 0.09, b: 0.12, a: 0.88}
-  buttonColor: {r: 0.22, g: 0.25, b: 0.32, a: 1}
-  selectedColor: {r: 0.25, g: 0.55, b: 0.35, a: 1}
-  unlockedColor: {r: 0.16, g: 0.32, b: 0.22, a: 1}
-  lockedColor: {r: 0.14, g: 0.15, b: 0.18, a: 1}
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!114 &1732010461
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1131,12 +1123,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingInfoPanel
   city: {fileID: 440537052}
   placer: {fileID: 1216388725}
-  panelColor: {r: 0.08, g: 0.09, b: 0.12, a: 0.92}
-  buttonColor: {r: 0.22, g: 0.25, b: 0.32, a: 1}
-  activeColor: {r: 0.25, g: 0.55, b: 0.35, a: 1}
-  demolishColor: {r: 0.6, g: 0.25, b: 0.22, a: 1}
-  lockedColor: {r: 0.14, g: 0.15, b: 0.18, a: 1}
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0
@@ -1170,12 +1157,7 @@ MonoBehaviour:
   placer: {fileID: 1216388725}
   overlay: {fileID: 1216388727}
   demand: {fileID: 1598712643}
-  panelColor: {r: 0.08, g: 0.09, b: 0.12, a: 0.88}
-  buttonColor: {r: 0.22, g: 0.25, b: 0.32, a: 1}
-  selectedColor: {r: 0.25, g: 0.55, b: 0.35, a: 1}
-  demolishColor: {r: 0.6, g: 0.25, b: 0.22, a: 1}
-  lockedColor: {r: 0.14, g: 0.15, b: 0.18, a: 1}
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!4 &2116940970
 Transform:
   m_ObjectHideFlags: 0

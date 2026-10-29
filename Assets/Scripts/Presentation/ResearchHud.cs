@@ -18,12 +18,10 @@ namespace EpochCity
         [SerializeField] private EpochProgression progression;
 
         [Header("Aussehen")]
-        [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.88f);
-        [SerializeField] private Color buttonColor = new Color(0.22f, 0.25f, 0.32f, 1f);
-        [SerializeField] private Color selectedColor = new Color(0.25f, 0.55f, 0.35f, 1f);
-        [SerializeField] private Color unlockedColor = new Color(0.16f, 0.32f, 0.22f, 1f);
-        [SerializeField] private Color lockedColor = new Color(0.14f, 0.15f, 0.18f, 1f);
-        [SerializeField] private Color textColor = Color.white;
+        [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
+        [SerializeField] private UiTheme theme;
+
+        private Color panelColor, buttonColor, selectedColor, unlockedColor, lockedColor, textColor;
 
         private TextMeshProUGUI statusText;
         private TextMeshProUGUI epochText;
@@ -36,6 +34,13 @@ namespace EpochCity
 
         private void Start()
         {
+            theme = UiTheme.Resolve(theme);
+            panelColor = theme.panel;
+            buttonColor = theme.button;
+            selectedColor = theme.accent;
+            unlockedColor = theme.done;
+            lockedColor = theme.locked;
+            textColor = theme.text;
             UiFactory.EnsureEventSystem();
             Build();
         }
@@ -113,7 +118,7 @@ namespace EpochCity
             UiFactory.AddColumn(panel.gameObject, 12, 8f);
             panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            UiFactory.CreateText("Title", panel, "Forschung", 26f, TextAlignmentOptions.Left, textColor);
+            UiFactory.CreateText("Title", panel, "Forschung", theme.titleSize, TextAlignmentOptions.Left, theme.heading);
             statusText = UiFactory.CreateText("Status", panel, "", 20f, TextAlignmentOptions.TopLeft, textColor);
 
             BuildTechButtons(panel);
@@ -124,12 +129,11 @@ namespace EpochCity
         {
             if (progression == null) return;
 
-            UiFactory.CreateText("EpochTitle", panel, "Epoche", 26f, TextAlignmentOptions.Left, textColor);
+            UiFactory.CreateText("EpochTitle", panel, "Epoche", theme.titleSize, TextAlignmentOptions.Left, theme.heading);
             epochText = UiFactory.CreateText("EpochStatus", panel, "", 20f, TextAlignmentOptions.TopLeft, textColor);
 
             advanceButton = UiFactory.CreateButton(panel, "AdvanceEpoch", "Epoche wechseln", new Vector2(0f, 56f),
                 24f, lockedColor, textColor, () => progression.TryAdvance());
-            advanceButton.transition = Selectable.Transition.None;
         }
 
         private void BuildTechButtons(Transform panel)
@@ -141,9 +145,6 @@ namespace EpochCity
                 var t = tech;
                 var button = UiFactory.CreateButton(panel, "Tech_" + tech.name, tech.displayName, new Vector2(0f, 76f),
                     24f, buttonColor, textColor, () => research.Select(t));
-
-                // Ohne eigene Farbwechsel des Buttons, die Farbe setzt Update je nach Zustand
-                button.transition = Selectable.Transition.None;
 
                 techs.Add(tech);
                 buttons.Add(button);

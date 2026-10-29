@@ -20,10 +20,10 @@ namespace EpochCity
         [SerializeField] private SaveSystem saveSystem;
 
         [Header("Aussehen")]
-        [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.88f);
-        [SerializeField] private Color buttonColor = new Color(0.22f, 0.25f, 0.32f, 1f);
-        [SerializeField] private Color selectedColor = new Color(0.25f, 0.55f, 0.35f, 1f);
-        [SerializeField] private Color textColor = Color.white;
+        [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
+        [SerializeField] private UiTheme theme;
+
+        private Color panelColor, buttonColor, selectedColor, textColor;
 
         private TextMeshProUGUI infoText;
         private readonly List<PopulationTierDefinition> taxTiers = new List<PopulationTierDefinition>();
@@ -38,6 +38,11 @@ namespace EpochCity
 
         private void Start()
         {
+            theme = UiTheme.Resolve(theme);
+            panelColor = theme.panel;
+            buttonColor = theme.button;
+            selectedColor = theme.accent;
+            textColor = theme.text;
             UiFactory.EnsureEventSystem();
             Build();
         }
@@ -64,7 +69,7 @@ namespace EpochCity
             builder.Clear();
             builder.AppendLine(clock.DateString);
             if (saveSystem != null && Time.unscaledTime - saveSystem.LastMessageTime < MessageSeconds)
-                builder.AppendLine($"<color=#9fe08a>{saveSystem.LastMessage}</color>");
+                builder.AppendLine($"<color={UiTheme.Hex(theme.positive)}>{saveSystem.LastMessage}</color>");
             if (economy != null)
                 builder.AppendLine($"Letzter Monat: +{economy.LastMonthIncome:0} / -{economy.LastMonthUpkeep:0}");
             if (population != null)

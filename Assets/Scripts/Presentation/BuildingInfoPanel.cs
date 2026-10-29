@@ -16,12 +16,10 @@ namespace EpochCity
         [SerializeField] private BuildingPlacer placer;
 
         [Header("Aussehen")]
-        [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.92f);
-        [SerializeField] private Color buttonColor = new Color(0.22f, 0.25f, 0.32f, 1f);
-        [SerializeField] private Color activeColor = new Color(0.25f, 0.55f, 0.35f, 1f);
-        [SerializeField] private Color demolishColor = new Color(0.6f, 0.25f, 0.22f, 1f);
-        [SerializeField] private Color lockedColor = new Color(0.14f, 0.15f, 0.18f, 1f);
-        [SerializeField] private Color textColor = Color.white;
+        [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
+        [SerializeField] private UiTheme theme;
+
+        private Color panelColor, buttonColor, activeColor, demolishColor, lockedColor, textColor;
 
         private RectTransform panel;
         private TextMeshProUGUI title;
@@ -35,6 +33,13 @@ namespace EpochCity
 
         private void Start()
         {
+            theme = UiTheme.Resolve(theme);
+            panelColor = theme.panel;
+            buttonColor = theme.button;
+            activeColor = theme.accent;
+            demolishColor = theme.danger;
+            lockedColor = theme.locked;
+            textColor = theme.text;
             UiFactory.EnsureEventSystem();
             Build();
         }
@@ -157,7 +162,7 @@ namespace EpochCity
             var header = new GameObject("Header", typeof(RectTransform));
             header.transform.SetParent(panel, false);
             UiFactory.AddRow(header, TextAnchor.MiddleLeft, 0, 8f);
-            title = UiFactory.CreateText("Title", header.transform, "", 28f, TextAlignmentOptions.MidlineLeft, textColor);
+            title = UiFactory.CreateText("Title", header.transform, "", 28f, TextAlignmentOptions.MidlineLeft, theme.heading);
             title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
             UiFactory.CreateButton(header.transform, "Close", "×", new Vector2(44f, 40f), 26f, buttonColor, textColor,
                 () => placer.Inspect(null));
@@ -169,11 +174,9 @@ namespace EpochCity
             UiFactory.AddRow(actions, TextAnchor.MiddleLeft, 0, 10f);
             protectButton = UiFactory.CreateButton(actions.transform, "Protect", "Denkmalschutz: aus",
                 new Vector2(220f, 52f), 20f, buttonColor, textColor, ToggleProtection);
-            protectButton.transition = Selectable.Transition.None;
             protectLabel = protectButton.GetComponentInChildren<TextMeshProUGUI>();
             demolishButton = UiFactory.CreateButton(actions.transform, "Demolish", "Abreißen",
                 new Vector2(160f, 52f), 20f, demolishColor, textColor, Demolish);
-            demolishButton.transition = Selectable.Transition.None;
 
             panel.gameObject.SetActive(false);
         }
