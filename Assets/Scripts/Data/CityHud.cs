@@ -6,7 +6,8 @@ namespace EpochCity
 {
     /// <summary>
     /// Einfache Spiel-Oberfläche (uGUI + TextMeshPro), die sich beim Start selbst aufbaut:
-    /// oben Epoche und Geld, unten die Leiste mit den baubaren Gebäuden und dem Abriss-Button.
+    /// oben Epoche und Geld, unten die Bauleiste mit Kategorien (Straßen, Zonen, Gebäudekategorien aus den
+    /// Daten), deren Werkzeuge in einer Reihe darüber aufklappen, dazu Abriss und Anbindungs-Overlay.
     /// Es muss weder ein Canvas noch ein EventSystem manuell angelegt werden.
     /// </summary>
     public class CityHud : MonoBehaviour
@@ -27,18 +28,50 @@ namespace EpochCity
         private TextMeshProUGUI epochText;
         private TextMeshProUGUI moneyText;
         private UnityEngine.UI.Image demolishImage;
-        private UnityEngine.UI.Image roadImage;
         private UnityEngine.UI.Image overlayImage;
-        private UnityEngine.UI.Image unzoneImage;
-        private readonly Dictionary<ZoneDefinition, UnityEngine.UI.Image> zoneButtons =
-            new Dictionary<ZoneDefinition, UnityEngine.UI.Image>();
         private TextMeshProUGUI hoverText;
+        private TextMeshProUGUI hintText;
         private string lastHover;
-        private readonly List<BuildingDefinition> buttonDefs = new List<BuildingDefinition>();
-        private readonly List<UnityEngine.UI.Image> buttonImages = new List<UnityEngine.UI.Image>();
-        private readonly List<TextMeshProUGUI> buttonLabels = new List<TextMeshProUGUI>();
         private string lastEpoch;
         private string lastMoney;
+
+        // Bauleiste: unten die Kategorien, darüber klappt die Reihe der offenen Kategorie auf
+        private enum TabKind { Roads, Zones, Buildings }
+
+        private class Tab
+        {
+            public string Label;
+            public TabKind Kind;
+            public BuildingCategory Category;
+            public UnityEngine.UI.Image Image;
+        }
+
+        /// <summary>Ein Eintrag der aufgeklappten Reihe mit Zustandsabfragen für die Einfärbung.</summary>
+        private class Entry
+        {
+            public UnityEngine.UI.Button Button;
+            public UnityEngine.UI.Image Image;
+            public TextMeshProUGUI Label;
+            public System.Func<bool> IsSelected;
+            public System.Func<bool> IsLocked;
+            public bool Removes; // Zone aufheben: rot statt grün hervorheben
+        }
+
+        private readonly List<Tab> tabs = new List<Tab>();
+        private readonly List<Entry> entries = new List<Entry>();
+        private Tab openTab;
+        private RectTransform subMenu;
+
+        private static readonly (BuildingCategory category, string label)[] CategoryOrder =
+        {
+            (BuildingCategory.Production, "Produktion"),
+            (BuildingCategory.Commerce, "Handel"),
+            (BuildingCategory.Service, "Dienste"),
+            (BuildingCategory.Storage, "Lager"),
+            (BuildingCategory.Housing, "Wohnen"),
+            (BuildingCategory.Monument, "Denkmäler"),
+            (BuildingCategory.Wonder, "Wunderbauten")
+        };
 
         private void Awake()
         {
@@ -66,21 +99,25 @@ namespace EpochCity
             }
 
             if (placer == null) return;
-            for (int i = 0; i < buttonDefs.Count; i++)
+            FollowPlacer();
+
+            foreach (var tab in tabs)
+                tab.Image.color = tab == openTab ? selectedColor : buttonColor;
+            foreach (var entry in entries)
             {
                 // Gebäude späterer Epochen bleiben sichtbar, aber ausgegraut
-                bool reached = city.IsEpochReached(buttonDefs[i].epoch);
-                buttonImages[i].color = !reached ? lockedColor
-                    : placer.SelectedBuilding == buttonDefs[i] ? selectedColor : buttonColor;
-                buttonLabels[i].alpha = reached ? 1f : 0.5f;
+                bool locked = entry.IsLocked != null && entry.IsLocked();
+                bool selected = !locked && entry.IsSelected();
+                entry.Button.interactable = !locked;
+                entry.Image.color = locked ? lockedColor
+                    : selected ? (entry.Removes ? demolishColor : selectedColor) : buttonColor;
+                entry.Label.alpha = locked ? 0.5f : 1f;
             }
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
-            if (roadImage != null) roadImage.color = placer.RoadMode ? selectedColor : buttonColor;
             if (overlayImage != null) overlayImage.color = overlay.Visible ? selectedColor : buttonColor;
-            foreach (var entry in zoneButtons)
-                entry.Value.color = placer.ZoneMode && placer.SelectedZone == entry.Key ? selectedColor : buttonColor;
-            if (unzoneImage != null)
-                unzoneImage.color = placer.ZoneMode && placer.SelectedZone == null ? demolishColor : buttonColor;
+
+            // Die Tastenhilfe würde das Infofenster links unten überdecken
+            hintText.enabled = placer.Inspected == null;
 
             string hover = GetHoverInfo();
             if (hover != lastHover)
@@ -140,69 +177,152 @@ namespace EpochCity
             moneyText.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 420f;
         }
 
+        private const float BarHeight = 96f;
+        private const float SubMenuHeight = 96f;
+
         private void BuildBottomBar(Transform canvas)
         {
             var bottom = UiFactory.CreatePanel("BottomBar", canvas,
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 120f), panelColor);
-            UiFactory.AddRow(bottom.gameObject, TextAnchor.MiddleCenter, 16, 12f);
+                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, BarHeight), panelColor);
+            UiFactory.AddRow(bottom.gameObject, TextAnchor.MiddleCenter, 12, 10f);
 
-            if (placer != null && placer.hotbar != null)
-            {
-                for (int i = 0; i < placer.hotbar.Length; i++)
-                {
-                    var def = placer.hotbar[i];
-                    if (def == null) continue;
-
-                    string label = $"{i + 1}  {def.displayName}\n{Mathf.FloorToInt(def.buildCost)}";
-                    var button = UiFactory.CreateButton(bottom, "Build_" + def.name, label, new Vector2(150f, 88f),
-                        22f, buttonColor, textColor, () => placer.Select(def));
-                    buttonDefs.Add(def);
-                    buttonImages.Add((UnityEngine.UI.Image)button.targetGraphic);
-                    buttonLabels.Add(button.GetComponentInChildren<TextMeshProUGUI>());
-                }
-            }
-
-            if (placer != null && placer.road != null)
-            {
-                var road = placer.road;
-                string label = $"R  {road.displayName}\n{road.costPerCell:0} / Feld";
-                var roadButton = UiFactory.CreateButton(bottom, "RoadButton", label, new Vector2(150f, 88f),
-                    22f, buttonColor, textColor, () => placer.SelectRoad());
-                roadImage = (UnityEngine.UI.Image)roadButton.targetGraphic;
-            }
+            // Aufklappende Reihe direkt über der Leiste, zunächst verborgen
+            subMenu = UiFactory.CreatePanel("SubMenu", canvas,
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, SubMenuHeight),
+                new Color(panelColor.r, panelColor.g, panelColor.b, panelColor.a * 0.9f));
+            subMenu.anchoredPosition = new Vector2(0f, BarHeight + 6f);
+            UiFactory.AddRow(subMenu.gameObject, TextAnchor.MiddleCenter, 10, 10f);
+            subMenu.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>().horizontalFit =
+                UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+            subMenu.gameObject.SetActive(false);
 
             if (placer != null)
             {
-                AddZoneButton(bottom, placer.residentialZone, "Z");
-                AddZoneButton(bottom, placer.commercialZone, "G");
-                var unzone = UiFactory.CreateButton(bottom, "UnzoneButton", "U  Zone\naufheben", new Vector2(140f, 88f),
-                    22f, buttonColor, textColor, () => placer.SelectZone(null));
-                unzoneImage = (UnityEngine.UI.Image)unzone.targetGraphic;
+                if (placer.road != null) AddTab(bottom, "R  Straßen", TabKind.Roads, default);
+                if (placer.residentialZone != null || placer.commercialZone != null)
+                    AddTab(bottom, "Z  Zonen", TabKind.Zones, default);
+
+                // Kategorien aus den Daten: nur die, für die es baubare Gebäude gibt
+                foreach (var (category, label) in CategoryOrder)
+                    if (placer.GetCategoryBuildings(category).Count > 0)
+                        AddTab(bottom, label, TabKind.Buildings, category);
             }
 
-            var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "X  Abreißen", new Vector2(140f, 88f),
+            var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "X  Abreißen", new Vector2(140f, 72f),
                 22f, buttonColor, textColor, () => { if (placer != null) placer.ToggleDemolish(); });
             demolishImage = (UnityEngine.UI.Image)demolish.targetGraphic;
 
             if (overlay != null)
             {
-                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "C  Anbindung", new Vector2(140f, 88f),
+                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "C  Anbindung", new Vector2(140f, 72f),
                     22f, buttonColor, textColor, () => overlay.Toggle());
                 overlayImage = (UnityEngine.UI.Image)overlayButton.targetGraphic;
             }
 
-            hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, 166f);
-            CreateBottomLine(canvas, "Hint",
-                "1-9: bauen  |  R: Straße  |  Z / G / U: Zonen ziehen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
-                20f, new Color(1f, 1f, 1f, 0.75f), 130f);
+            float above = BarHeight + SubMenuHeight + 12f;
+            hintText = CreateBottomLine(canvas, "Hint",
+                "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                18f, new Color(1f, 1f, 1f, 0.7f), above);
+            hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, above + 28f);
         }
 
-        private void AddZoneButton(Transform bottom, ZoneDefinition zone, string key)
+        private void AddTab(Transform bar, string label, TabKind kind, BuildingCategory category)
         {
-            if (zone == null) return;
-            var button = UiFactory.CreateButton(bottom, "Zone_" + zone.name, $"{key}  {zone.displayName}",
-                new Vector2(140f, 88f), 22f, buttonColor, textColor, () => placer.SelectZone(zone));
-            zoneButtons[zone] = (UnityEngine.UI.Image)button.targetGraphic;
+            var tab = new Tab { Label = label, Kind = kind, Category = category };
+            var button = UiFactory.CreateButton(bar, "Tab_" + label, label, new Vector2(140f, 72f),
+                22f, buttonColor, textColor, () => ToggleTab(tab));
+            tab.Image = (UnityEngine.UI.Image)button.targetGraphic;
+            tabs.Add(tab);
+        }
+
+        /// <summary>Klick auf eine Kategorie: öffnet sie, ein zweiter Klick schließt sie wieder.</summary>
+        private void ToggleTab(Tab tab)
+        {
+            OpenTab(openTab == tab ? null : tab);
+            if (openTab == null) placer.ClearSelection();
+        }
+
+        private void OpenTab(Tab tab)
+        {
+            if (tab == openTab) return;
+            openTab = tab;
+            placer.ActiveCategory = tab != null && tab.Kind == TabKind.Buildings ? tab.Category : (BuildingCategory?)null;
+            RebuildSubMenu();
+        }
+
+        /// <summary>Hält die offene Kategorie passend zum Werkzeug, auch wenn es per Taste gewählt wurde.</summary>
+        private void FollowPlacer()
+        {
+            Tab wanted = null;
+            if (placer.RoadMode) wanted = tabs.Find(t => t.Kind == TabKind.Roads);
+            else if (placer.ZoneMode) wanted = tabs.Find(t => t.Kind == TabKind.Zones);
+            else if (placer.SelectedBuilding != null)
+                wanted = tabs.Find(t => t.Kind == TabKind.Buildings && t.Category == placer.SelectedBuilding.category);
+            if (wanted != null) OpenTab(wanted);
+        }
+
+        private void RebuildSubMenu()
+        {
+            for (int i = subMenu.childCount - 1; i >= 0; i--) Destroy(subMenu.GetChild(i).gameObject);
+            entries.Clear();
+            subMenu.gameObject.SetActive(openTab != null);
+            if (openTab == null) return;
+
+            switch (openTab.Kind)
+            {
+                case TabKind.Roads:
+                    var road = placer.road;
+                    AddEntry($"{road.displayName}\n{road.costPerCell:0} / Feld", () => placer.SelectRoad(),
+                        () => placer.RoadMode, () => !city.IsEpochReached(road.epoch));
+                    break;
+
+                case TabKind.Zones:
+                    if (placer.residentialZone != null)
+                    {
+                        var res = placer.residentialZone;
+                        AddEntry($"Z  {res.displayName}", () => placer.SelectZone(res),
+                            () => placer.ZoneMode && placer.SelectedZone == res, null);
+                    }
+                    if (placer.commercialZone != null)
+                    {
+                        var com = placer.commercialZone;
+                        AddEntry($"G  {com.displayName}", () => placer.SelectZone(com),
+                            () => placer.ZoneMode && placer.SelectedZone == com, null);
+                    }
+                    AddEntry("U  Zone aufheben", () => placer.SelectZone(null),
+                        () => placer.ZoneMode && placer.SelectedZone == null, null).Removes = true;
+                    break;
+
+                case TabKind.Buildings:
+                    var list = placer.GetCategoryBuildings(openTab.Category);
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        var def = list[i];
+                        string key = i < 9 ? $"{i + 1}  " : "";
+                        AddEntry($"{key}{def.displayName}\n{Mathf.FloorToInt(def.buildCost)}", () => placer.Select(def),
+                            () => placer.SelectedBuilding == def, () => !city.IsEpochReached(def.epoch));
+                    }
+                    break;
+            }
+        }
+
+        private Entry AddEntry(string label, UnityEngine.Events.UnityAction onClick, System.Func<bool> isSelected,
+            System.Func<bool> isLocked)
+        {
+            var button = UiFactory.CreateButton(subMenu, "Entry_" + entries.Count, label, new Vector2(160f, 76f),
+                22f, buttonColor, textColor, onClick);
+            // Eigene Einfärbung statt der Button-Farbübergänge (auch für gesperrte Einträge)
+            button.transition = UnityEngine.UI.Selectable.Transition.None;
+            var entry = new Entry
+            {
+                Button = button,
+                Image = (UnityEngine.UI.Image)button.targetGraphic,
+                Label = button.GetComponentInChildren<TextMeshProUGUI>(),
+                IsSelected = isSelected,
+                IsLocked = isLocked
+            };
+            entries.Add(entry);
+            return entry;
         }
 
         /// <summary>Zentrierte Textzeile über der unteren Leiste.</summary>

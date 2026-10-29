@@ -146,6 +146,12 @@ namespace EpochCity
             return basePos + offset;
         }
 
+        /// <summary>Denkmalschutz setzen oder aufheben; geschützte Gebäude lassen sich nicht abreißen.</summary>
+        public void SetProtected(BuildingInstance inst, bool isProtected)
+        {
+            if (inst != null) inst.IsProtected = isProtected;
+        }
+
         /// <summary>Abriss. Gebäude unter Denkmalschutz lassen sich nicht abreißen.</summary>
         public bool TryRemove(BuildingInstance inst)
         {

@@ -7,7 +7,7 @@ namespace EpochCity
 {
     /// <summary>
     /// Platzieren und Abreißen per Maus (neues Input System).
-    /// 1-9: Gebäude aus der Liste wählen · R: Straße · Linksklick: bauen / abreißen
+    /// 1-9: Gebäude der in der Bauleiste offenen Kategorie wählen · R: Straße · Linksklick: bauen / abreißen
     /// Straße: Maustaste halten und ziehen, die Strecke folgt dem Raster in L-Form
     /// Z / G: Wohn- / Gewerbezone, U: Zone aufheben – jeweils ein Rechteck ziehen
     /// Rechtsklick oder Esc: Auswahl aufheben · X: Abriss-Modus an/aus (Gebäude und Straßen)
@@ -16,7 +16,7 @@ namespace EpochCity
     {
         public CityController city;
         public Camera cam;
-        [Tooltip("Gebäude, die mit den Tasten 1-9 wählbar sind")]
+        [Tooltip("Alle einzeln baubaren Gebäude; die Bauleiste ordnet sie nach ihrer Kategorie")]
         public BuildingDefinition[] hotbar;
         [Tooltip("Straße, die mit R gewählt wird")]
         public RoadDefinition road;
@@ -81,14 +81,28 @@ namespace EpochCity
             if (mouse.rightButton.wasPressedThisFrame) ClearSelection();
         }
 
+        /// <summary>In der Bauleiste geöffnete Gebäudekategorie; die Zifferntasten wählen darin.</summary>
+        public BuildingCategory? ActiveCategory { get; set; }
+
+        /// <summary>Baubare Gebäude einer Kategorie in der Reihenfolge der Liste.</summary>
+        public List<BuildingDefinition> GetCategoryBuildings(BuildingCategory category)
+        {
+            var list = new List<BuildingDefinition>();
+            if (hotbar == null) return list;
+            foreach (var def in hotbar)
+                if (def != null && def.category == category) list.Add(def);
+            return list;
+        }
+
         private void HandleHotkeys(Keyboard kb)
         {
-            if (hotbar != null)
+            if (ActiveCategory.HasValue)
             {
-                for (int i = 0; i < hotbar.Length && i < 9; i++)
+                var list = GetCategoryBuildings(ActiveCategory.Value);
+                for (int i = 0; i < list.Count && i < 9; i++)
                 {
                     var key = kb[(Key)((int)Key.Digit1 + i)];
-                    if (key.wasPressedThisFrame) Select(hotbar[i]);
+                    if (key.wasPressedThisFrame) Select(list[i]);
                 }
             }
             if (kb.escapeKey.wasPressedThisFrame) ClearSelection();
@@ -99,8 +113,17 @@ namespace EpochCity
             if (kb.uKey.wasPressedThisFrame) SelectZone(null);
         }
 
+        /// <summary>Gebäude, dessen Infofenster offen ist (Linksklick außerhalb der Baumodi), sonst null.</summary>
+        public BuildingInstance Inspected { get; private set; }
+
+        public void Inspect(BuildingInstance building) => Inspected = building;
+
         private void HandlePlacement(Mouse mouse, bool overUi)
         {
+            // Ohne Werkzeug wählt ein Linksklick das Gebäude unter der Maus aus (leeres Feld schließt das Fenster)
+            if (selected == null && !overUi && hasHover && mouse.leftButton.wasPressedThisFrame)
+                Inspected = city.Grid.GetAt(hoverCell);
+
             if (selected == null || !hasHover)
             {
                 if (ghost != null) ghost.SetActive(false);
@@ -260,6 +283,7 @@ namespace EpochCity
             roadMode = false;
             zoneMode = false;
             selectedZone = null;
+            Inspected = null;
             dragging = false;
             DestroyGhost();
             roadGhosts.Hide();
