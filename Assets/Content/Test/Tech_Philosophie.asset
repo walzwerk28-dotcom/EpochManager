@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Philosophie
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 1
-  researchCost: 120
+  researchCost: 240
   prerequisites:
   - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
   - {fileID: 11400000, guid: 0a4ce302e4ed4da45bc7a5497d3dbbc8, type: 2}

@@ -15,6 +15,6 @@ MonoBehaviour:
   displayName: Lagerwesen
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 0
-  researchCost: 50
+  researchCost: 100
   prerequisites: []
   description: "Lager versorgen 10 Stra\xDFenfelder weiter."

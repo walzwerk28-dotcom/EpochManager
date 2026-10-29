@@ -15,6 +15,6 @@ MonoBehaviour:
   displayName: Tauschhandel
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 0
-  researchCost: 40
+  researchCost: 80
   prerequisites: []
   description: "L\xE4den und Tabernen erl\xF6sen 25 % mehr."

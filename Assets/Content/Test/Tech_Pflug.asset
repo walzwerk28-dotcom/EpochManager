@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Pflug
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 2
-  researchCost: 110
+  researchCost: 220
   prerequisites:
   - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
   - {fileID: 11400000, guid: 5c4e1346606dbcd479a62abeda51e7cb, type: 2}

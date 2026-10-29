@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Wasserbau
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 3
-  researchCost: 120
+  researchCost: 240
   prerequisites:
   - {fileID: 11400000, guid: 9b0c2338c71a03641b14efe83a98ecfc, type: 2}
   description: Brunnen baubar. Die Bewohner verlangen danach Wasser.

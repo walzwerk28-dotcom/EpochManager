@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Mathematik
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 3
-  researchCost: 90
+  researchCost: 180
   prerequisites:
   - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
   - {fileID: 11400000, guid: 9b0c2338c71a03641b14efe83a98ecfc, type: 2}
