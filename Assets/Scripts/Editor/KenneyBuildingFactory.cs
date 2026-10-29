@@ -40,6 +40,18 @@ namespace EpochCity
             antique = CreatePalette("Antike", recolor: true);
             original = CreatePalette("Original", recolor: false);
 
+            // Eigener Boden unter jedem Gebäude (wie die Grundstücke in Cities: Skylines); das Feld hat schon Acker
+            var gravel = GroundMaterial("Kies", GroundKind.Gravel);
+            var paving = GroundMaterial("Pflaster", GroundKind.Paving);
+            var earth = GroundMaterial("Erde", GroundKind.Earth);
+            grounds.Clear();
+            foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
+                grounds[n] = gravel;
+            foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek" })
+                grounds[n] = paving;
+            foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle" })
+                grounds[n] = earth;
+
             // Antike: Kalkstein und Terrakotta-Dächer
             Assign("Bld_Wohnhaus", Make("Wohnhaus", 1, antique,
                 b => House(b, "wall", 1, doorLeft: true, chimney: false, roof: "roof"),
@@ -650,6 +662,8 @@ namespace EpochCity
                 var offset = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z) * scale;
 
                 var combined = Combine(temp, scale, offset, out var materials);
+                var modelSize = combined.bounds.size;
+                if (grounds.TryGetValue(name, out var ground)) combined = AddGroundPlate(combined, cells, ground, ref materials);
                 combined.name = $"{name}_{v}";
                 var mesh = SaveMeshAsset(combined, $"{Out}/Meshes/{name}_{v}.asset");
                 Object.DestroyImmediate(temp);
@@ -660,7 +674,7 @@ namespace EpochCity
                 variant.GetComponent<MeshFilter>().sharedMesh = mesh;
                 variant.GetComponent<MeshRenderer>().sharedMaterials = materials;
 
-                var size = mesh.bounds.size;
+                var size = modelSize;
                 Debug.Log($"{name} Variante {v}: {size.x:0.00} × {size.y:0.00} × {size.z:0.00} m " +
                           $"(Grundfläche {cells.x * CellSize:0} × {cells.y * CellSize:0} m, Maßstab {scale:0.00}, {mesh.vertexCount} Vertices)");
             }
@@ -803,6 +817,156 @@ namespace EpochCity
             mat.SetFloat("_Smoothness", 0.15f);
             EditorUtility.SetDirty(mat);
             return mat;
+        }
+
+        // ---------------------------------------------------------------- Boden
+
+        private enum GroundKind { Gravel, Paving, Earth }
+
+        /// <summary>Bodenmaterial je Modellname; Modelle ohne Eintrag (Feld) bekommen keine Platte.</summary>
+        private static readonly Dictionary<string, Material> grounds = new Dictionary<string, Material>();
+
+        private const float GroundFill = 0.98f;  // Platte etwas kleiner als die Grundfläche: schmaler Wiesenrand
+        private const float GroundHeight = 0.015f;
+
+        /// <summary>
+        /// Hängt eine flache Bodenplatte über die Grundfläche als eigene Teilfläche an. Die Textur wiederholt sich
+        /// je Rasterfeld; die Platte dreht sich mit dem Modell, passt also auch bei rechteckigen Gebäuden.
+        /// </summary>
+        private static Mesh AddGroundPlate(Mesh mesh, Vector2Int cells, Material material, ref Material[] materials)
+        {
+            float halfW = cells.x * CellSize * GroundFill * 0.5f, halfD = cells.y * CellSize * GroundFill * 0.5f;
+
+            var vertices = new List<Vector3>(); mesh.GetVertices(vertices);
+            var normals = new List<Vector3>(); mesh.GetNormals(normals);
+            var uvs = new List<Vector2>(); mesh.GetUVs(0, uvs);
+            var tangents = new List<Vector4>(); mesh.GetTangents(tangents);
+            var colors = new List<Color>(); mesh.GetColors(colors);
+
+            int start = vertices.Count;
+            var corners = new[]
+            {
+                new Vector3(-halfW, GroundHeight, -halfD), new Vector3(halfW, GroundHeight, -halfD),
+                new Vector3(-halfW, GroundHeight, halfD), new Vector3(halfW, GroundHeight, halfD)
+            };
+            foreach (var c in corners)
+            {
+                vertices.Add(c);
+                normals.Add(Vector3.up);
+                uvs.Add(new Vector2(c.x / CellSize, c.z / CellSize));
+                if (tangents.Count > 0) tangents.Add(new Vector4(1f, 0f, 0f, -1f));
+                if (colors.Count > 0) colors.Add(Color.white);
+            }
+
+            var result = new Mesh { indexFormat = IndexFormat.UInt32 };
+            result.SetVertices(vertices);
+            result.SetNormals(normals);
+            result.SetUVs(0, uvs);
+            if (tangents.Count > 0) result.SetTangents(tangents);
+            if (colors.Count > 0) result.SetColors(colors);
+            result.subMeshCount = mesh.subMeshCount + 1;
+            for (int s = 0; s < mesh.subMeshCount; s++) result.SetIndices(mesh.GetIndices(s), mesh.GetTopology(s), s);
+            // Von oben gesehen im Uhrzeigersinn, damit die Fläche nach oben zeigt
+            result.SetTriangles(new[] { start, start + 2, start + 1, start + 1, start + 2, start + 3 }, mesh.subMeshCount);
+            result.RecalculateBounds();
+            Object.DestroyImmediate(mesh);
+
+            var list = new List<Material>(materials) { material };
+            materials = list.ToArray();
+            return result;
+        }
+
+        /// <summary>
+        /// Bodenmaterial mit einer im Code erzeugten, nahtlos kachelbaren Textur (256 px je Rasterfeld):
+        /// Kies (heller Sand mit Steinchen), Pflaster (Kalksteinplatten im Verband) oder gestampfte Erde.
+        /// </summary>
+        private static Material GroundMaterial(string name, GroundKind kind)
+        {
+            const int size = 256;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                    pixels[y * size + x] = GroundPixel(kind, x, y, size);
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            string texPath = $"{Out}/Tex_Boden_{name}.png";
+            File.WriteAllBytes(texPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(texPath);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+            importer.wrapMode = TextureWrapMode.Repeat;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.SaveAndReimport();
+
+            var mat = Solid("Boden_" + name, Color.white);
+            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+            mat.SetFloat("_Smoothness", 0.05f);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        private static Color GroundPixel(GroundKind kind, int x, int y, int size)
+        {
+            float coarse = TileNoise(x, y, size, 16, 1), fine = TileNoise(x, y, size, 64, 2);
+            float speck = Hash(x, y, 3);
+            switch (kind)
+            {
+                case GroundKind.Gravel:
+                {
+                    var c = new Color(0.76f, 0.70f, 0.57f) * (0.88f + 0.12f * coarse + 0.08f * fine);
+                    if (speck > 0.93f) c *= 0.78f;        // dunkle Steinchen
+                    else if (speck < 0.05f) c *= 1.12f;   // helle Steinchen
+                    c.a = 1f;
+                    return c;
+                }
+                case GroundKind.Paving:
+                {
+                    // Platten 64 × 32 px im Verband, jede zweite Reihe um eine halbe Platte versetzt
+                    int row = y / 32;
+                    int shifted = (x + (row % 2) * 32) % size;
+                    int col = shifted / 64;
+                    int inX = shifted % 64, inY = y % 32;
+                    int edge = Mathf.Min(Mathf.Min(inX, 63 - inX), Mathf.Min(inY, 31 - inY));
+                    if (edge < 2) return new Color(0.50f, 0.46f, 0.40f, 1f); // Fuge
+                    float stone = 0.88f + 0.14f * Hash(col, row, 4);
+                    var c = new Color(0.86f, 0.81f, 0.71f) * (stone + 0.06f * fine - (edge < 4 ? 0.06f : 0f));
+                    c.a = 1f;
+                    return c;
+                }
+                default:
+                {
+                    var c = new Color(0.56f, 0.45f, 0.32f) * (0.84f + 0.18f * coarse + 0.08f * fine);
+                    if (speck > 0.96f) c *= 0.8f;
+                    c.a = 1f;
+                    return c;
+                }
+            }
+        }
+
+        /// <summary>Wertrauschen auf einem Gitter mit cells × cells Zellen, das über den Rand umläuft (nahtlos).</summary>
+        private static float TileNoise(int x, int y, int size, int cells, int seed)
+        {
+            float fx = (float)x / size * cells, fy = (float)y / size * cells;
+            int x0 = Mathf.FloorToInt(fx), y0 = Mathf.FloorToInt(fy);
+            float tx = fx - x0, ty = fy - y0;
+            tx = tx * tx * (3f - 2f * tx);
+            ty = ty * ty * (3f - 2f * ty);
+            float a = Hash(x0 % cells, y0 % cells, seed), b = Hash((x0 + 1) % cells, y0 % cells, seed);
+            float c = Hash(x0 % cells, (y0 + 1) % cells, seed), d = Hash((x0 + 1) % cells, (y0 + 1) % cells, seed);
+            return Mathf.Lerp(Mathf.Lerp(a, b, tx), Mathf.Lerp(c, d, tx), ty);
+        }
+
+        private static float Hash(int x, int y, int seed)
+        {
+            unchecked
+            {
+                uint h = (uint)(x * 374761393 + y * 668265263 + seed * 1442695041);
+                h = (h ^ (h >> 13)) * 1274126177u;
+                h ^= h >> 16;
+                return (h & 0xFFFFFF) / (float)0x1000000;
+            }
         }
 
         /// <summary>Einfarbiges, mattes Material unter Assets/Content/Buildings (wird bei Bedarf angelegt).</summary>

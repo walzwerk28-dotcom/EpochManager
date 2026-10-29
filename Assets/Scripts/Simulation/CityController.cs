@@ -406,6 +406,9 @@ namespace EpochCity
         /// <summary>Anbindungswerte über das Straßennetz, auch je Straßenfeld (für das Overlay).</summary>
         public ConnectionMap Connections { get; } = new ConnectionMap();
 
+        /// <summary>Zonenfelder und ihre Kacheln (für die Darstellung, z. B. Ein- und Ausblenden).</summary>
+        public IReadOnlyDictionary<Vector2Int, GameObject> ZoneViews => zoneViews;
+
         /// <summary>Platzierte Straßenfelder und ihre Darstellung.</summary>
         public IReadOnlyDictionary<Vector2Int, GameObject> RoadViews => roadViews;
 

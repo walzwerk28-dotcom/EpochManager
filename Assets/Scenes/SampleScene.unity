@@ -1055,6 +1055,7 @@ GameObject:
   - component: {fileID: 1732010461}
   - component: {fileID: 1732010463}
   - component: {fileID: 1732010462}
+  - component: {fileID: 1732010464}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -1167,6 +1168,20 @@ MonoBehaviour:
   researchWindow: {fileID: 1732010460}
   cityHud: {fileID: 2116940969}
   theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
+--- !u!114 &1732010464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732010457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f1becbfd8c7b6d438029783c2a92aac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneTileVisibility
+  city: {fileID: 440537052}
+  placer: {fileID: 1216388725}
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0
