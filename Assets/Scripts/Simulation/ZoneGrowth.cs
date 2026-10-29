@@ -9,12 +9,14 @@ namespace EpochCity
     /// keines, wird das neueste ältere genommen. Zonengebäude sind 1 × 1 bis 4 × 4 groß: Geprüft werden alle
     /// Größen und alle Lagen des Grundstücks, die das Feld enthalten und ganz in der Zone liegen; gewählt wird
     /// zufällig, gewichtet nach Größe. Bestehende Gebäude werden nie ersetzt; nach einem Abriss wächst neu.
-    /// Nachfrage gibt es noch nicht – sie folgt mit der Bevölkerung.
+    /// Jede Zone hat ihren eigenen Takt, verlangsamt durch ihre Nachfrage (ZoneDemand): bei 100 % ein Gebäude je
+    /// growthInterval, bei 0 % keines. Ohne ZoneDemand wachsen alle Zonen mit voller Rate.
     /// </summary>
     public class ZoneGrowth : MonoBehaviour
     {
         [SerializeField] private CityController city;
         [SerializeField] private GameClock clock;
+        [SerializeField] private ZoneDemand demand;
         [Tooltip("Alle Gebäude, die in Zonen wachsen können (BuildingDefinition.zone gesetzt)")]
         public BuildingDefinition[] zoneBuildings;
         [Tooltip("Spielsekunden zwischen zwei neuen Gebäuden")]
@@ -25,7 +27,8 @@ namespace EpochCity
                  "den Zugang zu den Feldern dahinter")]
         public bool smallOnlyAsFallback = true;
 
-        private float accumulator;
+        private readonly Dictionary<ZoneDefinition, float> accumulators = new Dictionary<ZoneDefinition, float>();
+        private readonly List<ZoneDefinition> zones = new List<ZoneDefinition>();
         private readonly List<Vector2Int> candidates = new List<Vector2Int>();
         private readonly List<BuildingDefinition> choices = new List<BuildingDefinition>();
         private readonly List<(BuildingDefinition def, Vector2Int origin, float weight)> options =
@@ -38,20 +41,37 @@ namespace EpochCity
         {
             if (city == null || clock == null || city.Grid == null) return;
 
-            accumulator += Time.deltaTime * clock.Speed;
-            while (accumulator >= growthInterval)
+            if (zones.Count == 0 && zoneBuildings != null)
+                foreach (var def in zoneBuildings)
+                    if (def != null && def.zone != null && !zones.Contains(def.zone)) zones.Add(def.zone);
+
+            float dt = Time.deltaTime * clock.Speed;
+            foreach (var zone in zones)
             {
-                accumulator -= growthInterval;
-                TryGrowOne();
+                float rate = demand != null ? demand.GetDemand(zone) : 1f;
+                accumulators.TryGetValue(zone, out float acc);
+                acc += dt * rate;
+                while (acc >= growthInterval)
+                {
+                    acc -= growthInterval;
+                    if (TryGrowOne(zone)) continue;
+                    acc = 0f; // nichts frei: keinen Vorrat ansammeln, der später auf einmal wächst
+                    break;
+                }
+                accumulators[zone] = acc;
             }
         }
 
-        /// <summary>Versucht, an einem zufälligen freien Zonenfeld ein Gebäude wachsen zu lassen.</summary>
-        public bool TryGrowOne()
+        /// <summary>
+        /// Versucht, an einem zufälligen freien Zonenfeld ein Gebäude wachsen zu lassen; mit zone nur in dieser Zone,
+        /// ohne Angabe in allen. Die Nachfrage prüft hier niemand – sie bestimmt nur, wie oft Update dies aufruft.
+        /// </summary>
+        public bool TryGrowOne(ZoneDefinition zone = null)
         {
             candidates.Clear();
             foreach (var c in city.Grid.ZonedCells)
-                if (city.Grid.GetAt(c) == null && city.Grid.TouchesRoad(c, Vector2Int.one))
+                if ((zone == null || city.Grid.GetZone(c) == zone) &&
+                    city.Grid.GetAt(c) == null && city.Grid.TouchesRoad(c, Vector2Int.one))
                     candidates.Add(c);
 
             // Zufällige Reihenfolge; am ersten Feld, an dem irgendein Grundstück passt, wird gebaut

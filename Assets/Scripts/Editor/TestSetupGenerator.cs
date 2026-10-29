@@ -196,11 +196,20 @@ namespace EpochCity
             residential.displayName = "Wohnzone";
             residential.tilePrefab =
                 CreatePrefab("Prefab_Zone_Wohnen", Vector2Int.one, 0.02f, new Color(0.62f, 0.95f, 0.45f, 0.4f), 0.92f, true);
+            residential.demandColor = new Color(0.45f, 0.85f, 0.35f);
+            residential.demandKind = ZoneDemandKind.Residential;
+            residential.occupancyForNoDemand = 0.5f;
+            residential.occupancyForFullDemand = 0.9f;
+            residential.starterCapacity = 24;
+            residential.starterDemand = 0.6f;
 
             var commercial = GetOrCreate<ZoneDefinition>("Zone_Gewerbe");
             commercial.displayName = "Gewerbezone";
             commercial.tilePrefab =
                 CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.40f, 0.62f, 1f, 0.45f), 0.92f, true);
+            commercial.demandColor = new Color(0.40f, 0.62f, 1f);
+            commercial.demandKind = ZoneDemandKind.Commercial;
+            commercial.residentsPerCell = 20f;
 
             var food = GetOrCreate<NeedDefinition>("Need_Nahrung");
             food.displayName = "Nahrung";

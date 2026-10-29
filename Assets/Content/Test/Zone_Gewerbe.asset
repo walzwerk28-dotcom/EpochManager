@@ -14,3 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneDefinition
   displayName: Gewerbezone
   tilePrefab: {fileID: 8503346403519037484, guid: f4c570be62c25634bb3ef22219d1c219, type: 3}
+  demandColor: {r: 0.4, g: 0.62, b: 1, a: 1}
+  demandKind: 1
+  occupancyForNoDemand: 0.5
+  occupancyForFullDemand: 0.9
+  starterCapacity: 24
+  starterDemand: 0.6
+  residentsPerCell: 20

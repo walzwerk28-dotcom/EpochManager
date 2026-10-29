@@ -6,7 +6,7 @@ namespace EpochCity
 {
     /// <summary>
     /// Einfache Spiel-Oberfläche (uGUI + TextMeshPro), die sich beim Start selbst aufbaut:
-    /// oben Epoche und Geld, unten die Bauleiste mit Kategorien (Straßen, Zonen, Gebäudekategorien aus den
+    /// oben Epoche, Nachfrage-Balken der Zonen und Geld, unten die Bauleiste mit Kategorien (Straßen, Zonen, Gebäudekategorien aus den
     /// Daten), deren Werkzeuge in einer Reihe darüber aufklappen, dazu Abriss und Anbindungs-Overlay.
     /// Es muss weder ein Canvas noch ein EventSystem manuell angelegt werden.
     /// </summary>
@@ -16,6 +16,7 @@ namespace EpochCity
         [SerializeField] private CityController city;
         [SerializeField] private BuildingPlacer placer;
         [SerializeField] private ConnectionOverlay overlay;
+        [SerializeField] private ZoneDemand demand;
 
         [Header("Aussehen")]
         [SerializeField] private Color panelColor = new Color(0.08f, 0.09f, 0.12f, 0.88f);
@@ -34,6 +35,16 @@ namespace EpochCity
         private string lastHover;
         private string lastEpoch;
         private string lastMoney;
+
+        /// <summary>Nachfrage-Balken einer Zone in der oberen Leiste.</summary>
+        private class DemandBar
+        {
+            public ZoneDefinition Zone;
+            public RectTransform Fill;
+            public TextMeshProUGUI Value;
+        }
+
+        private readonly List<DemandBar> demandBars = new List<DemandBar>();
 
         // Bauleiste: unten die Kategorien, darüber klappt die Reihe der offenen Kategorie auf
         private enum TabKind { Roads, Zones, Buildings }
@@ -96,6 +107,13 @@ namespace EpochCity
             {
                 moneyText.text = money;
                 lastMoney = money;
+            }
+
+            foreach (var bar in demandBars)
+            {
+                float value = demand.GetDemand(bar.Zone);
+                bar.Fill.anchorMax = new Vector2(value, 1f);
+                bar.Value.text = $"{value * 100f:0} %";
             }
 
             if (placer == null) return;
@@ -173,8 +191,39 @@ namespace EpochCity
             epochText = UiFactory.CreateText("EpochText", top, "", 30f, TextAlignmentOptions.MidlineLeft, textColor);
             epochText.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
 
+            // Nachfrage wie in Cities: Skylines: ein Balken je Zone in ihrer Farbe
+            if (demand != null && demand.zones != null)
+                foreach (var zone in demand.zones)
+                    if (zone != null) AddDemandBar(top, zone);
+
             moneyText = UiFactory.CreateText("MoneyText", top, "", 30f, TextAlignmentOptions.MidlineRight, textColor);
             moneyText.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 420f;
+        }
+
+        private void AddDemandBar(Transform parent, ZoneDefinition zone)
+        {
+            var group = new GameObject("Demand_" + zone.name, typeof(RectTransform));
+            group.transform.SetParent(parent, false);
+            UiFactory.AddRow(group, TextAnchor.MiddleLeft, 0, 8f);
+
+            var label = UiFactory.CreateText("Label", group.transform, zone.displayName, 20f,
+                TextAlignmentOptions.MidlineRight, textColor);
+            label.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 150f;
+
+            var track = UiFactory.CreatePanel("Track", group.transform, Vector2.zero, Vector2.zero, Vector2.zero,
+                new Vector2(120f, 16f), new Color(1f, 1f, 1f, 0.12f));
+            var trackLayout = track.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            trackLayout.preferredWidth = 120f;
+            trackLayout.preferredHeight = 16f;
+
+            var fill = UiFactory.CreatePanel("Fill", track, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f),
+                Vector2.zero, zone.demandColor);
+            fill.offsetMin = fill.offsetMax = Vector2.zero;
+
+            var value = UiFactory.CreateText("Value", group.transform, "", 18f, TextAlignmentOptions.MidlineLeft, textColor);
+            value.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 56f;
+
+            demandBars.Add(new DemandBar { Zone = zone, Fill = fill, Value = value });
         }
 
         private const float BarHeight = 96f;

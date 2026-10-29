@@ -14,3 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneDefinition
   displayName: Wohnzone
   tilePrefab: {fileID: 328253906637148315, guid: 6b1510f06e6f83f4490ab60c8c882cce, type: 3}
+  demandColor: {r: 0.45, g: 0.85, b: 0.35, a: 1}
+  demandKind: 0
+  occupancyForNoDemand: 0.5
+  occupancyForFullDemand: 0.9
+  starterCapacity: 24
+  starterDemand: 0.6
+  residentsPerCell: 20
