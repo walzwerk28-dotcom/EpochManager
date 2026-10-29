@@ -17,5 +17,7 @@ namespace EpochCity
             if (resource == null) return;
             amounts[resource] = Get(resource) + amount;
         }
+
+        public void Clear() => amounts.Clear();
     }
 }

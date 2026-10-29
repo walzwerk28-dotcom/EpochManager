@@ -20,6 +20,14 @@ namespace EpochCity
         private float accumulator;
         private float incomeThisMonth;
 
+        /// <summary>Abrechnung des letzten Monats aus einem Spielstand übernehmen.</summary>
+        public void Restore(float lastMonthIncome, float lastMonthUpkeep)
+        {
+            LastMonthIncome = lastMonthIncome;
+            LastMonthUpkeep = lastMonthUpkeep;
+            incomeThisMonth = 0f;
+        }
+
         private void OnEnable()
         {
             if (clock != null) clock.MonthPassed += OnMonthPassed;

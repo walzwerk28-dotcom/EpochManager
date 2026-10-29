@@ -32,6 +32,38 @@ namespace EpochCity
         public float minPitch = 25f;
         public float maxPitch = 85f;
 
+        [Header("Spielstand (optional: Kamera wird mitgespeichert)")]
+        [SerializeField] private SaveSystem saveSystem;
+
+        private void OnEnable()
+        {
+            if (saveSystem == null) return;
+            saveSystem.Saving += OnSaving;
+            saveSystem.Loaded += OnLoaded;
+        }
+
+        private void OnDisable()
+        {
+            if (saveSystem == null) return;
+            saveSystem.Saving -= OnSaving;
+            saveSystem.Loaded -= OnLoaded;
+        }
+
+        private void OnSaving(SaveGame data)
+        {
+            data.hasCamera = true;
+            data.camera = new CameraState { focus = focus, distance = distance, yaw = yaw, pitch = pitch };
+        }
+
+        private void OnLoaded(SaveGame data)
+        {
+            if (!data.hasCamera || data.camera == null) return;
+            focus = data.camera.focus;
+            distance = Mathf.Clamp(data.camera.distance, minDistance, maxDistance);
+            yaw = data.camera.yaw;
+            pitch = Mathf.Clamp(data.camera.pitch, minPitch, maxPitch);
+        }
+
         private void LateUpdate()
         {
             var kb = Keyboard.current;

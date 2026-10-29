@@ -109,9 +109,12 @@ namespace EpochCity
             }
         }
 
-        private BuildingInstance Place(BuildingDefinition def, Vector2Int origin)
+        private BuildingInstance Place(BuildingDefinition def, Vector2Int origin) =>
+            Place(def, origin, currentEpoch, refresh: true);
+
+        private BuildingInstance Place(BuildingDefinition def, Vector2Int origin, EpochDefinition builtIn, bool refresh)
         {
-            var placed = new BuildingInstance(def, origin, currentEpoch);
+            var placed = new BuildingInstance(def, origin, builtIn);
 
             // Ein einzeln gesetztes Gebäude verdrängt die Zone unter sich; Zonengebäude behalten sie
             if (def.zone == null)
@@ -125,8 +128,82 @@ namespace EpochCity
             if (def.prefab != null)
                 placed.View = Instantiate(def.prefab, GetFootprintCenter(def, origin),
                     Quaternion.Euler(0f, GetFacingAngle(def, origin), 0f), transform);
-            RefreshConnections();
+            if (refresh) RefreshConnections();
             return placed;
+        }
+
+        // ---------------------------------------------------------------- Laden
+
+        /// <summary>
+        /// Leert die Stadt vor dem Laden eines Spielstands: alle Gebäude (auch unter Denkmalschutz), Straßen und
+        /// Zonen, ohne Erstattung. Geld, Epoche, Technologien und Lager setzt danach RestoreState.
+        /// </summary>
+        public void ClearForLoad()
+        {
+            foreach (var b in Buildings)
+            {
+                Grid.Remove(b);
+                if (b.View != null) Destroy(b.View);
+            }
+            Buildings.Clear();
+
+            var removed = new List<Vector2Int>();
+            for (int x = 0; x < Grid.Width; x++)
+                for (int y = 0; y < Grid.Height; y++)
+                {
+                    var c = new Vector2Int(x, y);
+                    if (Grid.HasRoad(c)) removed.Add(c);
+                }
+            foreach (var c in removed) Grid.SetRoad(c, null);
+            foreach (var view in roadViews.Values) Destroy(view);
+            roadViews.Clear();
+            RoadUpkeepPerMonth = 0f;
+
+            foreach (var c in new List<Vector2Int>(Grid.ZonedCells)) ClearZone(c);
+
+            Stock.Clear();
+            RefreshConnections();
+            if (removed.Count > 0) RoadsChanged?.Invoke(removed);
+            ZonesChanged?.Invoke();
+        }
+
+        /// <summary>Geld, Epoche und Technologien aus einem Spielstand übernehmen (ohne Freischalt-Ereignisse).</summary>
+        public void RestoreState(float money, EpochDefinition epoch, IEnumerable<TechnologyDefinition> technologies)
+        {
+            Money = money;
+            UnlockedTechnologies.Clear();
+            foreach (var t in technologies)
+                if (t != null) UnlockedTechnologies.Add(t);
+            if (epoch != null && epoch != currentEpoch)
+            {
+                currentEpoch = epoch;
+                EpochChanged?.Invoke(epoch);
+            }
+        }
+
+        /// <summary>Straßen aus einem Spielstand setzen: kostenlos, ohne Epochenprüfung, ein gemeinsames Ereignis.</summary>
+        public void RestoreRoads(IEnumerable<(Vector2Int cell, RoadDefinition road)> roads)
+        {
+            var built = new List<Vector2Int>();
+            foreach (var (c, road) in roads)
+            {
+                if (road == null || !Grid.CanPlaceRoad(c) || Grid.HasRoad(c)) continue;
+                AddRoad(c, road);
+                built.Add(c);
+            }
+            RefreshConnections();
+            if (built.Count > 0) RoadsChanged?.Invoke(built);
+        }
+
+        /// <summary>
+        /// Gebäude aus einem Spielstand setzen: kostenlos, ohne Epochen- und Straßenprüfung (der Stand war beim
+        /// Speichern gültig), mit der gespeicherten Bau-Epoche. Null, wenn die Fläche belegt ist.
+        /// Anbindungen berechnet erst RefreshConnections nach dem letzten Gebäude.
+        /// </summary>
+        public BuildingInstance RestoreBuilding(BuildingDefinition def, Vector2Int origin, EpochDefinition builtIn)
+        {
+            if (def == null || !Grid.CanPlace(def, origin)) return null;
+            return Place(def, origin, builtIn, refresh: false);
         }
 
         /// <summary>
@@ -208,17 +285,22 @@ namespace EpochCity
             foreach (var c in path)
             {
                 if (Grid.HasRoad(c)) continue;
-                ClearZone(c); // Straßen verdrängen Zonen
-                Grid.SetRoad(c, road);
-                RoadUpkeepPerMonth += road.upkeepPerCellPerMonth;
-                if (road.prefab != null)
-                    roadViews[c] = Instantiate(road.prefab, Grid.CellCenterToWorld(c, transform.position),
-                        Quaternion.identity, transform);
+                AddRoad(c, road);
                 built.Add(c);
             }
             RefreshConnections();
             if (built.Count > 0) RoadsChanged?.Invoke(built);
             return true;
+        }
+
+        private void AddRoad(Vector2Int c, RoadDefinition road)
+        {
+            ClearZone(c); // Straßen verdrängen Zonen
+            Grid.SetRoad(c, road);
+            RoadUpkeepPerMonth += road.upkeepPerCellPerMonth;
+            if (road.prefab != null)
+                roadViews[c] = Instantiate(road.prefab, Grid.CellCenterToWorld(c, transform.position),
+                    Quaternion.identity, transform);
         }
 
         public bool TryRemoveRoad(Vector2Int cell)

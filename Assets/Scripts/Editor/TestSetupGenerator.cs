@@ -262,12 +262,20 @@ namespace EpochCity
 
             foreach (var home in new[] { house, townHouse, domus, insula, timberHouse }) home.populationTier = farmers;
 
-            foreach (var asset in new Object[]
-                     { antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
-                       field, market, library, mill, path, storage, residential, commercial,
-                       house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse, timberHouse,
-                       food, marketNeed, farmers })
-                EditorUtility.SetDirty(asset);
+            var content = new ScriptableObject[]
+            {
+                antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
+                field, market, library, mill, path, storage, residential, commercial,
+                house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse, timberHouse,
+                food, marketNeed, farmers
+            };
+
+            // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
+            var registry = GetOrCreate<ContentRegistry>("ContentRegistry");
+            registry.entries = content;
+            EditorUtility.SetDirty(registry);
+
+            foreach (var asset in content) EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
             KenneyBuildingFactory.ReimportPrefabs(Root);
 

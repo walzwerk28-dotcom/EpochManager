@@ -99,6 +99,27 @@ namespace EpochCity
         }
 
         /// <summary>
+        /// Nach dem Laden: Summen aus den gespeicherten Werten der Häuser neu bilden, ohne einen Monat zu
+        /// simulieren (kein Verbrauch, keine Steuern).
+        /// </summary>
+        public void RestoreTotals(float lastMonthTaxes)
+        {
+            int residents = 0, totalCapacity = 0;
+            float weightedSatisfaction = 0f;
+            foreach (var b in city.Buildings)
+            {
+                if (b.Definition.populationTier == null) continue;
+                int capacity = b.Definition.GetCapacity(city.UnlockedTechnologies);
+                residents += b.Residents;
+                totalCapacity += capacity;
+                weightedSatisfaction += b.Satisfaction * capacity;
+            }
+            LastMonthTaxes = lastMonthTaxes;
+            TotalResidents = residents;
+            AverageSatisfaction = totalCapacity > 0 ? weightedSatisfaction / totalCapacity : 0f;
+        }
+
+        /// <summary>
         /// Verbraucht alle Waren-Bedürfnisse gemeinsam aus dem Lager und merkt sich, welcher Anteil gedeckt war.
         /// Ohne Einwohner zählt eine Ware als gedeckt, sobald etwas davon vorrätig ist.
         /// </summary>

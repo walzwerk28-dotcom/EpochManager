@@ -20,6 +20,17 @@ namespace EpochCity
 
         public string DateString => $"Jahr {TotalMonths / 12 + 1}, Monat {TotalMonths % 12 + 1}";
 
+        /// <summary>Spielsekunden seit Beginn des laufenden Monats.</summary>
+        public float MonthProgress => monthProgress;
+
+        /// <summary>Datum und Geschwindigkeit aus einem Spielstand übernehmen.</summary>
+        public void Restore(int totalMonths, float progress, int speed)
+        {
+            TotalMonths = Mathf.Max(0, totalMonths);
+            monthProgress = Mathf.Clamp(progress, 0f, secondsPerMonth);
+            SetSpeed(speed);
+        }
+
         private void Update()
         {
             monthProgress += Time.deltaTime * Speed;

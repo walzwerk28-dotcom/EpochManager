@@ -23,6 +23,18 @@ namespace EpochCity
         public float GetProgress(TechnologyDefinition tech) =>
             tech != null && progress.TryGetValue(tech, out var value) ? value : 0f;
 
+        /// <summary>Angefangener Fortschritt je noch nicht erforschter Technologie.</summary>
+        public IReadOnlyDictionary<TechnologyDefinition, float> Progress => progress;
+
+        /// <summary>Projekt und Fortschritt aus einem Spielstand übernehmen.</summary>
+        public void Restore(TechnologyDefinition current, IReadOnlyDictionary<TechnologyDefinition, float> saved)
+        {
+            progress.Clear();
+            foreach (var entry in saved)
+                if (entry.Key != null && !IsUnlocked(entry.Key)) progress[entry.Key] = entry.Value;
+            Current = CanResearch(current) ? current : null;
+        }
+
         public bool IsUnlocked(TechnologyDefinition tech) => city.UnlockedTechnologies.Contains(tech);
 
         /// <summary>Noch nicht erforscht, Voraussetzungen erfüllt und Epoche bereits erreicht.</summary>
