@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c76a7116d7a866b4e84b3aac8e2c8121, type: 3}
+  m_Name: UiIcons
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.UiIcons
+  city: {fileID: 21300000, guid: 87de2a1cc2f99ae4e84cd3cec736ad75, type: 3}
+  research: {fileID: 21300000, guid: 2d55532f694779c47a0f8a4fb47a0b7e, type: 3}
+  menu: {fileID: 21300000, guid: 9f16dccb8818d9747ac559688f0ffb64, type: 3}
+  help: {fileID: 21300000, guid: 14b81c9e153894c44ba29b4042dc8e46, type: 3}
+  close: {fileID: 21300000, guid: 3533283bf44162743b6455b39346fd27, type: 3}
+  save: {fileID: 21300000, guid: 8fb62505b1a104e44b15261ee4d47add, type: 3}
+  load: {fileID: 21300000, guid: db8e1773dd7fe0b43b9c157188ab207a, type: 3}
+  pause: {fileID: 21300000, guid: f5614bae5cfd8d44a83808125216d97a, type: 3}
+  residents: {fileID: 21300000, guid: 9d25d9b3ff851bf46b3a85cbe272901f, type: 3}
+  road: {fileID: 21300000, guid: 31064bda6a172b045ae82f791a2e3607, type: 3}
+  zones: {fileID: 21300000, guid: 42a0faaf813d6f34c93d489e7ff9bba8, type: 3}
+  production: {fileID: 21300000, guid: 67864e2beee1585478ab16a411528e93, type: 3}
+  commerce: {fileID: 21300000, guid: b1a9431ad4813bc4ca162182afa6fcf4, type: 3}
+  service: {fileID: 21300000, guid: 261f9d13eb6c5c44f8e7ae4d7738b6f1, type: 3}
+  storage: {fileID: 21300000, guid: 2c92cea7c12648f4ca92805c41e91113, type: 3}
+  housing: {fileID: 21300000, guid: 87de2a1cc2f99ae4e84cd3cec736ad75, type: 3}
+  monument: {fileID: 21300000, guid: 7cb3be26a19598c4ea7e46d04082772a, type: 3}
+  wonder: {fileID: 21300000, guid: b80c910f135fe1147b545e3f9d8e8a1d, type: 3}
+  demolish: {fileID: 21300000, guid: 047a5eb45e9d2dc4f9d253a389ca3b20, type: 3}
+  overlay: {fileID: 21300000, guid: 02a395b61192a7d47b4d735be826f7f6, type: 3}
+  locked: {fileID: 21300000, guid: 37de141450ea9c54fb46a63d3a01a4cd, type: 3}
+  done: {fileID: 21300000, guid: 3fc2e9d1cdf4612499440f7b1d2139f7, type: 3}
+  warning: {fileID: 21300000, guid: 2fd8bccdb69ea2a468d76b66a375b0ff, type: 3}
+  epoch: {fileID: 21300000, guid: b80c910f135fe1147b545e3f9d8e8a1d, type: 3}

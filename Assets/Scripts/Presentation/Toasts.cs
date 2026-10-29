@@ -72,18 +72,22 @@ namespace EpochCity
             }
         }
 
-        private void OnSaveReported(string message, bool success) => Show(message, success ? theme.positive : theme.danger);
+        private void OnSaveReported(string message, bool success) =>
+            Show(message, success ? theme.positive : theme.danger, Icon(i => success ? i.done : i.warning));
 
-        private void OnTechnologyUnlocked(TechnologyDefinition tech) => Show($"Erforscht: {tech.displayName}", theme.positive);
+        private void OnTechnologyUnlocked(TechnologyDefinition tech) =>
+            Show($"Erforscht: {tech.displayName}", theme.positive, Icon(i => i.research));
+
+        private Sprite Icon(System.Func<UiIcons, Sprite> pick) => theme.icons != null ? pick(theme.icons) : null;
 
         private void OnEpochChanged(EpochDefinition epoch)
         {
             couldAdvance = false;
-            Show($"Neue Epoche: {epoch.displayName}", theme.heading);
+            Show($"Neue Epoche: {epoch.displayName}", theme.heading, Icon(i => i.epoch));
         }
 
-        /// <summary>Zeigt eine Meldung; die Farbe gilt für den schmalen Streifen links.</summary>
-        public void Show(string message, Color accent)
+        /// <summary>Zeigt eine Meldung; die Farbe gilt für den schmalen Streifen links und das Symbol.</summary>
+        public void Show(string message, Color accent, Sprite icon = null)
         {
             if (stack == null) return;
             while (visible.Count >= maxVisible) Remove(0);
@@ -103,6 +107,8 @@ namespace EpochCity
             stripeLayout.preferredWidth = 6f;
             stripeLayout.preferredHeight = 28f;
 
+            if (icon != null) UiFactory.AddIcon(panel, icon, 24f, accent);
+
             UiFactory.CreateText("Text", panel, message, theme.bodySize, TextAlignmentOptions.MidlineLeft, theme.text);
 
             var group = panel.gameObject.AddComponent<CanvasGroup>();
@@ -119,7 +125,7 @@ namespace EpochCity
                 epochTimer = 0.5f;
                 bool can = progression.CanAdvance;
                 if (can && !couldAdvance && progression.NextEpoch != null)
-                    Show($"Epochenwechsel zu {progression.NextEpoch.displayName} möglich", theme.heading);
+                    Show($"Epochenwechsel zu {progression.NextEpoch.displayName} möglich", theme.heading, Icon(i => i.epoch));
                 couldAdvance = can;
             }
 

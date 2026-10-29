@@ -51,7 +51,7 @@ namespace EpochCity
         {
             public UnityEngine.UI.Button Button;
             public UnityEngine.UI.Image Image;
-            public TextMeshProUGUI Label;
+            public CanvasGroup Content;
             public System.Func<bool> IsSelected;
             public System.Func<bool> IsLocked;
             public bool Removes; // Zone aufheben: rot statt grün hervorheben
@@ -101,7 +101,7 @@ namespace EpochCity
                 entry.Button.interactable = !locked;
                 entry.Image.color = locked ? lockedColor
                     : selected ? (entry.Removes ? demolishColor : selectedColor) : buttonColor;
-                entry.Label.alpha = locked ? 0.5f : 1f;
+                entry.Content.alpha = locked ? 0.45f : 1f;
             }
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
             if (overlayImage != null) overlayImage.color = overlay.Visible ? selectedColor : buttonColor;
@@ -154,7 +154,7 @@ namespace EpochCity
         }
 
         private const float BarHeight = 96f;
-        private const float SubMenuHeight = 96f;
+        private const float SubMenuHeight = 112f;
 
         private void BuildBottomBar(Transform canvas)
         {
@@ -174,24 +174,33 @@ namespace EpochCity
 
             if (placer != null)
             {
-                if (placer.road != null) AddTab(bottom, "R  Straßen", TabKind.Roads, default);
+                var icons = theme.icons;
+                if (placer.road != null)
+                    AddTab(bottom, "Straßen", TabKind.Roads, default, icons != null ? icons.road : null, "Taste R");
                 if (placer.residentialZone != null || placer.commercialZone != null)
-                    AddTab(bottom, "Z  Zonen", TabKind.Zones, default);
+                    AddTab(bottom, "Zonen", TabKind.Zones, default, icons != null ? icons.zones : null,
+                        "Wohnen Z  ·  Gewerbe G  ·  aufheben U");
 
                 // Kategorien aus den Daten: nur die, für die es baubare Gebäude gibt
                 foreach (var (category, label) in CategoryOrder)
                     if (placer.GetCategoryBuildings(category).Count > 0)
-                        AddTab(bottom, label, TabKind.Buildings, category);
+                        AddTab(bottom, label, TabKind.Buildings, category,
+                            icons != null ? icons.ForCategory(category) : null, "Tasten 1–9 wählen ein Gebäude");
             }
 
-            var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "X  Abreißen", new Vector2(140f, 72f),
-                22f, buttonColor, textColor, () => { if (placer != null) placer.ToggleDemolish(); });
+            var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "Abreißen", new Vector2(150f, 72f),
+                22f, buttonColor, textColor, () => { if (placer != null) placer.ToggleDemolish(); },
+                theme.icons != null ? theme.icons.demolish : null);
+            Tooltip.Attach(demolish.gameObject, () =>
+                "<b>Abreißen</b>\nGebäude und Straßen anklicken; Denkmalschutz verhindert den Abriss.\n" + Muted("Taste X"));
             demolishImage = (UnityEngine.UI.Image)demolish.targetGraphic;
 
             if (overlay != null)
             {
-                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "C  Anbindung", new Vector2(140f, 72f),
-                    22f, buttonColor, textColor, () => overlay.Toggle());
+                var overlayButton = UiFactory.CreateButton(bottom, "OverlayButton", "Anbindung", new Vector2(150f, 72f),
+                    22f, buttonColor, textColor, () => overlay.Toggle(), theme.icons != null ? theme.icons.overlay : null);
+                Tooltip.Attach(overlayButton.gameObject, () =>
+                    "<b>Anbindung</b>\nFärbt Gebäude und Straßen nach ihrer Anbindung ans Lager.\n" + Muted("Taste C"));
                 overlayImage = (UnityEngine.UI.Image)overlayButton.targetGraphic;
             }
 
@@ -202,11 +211,12 @@ namespace EpochCity
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, above + 28f);
         }
 
-        private void AddTab(Transform bar, string label, TabKind kind, BuildingCategory category)
+        private void AddTab(Transform bar, string label, TabKind kind, BuildingCategory category, Sprite icon, string keys)
         {
             var tab = new Tab { Label = label, Kind = kind, Category = category };
-            var button = UiFactory.CreateButton(bar, "Tab_" + label, label, new Vector2(140f, 72f),
-                22f, buttonColor, textColor, () => ToggleTab(tab));
+            var button = UiFactory.CreateButton(bar, "Tab_" + label, label, new Vector2(150f, 72f),
+                22f, buttonColor, textColor, () => ToggleTab(tab), icon);
+            Tooltip.Attach(button.gameObject, () => $"<b>{label}</b>\n" + Muted(keys));
             tab.Image = (UnityEngine.UI.Image)button.targetGraphic;
             tabs.Add(tab);
         }
@@ -244,29 +254,26 @@ namespace EpochCity
             subMenu.gameObject.SetActive(openTab != null);
             if (openTab == null) return;
 
+            var icons = theme.icons;
             switch (openTab.Kind)
             {
                 case TabKind.Roads:
                     var road = placer.road;
-                    AddEntry($"{road.displayName}\n{road.costPerCell:0} / Feld", () => placer.SelectRoad(),
-                        () => placer.RoadMode, () => !city.IsEpochReached(road.epoch));
+                    AddEntry(icons != null ? icons.road : null, road.displayName, $"{road.costPerCell:0} {Currency()} / Feld",
+                        "R", () => placer.SelectRoad(), () => placer.RoadMode, () => !city.IsEpochReached(road.epoch),
+                        () => $"<b>{road.displayName}</b>\n{road.costPerCell:0.#} {Currency()} pro Feld, " +
+                              $"Unterhalt {road.upkeepPerCellPerMonth:0.##} pro Feld und Monat\n" +
+                              Muted("Mit der Maus ziehen, Rechtsklick bricht ab"));
                     break;
 
                 case TabKind.Zones:
                     if (placer.residentialZone != null)
-                    {
-                        var res = placer.residentialZone;
-                        AddEntry($"Z  {res.displayName}", () => placer.SelectZone(res),
-                            () => placer.ZoneMode && placer.SelectedZone == res, null);
-                    }
+                        AddZoneEntry(placer.residentialZone, "Z", "Wohnhäuser wachsen von selbst an Straßen.");
                     if (placer.commercialZone != null)
-                    {
-                        var com = placer.commercialZone;
-                        AddEntry($"G  {com.displayName}", () => placer.SelectZone(com),
-                            () => placer.ZoneMode && placer.SelectedZone == com, null);
-                    }
-                    AddEntry("U  Zone aufheben", () => placer.SelectZone(null),
-                        () => placer.ZoneMode && placer.SelectedZone == null, null).Removes = true;
+                        AddZoneEntry(placer.commercialZone, "G", "Läden und Werkstätten wachsen von selbst an Straßen.");
+                    AddEntry(icons != null ? icons.close : null, "Aufheben", "Zone entfernen", "U",
+                        () => placer.SelectZone(null), () => placer.ZoneMode && placer.SelectedZone == null, null,
+                        () => "<b>Zone aufheben</b>\nEntfernt die Zone; gewachsene Gebäude bleiben stehen.").Removes = true;
                     break;
 
                 case TabKind.Buildings:
@@ -274,31 +281,116 @@ namespace EpochCity
                     for (int i = 0; i < list.Count; i++)
                     {
                         var def = list[i];
-                        string key = i < 9 ? $"{i + 1}  " : "";
-                        AddEntry($"{key}{def.displayName}\n{Mathf.FloorToInt(def.buildCost)}", () => placer.Select(def),
-                            () => placer.SelectedBuilding == def, () => !city.IsEpochReached(def.epoch));
+                        AddEntry(icons != null ? icons.ForCategory(def.category) : null, def.displayName,
+                            $"{def.size.x} × {def.size.y}  ·  {Mathf.FloorToInt(def.buildCost)}", i < 9 ? $"{i + 1}" : "",
+                            () => placer.Select(def), () => placer.SelectedBuilding == def,
+                            () => !city.IsEpochReached(def.epoch), () => BuildingTooltip(def));
                     }
                     break;
             }
         }
 
-        private Entry AddEntry(string label, UnityEngine.Events.UnityAction onClick, System.Func<bool> isSelected,
-            System.Func<bool> isLocked)
+        private void AddZoneEntry(ZoneDefinition zone, string key, string description)
         {
-            var button = UiFactory.CreateButton(subMenu, "Entry_" + entries.Count, label, new Vector2(160f, 76f),
-                22f, buttonColor, textColor, onClick);
-            // Eigene Einfärbung statt der Button-Farbübergänge (auch für gesperrte Einträge)
+            AddEntry(theme.icons != null ? theme.icons.zones : null, zone.displayName, "kostenlos", key,
+                () => placer.SelectZone(zone), () => placer.ZoneMode && placer.SelectedZone == zone, null,
+                () => $"<b>{zone.displayName}</b>\n{description}\n" + Muted("Rechteck ziehen, Rechtsklick bricht ab"));
+        }
+
+        /// <summary>Karte in der aufgeklappten Reihe: Symbol, Name, Kurzinfo, Taste oben links; Details im Tooltip.</summary>
+        private Entry AddEntry(Sprite icon, string title, string meta, string key, UnityEngine.Events.UnityAction onClick,
+            System.Func<bool> isSelected, System.Func<bool> isLocked, System.Func<string> tooltip)
+        {
+            var button = UiFactory.CreateButton(subMenu, "Entry_" + entries.Count, "", new Vector2(150f, 92f),
+                theme.bodySize, buttonColor, textColor, onClick);
+            Destroy(button.GetComponentInChildren<TextMeshProUGUI>().gameObject);
+
+            var content = new GameObject("Content", typeof(RectTransform), typeof(CanvasGroup));
+            content.transform.SetParent(button.transform, false);
+            var rt = (RectTransform)content.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(6f, 6f);
+            rt.offsetMax = new Vector2(-6f, -6f);
+            var column = content.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+            column.childAlignment = TextAnchor.MiddleCenter;
+            column.spacing = 2f;
+            column.childControlWidth = column.childControlHeight = true;
+            column.childForceExpandWidth = true; // volle Kartenbreite, sonst schrumpft der gekürzte Name auf 0
+            column.childForceExpandHeight = false;
+
+            if (icon != null) UiFactory.AddIcon(content.transform, icon, 30f, textColor);
+            var name = UiFactory.CreateText("Title", content.transform, title, theme.bodySize - 1f,
+                TextAlignmentOptions.Center, textColor);
+            name.textWrappingMode = TextWrappingModes.NoWrap;
+            name.overflowMode = TextOverflowModes.Ellipsis;
+            UiFactory.CreateText("Meta", content.transform, meta, theme.smallSize - 2f, TextAlignmentOptions.Center,
+                theme.textMuted).textWrappingMode = TextWrappingModes.NoWrap;
+
+            if (!string.IsNullOrEmpty(key))
+            {
+                var keyText = UiFactory.CreateText("Key", button.transform, key, theme.smallSize - 3f,
+                    TextAlignmentOptions.TopLeft, theme.textMuted);
+                var k = keyText.rectTransform;
+                k.anchorMin = k.anchorMax = new Vector2(0f, 1f);
+                k.pivot = new Vector2(0f, 1f);
+                k.anchoredPosition = new Vector2(8f, -5f);
+                k.sizeDelta = new Vector2(30f, 20f);
+            }
+
+            if (tooltip != null) Tooltip.Attach(button.gameObject, tooltip);
+
             var entry = new Entry
             {
                 Button = button,
                 Image = (UnityEngine.UI.Image)button.targetGraphic,
-                Label = button.GetComponentInChildren<TextMeshProUGUI>(),
+                Content = content.GetComponent<CanvasGroup>(),
                 IsSelected = isSelected,
                 IsLocked = isLocked
             };
             entries.Add(entry);
             return entry;
         }
+
+        /// <summary>Details zu einem Gebäude: Größe, Kosten, Unterhalt, Produktion, Wohnplätze, Sperre.</summary>
+        private string BuildingTooltip(BuildingDefinition def)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"<b>{def.displayName}</b>");
+            sb.AppendLine($"{def.size.x} × {def.size.y} Felder  ·  {def.buildCost:0} {Currency()}  ·  " +
+                          $"Unterhalt {def.upkeepPerMonth:0.#} pro Monat");
+            foreach (var function in def.GetActiveFunctions(city.UnlockedTechnologies))
+            {
+                if (function == null) continue;
+                string inputs = Amounts(function.inputs);
+                string outputs = Amounts(function.outputs);
+                sb.AppendLine(string.IsNullOrEmpty(inputs)
+                    ? $"{function.label}: {outputs} je {function.cycleSeconds:0.#} s"
+                    : $"{function.label}: {inputs} → {outputs} je {function.cycleSeconds:0.#} s");
+            }
+            int capacity = def.GetCapacity(city.UnlockedTechnologies);
+            if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
+            if (def.category == BuildingCategory.Storage) sb.AppendLine($"Einzugsweite {def.catchmentRange:0} Straßenfelder");
+            if (!city.IsEpochReached(def.epoch) && def.epoch != null)
+                sb.AppendLine(Muted($"Gesperrt bis zur Epoche {def.epoch.displayName}"));
+            else
+                sb.AppendLine(Muted("Braucht ein angrenzendes Straßenfeld"));
+            return sb.ToString().TrimEnd();
+        }
+
+        private string Amounts(ResourceAmount[] amounts)
+        {
+            if (amounts == null) return "";
+            var parts = new List<string>();
+            foreach (var a in amounts)
+                if (a.resource != null)
+                    parts.Add($"{a.amount:0.##} {(a.resource.isCurrency ? Currency() : a.resource.displayName)}");
+            return string.Join(" + ", parts);
+        }
+
+        private string Currency() => city.currentEpoch != null ? city.currentEpoch.currencyName : "";
+
+        private string Muted(string text) => $"<color={UiTheme.Hex(theme.textMuted)}>{text}</color>";
 
         /// <summary>Zentrierte Textzeile über der unteren Leiste.</summary>
         private static TextMeshProUGUI CreateBottomLine(Transform canvas, string name, string text, float size,

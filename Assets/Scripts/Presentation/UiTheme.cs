@@ -40,6 +40,10 @@ namespace EpochCity
         public float bodySize = 20f;
         public float smallSize = 17f;
 
+        [Header("Symbole")]
+        [Tooltip("Symbole der Oberfläche; leer = nur Text")]
+        public UiIcons icons;
+
         [Header("Form")]
         [Range(0, 24)] public int cornerRadius = 10;
         public Color shadow = new Color(0f, 0f, 0f, 0.45f);

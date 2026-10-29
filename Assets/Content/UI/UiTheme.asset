@@ -27,6 +27,7 @@ MonoBehaviour:
   titleSize: 26
   bodySize: 20
   smallSize: 17
+  icons: {fileID: 11400000, guid: aedfff96167d16a418b146e6b8e87820, type: 2}
   cornerRadius: 10
   shadow: {r: 0, g: 0, b: 0, a: 0.45}
   shadowOffset: {x: 0, y: -4}

@@ -99,8 +99,7 @@ namespace EpochCity
                              $"<size=75%><color={UiTheme.Hex(balanceColor)}>{balance:+0;-0;±0}/Monat</color></size>";
 
             int residents = population != null ? population.TotalResidents : 0;
-            string muted = UiTheme.Hex(theme.textMuted);
-            residentsText.text = $"<size=75%><color={muted}>Einw.</color></size> {residents}<size=75%><color={muted}>/{city.HousingCapacity}</color></size>";
+            residentsText.text = $"{residents}<size=75%><color={UiTheme.Hex(theme.textMuted)}>/{city.HousingCapacity}</color></size>";
 
             if (demand != null)
                 foreach (var bar in demandBars)
@@ -125,7 +124,7 @@ namespace EpochCity
 
             // Links: Epoche, Datum, Geschwindigkeit
             epochText = Text(bar, "Epoch", theme.titleSize + 2f, theme.heading, 120f);
-            dateText = Text(bar, "Date", theme.bodySize, theme.text, 150f);
+            dateText = Text(bar, "Date", theme.bodySize, theme.text, 140f);
             string[] labels = { "II", "1x", "2x", "3x" };
             for (int i = 0; i < labels.Length; i++)
             {
@@ -145,22 +144,36 @@ namespace EpochCity
             Spacer(bar);
 
             // Rechts: Einwohner, Geld, Fenster, Menü, Hilfe
-            residentsText = Text(bar, "Residents", theme.bodySize + 2f, theme.text, 140f);
-            residentsText.alignment = TextAlignmentOptions.MidlineRight;
-            moneyText = Text(bar, "Money", theme.bodySize + 4f, theme.text, 280f);
+            var residentsIcon = Icon(i => i.residents);
+            if (residentsIcon != null) UiFactory.AddIcon(bar, residentsIcon, 24f, theme.textMuted);
+            residentsText = Text(bar, "Residents", theme.bodySize + 2f, theme.text, 80f);
+            moneyText = Text(bar, "Money", theme.bodySize + 4f, theme.text, 290f);
             moneyText.alignment = TextAlignmentOptions.MidlineRight;
 
             if (cityWindow != null)
-                cityImage = BarButton(bar, "CityWindow", "Stadt", 80f, () => cityWindow.Toggle());
+            {
+                cityImage = BarButton(bar, "CityWindow", "Stadt", 98f, () => cityWindow.Toggle(), Icon(i => i.city));
+                Tooltip.Attach(cityImage.gameObject, () => "<b>Stadt</b>\nFinanzen, Bevölkerung, Vorrat und Steuern");
+            }
             if (researchWindow != null)
-                researchImage = BarButton(bar, "ResearchWindow", "Forschung", 112f, () => researchWindow.Toggle());
+            {
+                researchImage = BarButton(bar, "ResearchWindow", "Forschung", 136f, () => researchWindow.Toggle(),
+                    Icon(i => i.research));
+                Tooltip.Attach(researchImage.gameObject, () => "<b>Forschung</b>\nTechnologien und Epochenwechsel");
+            }
             if (saveSystem != null)
             {
-                menuImage = BarButton(bar, "Menu", "Menü", 76f, ToggleMenu);
+                var menuIcon = Icon(i => i.menu);
+                menuImage = BarButton(bar, "Menu", menuIcon != null ? "" : "Menü", 48f, ToggleMenu, menuIcon);
+                Tooltip.Attach(menuImage.gameObject, () => "<b>Menü</b>\nSpeichern (F5), Laden (F9)");
                 BuildMenu(canvas);
             }
             if (cityHud != null)
-                hintImage = BarButton(bar, "Help", "?", 40f, () => cityHud.ToggleHints());
+            {
+                var helpIcon = Icon(i => i.help);
+                hintImage = BarButton(bar, "Help", helpIcon != null ? "" : "?", 44f, () => cityHud.ToggleHints(), helpIcon);
+                Tooltip.Attach(hintImage.gameObject, () => "<b>Tastenhilfe</b>\nZeigt die Tastenkürzel über der Bauleiste");
+            }
 
             Refresh();
         }
@@ -173,6 +186,9 @@ namespace EpochCity
             return t;
         }
 
+        /// <summary>Symbol aus dem Farbschema oder null, wenn keine Symbole eingerichtet sind.</summary>
+        private Sprite Icon(System.Func<UiIcons, Sprite> pick) => theme.icons != null ? pick(theme.icons) : null;
+
         private static void Spacer(Transform parent)
         {
             var go = new GameObject("Spacer", typeof(RectTransform), typeof(LayoutElement));
@@ -180,10 +196,11 @@ namespace EpochCity
             go.GetComponent<LayoutElement>().flexibleWidth = 1f;
         }
 
-        private Image BarButton(Transform parent, string name, string label, float width, UnityEngine.Events.UnityAction onClick)
+        private Image BarButton(Transform parent, string name, string label, float width, UnityEngine.Events.UnityAction onClick,
+            Sprite icon = null)
         {
             var b = UiFactory.CreateButton(parent, name, label, new Vector2(width, 44f), theme.bodySize,
-                theme.button, theme.text, onClick);
+                theme.button, theme.text, onClick, icon);
             return (Image)b.targetGraphic;
         }
 
@@ -216,14 +233,14 @@ namespace EpochCity
         {
             menu = UiFactory.CreatePanel("MenuPanel", canvas, new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(1f, 1f), new Vector2(220f, 0f), theme.panel);
-            menu.anchoredPosition = new Vector2(-64f, -Height - 6f);
+            menu.anchoredPosition = new Vector2(-12f, -Height - 6f);
             UiFactory.AddColumn(menu.gameObject, 10, 8f);
             menu.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             UiFactory.CreateButton(menu, "Save", "Speichern  (F5)", new Vector2(0f, 46f), theme.bodySize,
-                theme.button, theme.text, () => { saveSystem.QuickSave(); ToggleMenu(); });
+                theme.button, theme.text, () => { saveSystem.QuickSave(); ToggleMenu(); }, Icon(i => i.save));
             UiFactory.CreateButton(menu, "Load", "Laden  (F9)", new Vector2(0f, 46f), theme.bodySize,
-                theme.button, theme.text, () => { saveSystem.QuickLoad(); ToggleMenu(); });
+                theme.button, theme.text, () => { saveSystem.QuickLoad(); ToggleMenu(); }, Icon(i => i.load));
             menu.gameObject.SetActive(false);
         }
 

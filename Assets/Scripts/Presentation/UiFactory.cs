@@ -145,6 +145,54 @@ namespace EpochCity
             return button;
         }
 
+        /// <summary>
+        /// Button mit Symbol links vor der Beschriftung, oder nur Symbol (label leer). Ohne Symbol wie der normale
+        /// Button, damit HUDs auch ohne eingerichtete Symbole funktionieren.
+        /// </summary>
+        public static Button CreateButton(Transform parent, string name, string label, Vector2 size,
+            float fontSize, Color color, Color textColor, UnityAction onClick, Sprite icon)
+        {
+            var button = CreateButton(parent, name, label, size, fontSize, color, textColor, onClick);
+            if (icon == null) return button;
+
+            var text = button.GetComponentInChildren<TextMeshProUGUI>();
+            var content = new GameObject("Content", typeof(RectTransform));
+            content.transform.SetParent(button.transform, false);
+            var rt = (RectTransform)content.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            AddRow(content, TextAnchor.MiddleCenter, 0, 8f);
+
+            AddIcon(content.transform, icon, Mathf.Min(size.y * 0.55f, 26f), textColor);
+            if (string.IsNullOrEmpty(label))
+            {
+                Object.Destroy(text.gameObject);
+                return button;
+            }
+            text.transform.SetParent(content.transform, false);
+            text.enableAutoSizing = false;
+            text.fontSize = fontSize;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            return button;
+        }
+
+        /// <summary>Symbol als Image mit fester Größe für Layout-Gruppen; die Farbe tönt das weiße Symbol.</summary>
+        public static Image AddIcon(Transform parent, Sprite icon, float size, Color color)
+        {
+            var go = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            var image = go.GetComponent<Image>();
+            image.sprite = icon;
+            image.color = color;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            var element = go.GetComponent<LayoutElement>();
+            element.preferredWidth = element.preferredHeight = size;
+            element.minWidth = element.minHeight = size;
+            return image;
+        }
+
         /// <summary>Kopfzeile eines Fensters: Titel in der Überschriftfarbe, rechts ein Schließen-Button.</summary>
         public static TextMeshProUGUI WindowHeader(Transform window, string title, UiTheme theme, UnityAction onClose)
         {
@@ -154,7 +202,9 @@ namespace EpochCity
             var text = CreateText("Title", header.transform, title, theme.titleSize, TextAlignmentOptions.MidlineLeft,
                 theme.heading);
             text.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
-            CreateButton(header.transform, "Close", "×", new Vector2(40f, 36f), 24f, theme.button, theme.text, onClose);
+            var icon = theme.icons != null ? theme.icons.close : null;
+            CreateButton(header.transform, "Close", icon != null ? "" : "×", new Vector2(40f, 36f), 24f, theme.button,
+                theme.text, onClose, icon);
             return text;
         }
 
