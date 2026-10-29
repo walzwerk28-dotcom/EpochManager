@@ -284,7 +284,7 @@ namespace EpochCity
                         AddEntry(icons != null ? icons.ForCategory(def.category) : null, def.displayName,
                             $"{def.size.x} × {def.size.y}  ·  {Mathf.FloorToInt(def.buildCost)}", i < 9 ? $"{i + 1}" : "",
                             () => placer.Select(def), () => placer.SelectedBuilding == def,
-                            () => !city.IsEpochReached(def.epoch), () => BuildingTooltip(def));
+                            () => !city.IsAvailable(def), () => BuildingTooltip(def));
                     }
                     break;
             }
@@ -370,11 +370,9 @@ namespace EpochCity
             }
             int capacity = def.GetCapacity(city.UnlockedTechnologies);
             if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
-            if (def.category == BuildingCategory.Storage) sb.AppendLine($"Einzugsweite {def.catchmentRange:0} Straßenfelder");
-            if (!city.IsEpochReached(def.epoch) && def.epoch != null)
-                sb.AppendLine(Muted($"Gesperrt bis zur Epoche {def.epoch.displayName}"));
-            else
-                sb.AppendLine(Muted("Braucht ein angrenzendes Straßenfeld"));
+            if (def.category == BuildingCategory.Storage)
+                sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
+            sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ?? Muted("Braucht ein angrenzendes Straßenfeld"));
             return sb.ToString().TrimEnd();
         }
 
@@ -386,6 +384,16 @@ namespace EpochCity
                 if (a.resource != null)
                     parts.Add($"{a.amount:0.##} {(a.resource.isCurrency ? Currency() : a.resource.displayName)}");
             return string.Join(" + ", parts);
+        }
+
+        /// <summary>Warum etwas noch nicht baubar ist (Epoche oder Forschung), sonst null.</summary>
+        private string LockReason(EpochDefinition epoch, TechnologyDefinition tech)
+        {
+            if (epoch != null && !city.IsEpochReached(epoch))
+                return $"<color={UiTheme.Hex(theme.danger)}>Gesperrt bis zur Epoche {epoch.displayName}</color>";
+            if (!city.IsUnlocked(tech))
+                return $"<color={UiTheme.Hex(theme.danger)}>Benötigt Forschung: {tech.displayName}</color>";
+            return null;
         }
 
         private string Currency() => city.currentEpoch != null ? city.currentEpoch.currencyName : "";

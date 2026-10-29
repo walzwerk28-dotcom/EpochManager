@@ -154,7 +154,7 @@ namespace EpochCity
                 float multiplier = city.GetMultiplier(b);
                 if (multiplier > 1f) sb.AppendLine($"Technologie-Bonus ×{multiplier:0.##}");
                 if (def.category == BuildingCategory.Storage)
-                    sb.AppendLine($"Einzugsweite {def.catchmentRange:0} Straßenfelder");
+                    sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
                 if (def.upkeepPerMonth > 0f) sb.Append($"Unterhalt {def.upkeepPerMonth:0.#} {Currency()} pro Monat");
                 return sb.ToString().TrimEnd();
             });

@@ -28,5 +28,7 @@ namespace EpochCity
         [Tooltip("Wie viele der Schlüsseltechnologien nötig sind (ein Teil genügt)")]
         [Min(0)] public int requiredKeyTechnologies;
         public EpochMilestone[] milestones;
+        [Tooltip("Mindestens so viele Einwohner (Bevölkerungs-Meilenstein, 0 = keiner)")]
+        [Min(0)] public int requiredPopulation;
     }
 }

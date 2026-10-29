@@ -26,7 +26,7 @@ namespace EpochCity
             return found;
         }
 
-        public void Recalculate(GridMap grid, List<BuildingInstance> buildings)
+        public void Recalculate(GridMap grid, List<BuildingInstance> buildings, HashSet<TechnologyDefinition> unlocked)
         {
             roadValues.Clear();
 
@@ -34,14 +34,15 @@ namespace EpochCity
             {
                 if (storage.Definition.category != BuildingCategory.Storage) continue;
 
+                var def = storage.Definition;
+                float range = def.GetCatchmentRange(unlocked);
                 var distances = ShortestDistances(grid, grid.GetAdjacentCells(storage));
                 foreach (var entry in distances)
                 {
-                    var def = storage.Definition;
                     var value = new RoadValue
                     {
-                        Efficiency = def.EvaluateStorageEfficiency(entry.Value),
-                        InRange = entry.Value <= def.catchmentRange
+                        Efficiency = def.EvaluateStorageEfficiency(entry.Value, range),
+                        InRange = entry.Value <= range
                     };
                     if (!roadValues.TryGetValue(entry.Key, out var old) || value.Efficiency > old.Efficiency)
                         roadValues[entry.Key] = value;

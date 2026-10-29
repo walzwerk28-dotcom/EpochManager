@@ -21,6 +21,8 @@ namespace EpochCity
         public ZoneDefinition zone;
         [Tooltip("Nur Wohngebäude: Bevölkerungsstufe der Bewohner; Kapazität = Wohnplätze")]
         public PopulationTierDefinition populationTier;
+        [Tooltip("Erst baubar, wenn diese Technologie erforscht ist (leer = ab der Epoche)")]
+        public TechnologyDefinition requiredTechnology;
 
         [Header("Kosten")]
         public float buildCost = 100f;
@@ -42,12 +44,23 @@ namespace EpochCity
         [Tooltip("Mindestwert, solange ein Gebäude über Straßen mit dem Lager verbunden ist")]
         [Range(0f, 1f)] public float minEfficiency = 0.25f;
 
-        /// <summary>Effizienz eines Gebäudes in dieser Entfernung zu diesem Lager.</summary>
-        public float EvaluateStorageEfficiency(float distance)
+        /// <summary>Einzugsweite inklusive Zuschlägen durch Technologien.</summary>
+        public float GetCatchmentRange(HashSet<TechnologyDefinition> unlocked)
         {
-            if (distance > catchmentRange) return minEfficiency;
+            float range = catchmentRange;
+            if (layers == null) return range;
+            foreach (var l in layers)
+                if (l.requiredTechnology != null && unlocked.Contains(l.requiredTechnology))
+                    range += l.extraCatchment;
+            return range;
+        }
+
+        /// <summary>Effizienz eines Gebäudes in dieser Entfernung zu diesem Lager mit dieser Einzugsweite.</summary>
+        public float EvaluateStorageEfficiency(float distance, float range)
+        {
+            if (distance > range) return minEfficiency;
             float e = efficiencyByDistance != null && efficiencyByDistance.length > 0
-                ? efficiencyByDistance.Evaluate(distance / catchmentRange)
+                ? efficiencyByDistance.Evaluate(distance / range)
                 : 1f;
             return Mathf.Clamp(e, minEfficiency, 1f);
         }
@@ -67,14 +80,19 @@ namespace EpochCity
         public Vector2Int GetFootprint(float facing) =>
             Mathf.RoundToInt(facing / 90f) % 2 != 0 ? new Vector2Int(size.y, size.x) : size;
 
+        /// <summary>Kapazität: (Grund + Zuschläge) × Multiplikatoren aller freigeschalteten Schichten, gerundet.</summary>
         public int GetCapacity(HashSet<TechnologyDefinition> unlocked)
         {
             int c = baseCapacity;
             if (layers == null) return c;
+            float multiplier = 1f;
             foreach (var l in layers)
                 if (l.requiredTechnology != null && unlocked.Contains(l.requiredTechnology))
+                {
                     c += l.extraCapacity;
-            return c;
+                    if (l.capacityMultiplier > 0f) multiplier *= l.capacityMultiplier;
+                }
+            return Mathf.RoundToInt(c * multiplier);
         }
 
         /// <summary>Grundfunktionen plus alle durch Technologien freigeschalteten.</summary>

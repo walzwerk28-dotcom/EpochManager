@@ -185,14 +185,15 @@ namespace EpochCity
                 house.Residents + Mathf.Clamp(target - house.Residents, -step, step), 0, capacity);
         }
 
-        /// <summary>Bedürfnisse der Stufe, deren Epoche bereits erreicht ist.</summary>
+        /// <summary>Bedürfnisse der Stufe, deren Epoche erreicht und deren Technologie erforscht ist.</summary>
         private List<NeedDefinition> GetActiveNeeds(BuildingInstance house)
         {
             activeNeeds.Clear();
             var tier = house.Definition.populationTier;
             if (tier.needs == null) return activeNeeds;
             foreach (var need in tier.needs)
-                if (need != null && city.IsEpochReached(need.epoch)) activeNeeds.Add(need);
+                if (need != null && city.IsEpochReached(need.epoch) && city.IsUnlocked(need.requiredTechnology))
+                    activeNeeds.Add(need);
             return activeNeeds;
         }
 

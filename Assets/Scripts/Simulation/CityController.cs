@@ -47,6 +47,16 @@ namespace EpochCity
         public bool IsEpochReached(EpochDefinition epoch) =>
             epoch == null || currentEpoch == null || epoch.order <= currentEpoch.order;
 
+        /// <summary>Ist die Technologie erforscht? Keine Technologie gilt als erforscht.</summary>
+        public bool IsUnlocked(TechnologyDefinition tech) => tech == null || UnlockedTechnologies.Contains(tech);
+
+        /// <summary>Darf dieses Gebäude gebaut werden oder wachsen: Epoche erreicht und nötige Technologie erforscht.</summary>
+        public bool IsAvailable(BuildingDefinition def) =>
+            def != null && IsEpochReached(def.epoch) && IsUnlocked(def.requiredTechnology);
+
+        public bool IsAvailable(RoadDefinition road) =>
+            road != null && IsEpochReached(road.epoch) && IsUnlocked(road.requiredTechnology);
+
         /// <summary>Wird nach einem Epochenwechsel ausgelöst. Bestehende Gebäude bleiben unverändert.</summary>
         public event Action<EpochDefinition> EpochChanged;
 
@@ -62,7 +72,7 @@ namespace EpochCity
         /// Straßenfeld – jedes Gebäude braucht beim Bau einen Straßenanschluss. Geld prüft TryPlace.
         /// </summary>
         public bool CanPlace(BuildingDefinition def, Vector2Int origin) =>
-            def != null && IsEpochReached(def.epoch) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size);
+            IsAvailable(def) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size);
 
         public bool TryPlace(BuildingDefinition def, Vector2Int origin, out BuildingInstance placed)
         {
@@ -99,7 +109,7 @@ namespace EpochCity
         /// </summary>
         public bool CanGrow(BuildingDefinition def, Vector2Int origin, float facing)
         {
-            if (def == null || def.zone == null || !IsEpochReached(def.epoch)) return false;
+            if (def == null || def.zone == null || !IsAvailable(def)) return false;
             var footprint = def.GetFootprint(facing);
             if (!Grid.CanPlace(footprint, origin) || !Grid.SideHasRoad(origin, footprint, FrontSide(facing))) return false;
             for (int x = 0; x < footprint.x; x++)
@@ -304,7 +314,7 @@ namespace EpochCity
         {
             cost = 0f;
             if (road == null || path == null || path.Count == 0) return false;
-            if (!IsEpochReached(road.epoch)) return false;
+            if (!IsAvailable(road)) return false;
             foreach (var c in path)
             {
                 if (!Grid.CanPlaceRoad(c)) return false;
@@ -418,7 +428,7 @@ namespace EpochCity
         /// </summary>
         public void RefreshConnections()
         {
-            Connections.Recalculate(Grid, Buildings);
+            Connections.Recalculate(Grid, Buildings, UnlockedTechnologies);
             ConnectionsChanged?.Invoke();
         }
 
@@ -430,6 +440,7 @@ namespace EpochCity
             if (tech == null || UnlockedTechnologies.Contains(tech)) return false;
             if (!tech.PrerequisitesMet(UnlockedTechnologies)) return false;
             UnlockedTechnologies.Add(tech); // alle bestehenden Gebäude profitieren automatisch
+            RefreshConnections(); // Schichten können die Einzugsweite von Lagern ändern
             TechnologyUnlocked?.Invoke(tech);
             return true;
         }

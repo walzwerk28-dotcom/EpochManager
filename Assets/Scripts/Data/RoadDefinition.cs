@@ -8,6 +8,8 @@ namespace EpochCity
     {
         public string displayName;
         public EpochDefinition epoch;
+        [Tooltip("Erst baubar, wenn diese Technologie erforscht ist (leer = ab der Epoche)")]
+        public TechnologyDefinition requiredTechnology;
         [Tooltip("Platzhalter oder Modell für genau ein Rasterfeld")]
         public GameObject prefab;
         [Tooltip("Breite der Fahrbahn in Metern; Stücke verbinden sich automatisch mit den Nachbarfeldern")]

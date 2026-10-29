@@ -39,5 +39,9 @@ namespace EpochCity
         public BuildingFunction[] additionalFunctions;
         [Tooltip("Zusätzliche Kapazität (z. B. Wohnplätze)")]
         public int extraCapacity;
+        [Tooltip("Multiplikator auf die Kapazität, z. B. 1,25 = +25 % Wohnplätze (0 oder 1 = keine Wirkung)")]
+        public float capacityMultiplier = 1f;
+        [Tooltip("Nur Lager: zusätzliche Einzugsweite in Straßenfeldern")]
+        public float extraCatchment;
     }
 }

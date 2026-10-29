@@ -196,7 +196,7 @@ namespace EpochCity
 
             foreach (var def in zoneBuildings)
             {
-                if (def == null || def.zone != zone || !city.IsEpochReached(def.epoch)) continue;
+                if (def == null || def.zone != zone || !city.IsAvailable(def)) continue;
                 int order = def.epoch != null ? def.epoch.order : 0;
                 if (order > bestOrder)
                 {

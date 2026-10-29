@@ -9,8 +9,8 @@ namespace EpochCity
     }
 
     /// <summary>
-    /// Ein Bedürfnis einer Bevölkerungsstufe. Gilt ab seiner Epoche und bleibt danach bestehen
-    /// (neue Epochen fügen Bedürfnisse hinzu, entfernen aber keine).
+    /// Ein Bedürfnis einer Bevölkerungsstufe. Gilt ab seiner Epoche (und ggf. ab einer Technologie, wie neue
+    /// Bedürfnisse in Anno) und bleibt danach bestehen (neue Epochen fügen Bedürfnisse hinzu, entfernen keine).
     /// </summary>
     [CreateAssetMenu(menuName = "EpochCity/Need", fileName = "Need_")]
     public class NeedDefinition : ScriptableObject
@@ -18,6 +18,8 @@ namespace EpochCity
         public string displayName;
         [Tooltip("Ab dieser Epoche gilt das Bedürfnis (leer = immer)")]
         public EpochDefinition epoch;
+        [Tooltip("Gilt erst, wenn diese Technologie erforscht ist (leer = ab der Epoche), z. B. Wasser ab Wasserbau")]
+        public TechnologyDefinition requiredTechnology;
         [Tooltip("Ebene der Bedürfnispyramide: 1 Grundbedarf, 2 Sicherheit, 3 Komfort, 4 Bildung, 5 Luxus")]
         [Range(1, 5)] public int pyramidLevel = 1;
         [Tooltip("Anteil an der Zufriedenheit im Verhältnis zu den anderen Bedürfnissen")]

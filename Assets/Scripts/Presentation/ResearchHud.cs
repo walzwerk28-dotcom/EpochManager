@@ -109,6 +109,8 @@ namespace EpochCity
             if (next.requiredKeyTechnologies > 0)
                 builder.AppendLine(
                     $"Schlüsseltechnologien: {progression.CountKeyTechnologies(next)} / {next.requiredKeyTechnologies}");
+            if (next.requiredPopulation > 0)
+                builder.AppendLine($"Einwohner: {Mathf.Min(progression.CountPopulation(), next.requiredPopulation)} / {next.requiredPopulation}");
             if (next.milestones != null)
                 foreach (var m in next.milestones)
                     if (m.building != null)
