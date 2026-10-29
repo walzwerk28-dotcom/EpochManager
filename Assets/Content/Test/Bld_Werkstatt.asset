@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Werkstatt
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 1
-  prefab: {fileID: 1062444685799860686, guid: 99461872cd0945b4381baadfa89ab54a, type: 3}
+  prefab: {fileID: 1338692808414242172, guid: 851d6fcb3766bf7429a6979c481846b1, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   populationTier: {fileID: 0}

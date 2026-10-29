@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Stadthaus
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 0
-  prefab: {fileID: 7044601710634976969, guid: 5a1308e1278b6bc4f9af8ec8fa8891b9, type: 3}
+  prefab: {fileID: 7192199641955188998, guid: 5804d694dc3055e47be2fa2397e52261, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}

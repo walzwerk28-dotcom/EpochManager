@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Insula
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 0
-  prefab: {fileID: 8904718174641594116, guid: d539daac3b40743478fc165dc63f20fb, type: 3}
+  prefab: {fileID: 4745474123300096540, guid: 90e6bb8017a7c404db392976ccb24fc0, type: 3}
   size: {x: 4, y: 4}
   zone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}

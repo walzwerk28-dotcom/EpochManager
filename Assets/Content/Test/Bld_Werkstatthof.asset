@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Werkstatthof
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 1
-  prefab: {fileID: 6694961175544782876, guid: af1c590b0f9ead04fa8ae1214a324e14, type: 3}
+  prefab: {fileID: 135775179291993067, guid: 28fd4a29fd975094f828e24609728cbf, type: 3}
   size: {x: 3, y: 3}
   zone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   populationTier: {fileID: 0}

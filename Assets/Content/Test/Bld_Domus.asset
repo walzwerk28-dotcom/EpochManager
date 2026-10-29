@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Domus
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 0
-  prefab: {fileID: 5714532734951393941, guid: 2891c5522524e8245a319f53602a2144, type: 3}
+  prefab: {fileID: 5972058589299466336, guid: 8b8ec5df8dfe50a4081395b4a90457d7, type: 3}
   size: {x: 3, y: 3}
   zone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}

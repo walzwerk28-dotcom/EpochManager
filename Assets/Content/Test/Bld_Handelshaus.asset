@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Handelshaus
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 1
-  prefab: {fileID: 7790967384542886550, guid: 2a383bb8e4f4616448fad529c6fca91e, type: 3}
+  prefab: {fileID: 6114755288877325090, guid: d4645085b1401484097cb57023dc99aa, type: 3}
   size: {x: 4, y: 4}
   zone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   populationTier: {fileID: 0}

@@ -51,10 +51,20 @@ namespace EpochCity
             Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
             Assign("Bld_Feld", Make("Feld", 2, original, Field));
 
+            // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
+            Assign("Bld_Stadthaus", Make("Stadthaus", 2, antique,
+                b => Row(b, "wall", 4, 0f, (2, "roof", true), (1, "roof-high", false)),
+                b => Row(b, "wall", 4, 0f, (1, "roof-high", false), (2, "roof", true))));
+            Assign("Bld_Domus", Make("Domus", 3, antique, DomusRow, DomusAtrium));
+            Assign("Bld_Insula", Make("Insula", 4, antique, InsulaBlock, InsulaRow));
+            Assign("Bld_Werkstatt", Make("Werkstatt", 2, antique, WorkshopYard, WorkshopSide));
+            Assign("Bld_Werkstatthof", Make("Werkstatthof", 3, antique, WorkshopCourtFront, WorkshopCourtWings));
+            Assign("Bld_Handelshaus", Make("Handelshaus", 4, antique, TradeHall, TradeCourt));
+
             // Mittelalter: Fachwerk mit der Originalpalette (grüne Dächer)
-            Assign("Bld_Fachwerkhaus", Make("Fachwerkhaus", 1, original,
-                b => House(b, "wall-wood", 2, doorLeft: true, chimney: true, roof: "roof-high"),
-                b => House(b, "wall-wood", 2, doorLeft: false, chimney: false, roof: "roof-high")));
+            Assign("Bld_Fachwerkhaus", Make("Fachwerkhaus", 2, original,
+                b => Row(b, "wall-wood", 4, 0f, (2, "roof-high", true), (2, "roof-high", false)),
+                b => Row(b, "wall-wood", 4, 0f, (3, "roof-high", false), (2, "roof", true))));
             Assign("Bld_Muehle", Make("Muehle", 2, original, Mill));
 
             AssetDatabase.SaveAssets();
@@ -74,9 +84,10 @@ namespace EpochCity
 
         // ---------------------------------------------------------------- Rezepte
 
-        private static void House(Builder b, string wall, int storeys, bool doorLeft, bool chimney, string roof)
+        /// <summary>Haus 2 Teile breit und d tief, Giebel und Tür nach Süden.</summary>
+        private static void House(Builder b, string wall, int storeys, bool doorLeft, bool chimney, string roof, int d = 2)
         {
-            const int w = 2, d = 2;
+            const int w = 2;
             for (int level = 0; level < storeys; level++)
             {
                 int y = level;
@@ -88,12 +99,176 @@ namespace EpochCity
                         return doorHere ? $"{wall}-door" : $"{wall}-window-shutters";
                     }
                     if (dir == Vector2Int.up) return level == 0 ? wall : $"{wall}-window-small";
-                    return j == 0 ? $"{wall}-window-small" : wall;
+                    return j % 2 == 0 ? $"{wall}-window-small" : wall;
                 });
             }
             if (storeys == 1) Side(b, "overhang", doorLeft ? 0 : 1, 0, Vector2Int.down, 0, w, d);
             GableRoof(b, w, d, storeys, roof);
-            if (chimney) Side(b, "chimney", 1, 1, Vector2Int.right, storeys, w, d);
+            if (chimney) Side(b, "chimney", 1, d - 1, Vector2Int.right, storeys, w, d);
+        }
+
+        /// <summary>
+        /// Häuserzeile: Häuser (Stockwerke, Dach, Schornstein) nebeneinander von West nach Ost, jedes d Teile tief,
+        /// um z verschoben. Türen abwechselnd links und rechts; Schornsteine nur am Ostende sichtbar, sonst im Nachbarn.
+        /// </summary>
+        private static void Row(Builder b, string wall, int d, float z,
+            params (int storeys, string roof, bool chimney)[] houses)
+        {
+            for (int k = 0; k < houses.Length; k++)
+            {
+                var h = houses[k];
+                float x = 2f * k - (houses.Length - 1);
+                bool chimney = h.chimney && (k == houses.Length - 1 || houses[k + 1].storeys < h.storeys);
+                House(b.At(x, z), wall, h.storeys, doorLeft: k % 2 == 0, chimney, h.roof, d);
+            }
+        }
+
+        /// <summary>Domus mit Garten: drei Häuser an der Straße, dahinter Bäume.</summary>
+        private static void DomusRow(Builder b)
+        {
+            Row(b, "wall", 4, -1f, (1, "roof", false), (2, "roof", true), (1, "roof-high", false));
+            b.Put(FT + "tree-high-round", new Vector3(-2f, 0f, 2.2f), 0f);
+            b.Put(NK + "plant_bushLarge", new Vector3(0f, 0f, 2.2f), 0f, 3f);
+            b.Put(FT + "tree", new Vector3(2f, 0f, 2.2f), 40f);
+        }
+
+        /// <summary>Domus mit Atrium: einstöckiger Ring um einen Innenhof, zur Straße zweistöckig.</summary>
+        private static void DomusAtrium(Builder b)
+        {
+            const int w = 6, d = 6;
+            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 4 && j >= 2 && j < 4));
+            var upper = Mask(w, d, (i, j) => j < 2);
+            Walls(b, ring, 0, (i, j, dir) => Facade(i, j, dir, 0, "wall", door: i == 2));
+            Walls(b, upper, 1, (i, j, dir) => Facade(i, j, dir, 1, "wall", door: false));
+            FlatRoof(b, Mask(w, d, (i, j) => ring[i, j] && !upper[i, j]), 1);
+            FlatRoof(b, upper, 2);
+            b.Put(FT + "tree", new Vector3(0f, 0f, 0.5f), 0f);
+        }
+
+        /// <summary>Insula: dreistöckiger Block um einen Innenhof, unten Läden zur Straße.</summary>
+        private static void InsulaBlock(Builder b)
+        {
+            const int w = 8, d = 8, storeys = 3;
+            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 6 && j >= 2 && j < 6));
+            for (int level = 0; level < storeys; level++)
+            {
+                int l = level;
+                Walls(b, ring, l, (i, j, dir) =>
+                    l == 0 && dir == Vector2Int.down && j == 0
+                        ? (i == 3 ? "wall-doorway-round" : i % 2 == 0 ? "wall-doorway-square" : "wall-window-shutters")
+                        : Facade(i, j, dir, l, "wall", door: false));
+            }
+            FlatRoof(b, ring, storeys);
+            b.Put(FT + "tree-high-round", new Vector3(0f, 0f, 0.3f), 0f);
+        }
+
+        /// <summary>Insula als Zeile: vier hohe, schmale Häuser mit Hinterhof.</summary>
+        private static void InsulaRow(Builder b)
+        {
+            Row(b, "wall", 6, -1f, (3, "roof", false), (2, "roof-high", true), (3, "roof", true), (2, "roof", false));
+            b.Put(FT + "tree", new Vector3(-2.5f, 0f, 3f), 0f);
+            b.Put(NK + "plant_bushLarge", new Vector3(0.5f, 0f, 3f), 0f, 3f);
+            b.Put(FT + "tree-high-crooked", new Vector3(3f, 0f, 3f), 120f);
+        }
+
+        /// <summary>Werkstatt: Halle hinten, Hof mit Stand und Karren zur Straße.</summary>
+        private static void WorkshopYard(Builder b)
+        {
+            Hall(b.At(0f, 1f), 4, 2, 1, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 1 || i == 2 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                "wall-wood");
+            Planks(b.At(0f, -1f), 4, 2);
+            b.Put(FT + "stall-red", new Vector3(-1.5f, 0f, -1.4f), 0f);
+            b.Put(NK + "log_stack", new Vector3(0.2f, 0f, -0.8f), 90f);
+            b.Put(FT + "cart", new Vector3(1.5f, 0f, -1.1f), 80f);
+        }
+
+        /// <summary>Werkstatt: tiefe Halle links, offener Hof rechts.</summary>
+        private static void WorkshopSide(Builder b)
+        {
+            Hall(b.At(-1f, 0f), 2, 4, 1, "roof-high", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 0 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood");
+            Planks(b.At(1f, 0f), 2, 4);
+            b.Put(FT + "stall-green", new Vector3(1f, 0f, -1.4f), 0f);
+            b.Put(NK + "log_stack", new Vector3(1f, 0f, 0.2f), 0f);
+            b.Put(FT + "cart", new Vector3(1f, 0f, 1.4f), 90f);
+        }
+
+        /// <summary>Werkstatthof: breite Halle mit drei Dächern hinten, Hof mit Ständen vorn.</summary>
+        private static void WorkshopCourtFront(Builder b)
+        {
+            Hall(b.At(0f, 1.5f), 6, 3, 1, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 1 || i == 4 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                j == 1 ? "wall-wood-window-small" : "wall-wood");
+            Planks(b.At(0f, -1.5f), 6, 3);
+            b.Put(FT + "stall-red", new Vector3(-2f, 0f, -2.4f), 0f);
+            b.Put(FT + "stall-green", new Vector3(0f, 0f, -2.4f), 0f);
+            b.Put(FT + "stall", new Vector3(2f, 0f, -2.4f), 0f);
+            b.Put(NK + "log_stack", new Vector3(-2f, 0f, -0.7f), 90f);
+            b.Put(FT + "cart", new Vector3(2f, 0f, -0.8f), 80f);
+        }
+
+        /// <summary>Werkstatthof: zwei tiefe Hallen links und rechts, schmaler Hof dazwischen.</summary>
+        private static void WorkshopCourtWings(Builder b)
+        {
+            Func<int, int, Vector2Int, int, string> pick = (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 0 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood";
+            Hall(b.At(-2f, 0f), 2, 6, 1, "roof", pick);
+            Hall(b.At(2f, 0f), 2, 6, 1, "roof-high", pick);
+            Planks(b.At(0f, 0f), 2, 6);
+            b.Put(FT + "stall-red", new Vector3(0f, 0f, -2.4f), 0f);
+            b.Put(NK + "log_stack", new Vector3(0f, 0f, 0f), 0f);
+            b.Put(FT + "cart", new Vector3(0f, 0f, 2f), 90f);
+        }
+
+        /// <summary>Handelshaus: zweistöckige Steinhalle mit Bögen, davor ein Platz mit zwei Reihen Ständen.</summary>
+        private static void TradeHall(Builder b)
+        {
+            Hall(b.At(0f, 2f), 8, 4, 2, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down
+                    ? (level == 0 ? (i % 2 == 1 ? "wall-doorway-round" : "wall-window-stone") : "wall-window-shutters")
+                    : j % 2 == 1 || level == 1 ? "wall-window-small" : "wall");
+            string[] stalls = { "stall-red", "stall-green", "stall", "stall-red" };
+            for (int k = 0; k < 4; k++)
+            {
+                float x = 2f * k - 3f;
+                b.Put(FT + stalls[k], new Vector3(x, 0f, -3.3f), 0f);
+                b.Put(FT + stalls[3 - k], new Vector3(x, 0f, -1.4f), 0f);
+            }
+            b.Put(FT + "lantern", new Vector3(-4f + 0.3f, 0f, -0.3f), 0f);
+            b.Put(FT + "lantern", new Vector3(4f - 0.3f, 0f, -0.3f), 0f);
+        }
+
+        /// <summary>Handelshaus: Hofanlage mit Brunnen und Ständen im Innenhof, zur Straße zweistöckig.</summary>
+        private static void TradeCourt(Builder b)
+        {
+            const int w = 8, d = 8;
+            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 6 && j >= 2 && j < 6));
+            var upper = Mask(w, d, (i, j) => j < 2);
+            Walls(b, ring, 0, (i, j, dir) =>
+                dir == Vector2Int.down && j == 0 ? (i == 3 || i == 4 ? "wall-doorway-round" : "wall-window-stone") :
+                Facade(i, j, dir, 0, "wall", door: false));
+            Walls(b, upper, 1, (i, j, dir) => Facade(i, j, dir, 1, "wall", door: false));
+            FlatRoof(b, Mask(w, d, (i, j) => ring[i, j] && !upper[i, j]), 1);
+            FlatRoof(b, upper, 2);
+
+            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
+            b.Put(FT + "fountain-round", new Vector3(0f, 0f, 0f), 0f, 0.7f);
+            b.Put(FT + "stall-red", new Vector3(-1.5f, 0f, 1.6f), 0f);
+            b.Put(FT + "stall-green", new Vector3(1.5f, 0f, 1.6f), 0f);
+        }
+
+        /// <summary>
+        /// Wandteil einer Fassade: zur Straße (Süden, äußerste Reihe) Fensterläden oder die Tür, sonst kleine
+        /// Fenster im Wechsel mit glatter Wand.
+        /// </summary>
+        private static string Facade(int i, int j, Vector2Int dir, int level, string wall, bool door)
+        {
+            if (dir == Vector2Int.down && j == 0)
+                return level == 0 && door ? $"{wall}-door" : $"{wall}-window-shutters";
+            return (i + j) % 2 == 0 ? $"{wall}-window-small" : wall;
         }
 
         /// <summary>Lager: Holzhalle 2 × 3 mit breitem Tor nach Süden, Karren daneben.</summary>
@@ -205,18 +380,67 @@ namespace EpochCity
             dir == Vector2Int.right ? 0f : dir == Vector2Int.left ? 180f : dir == Vector2Int.up ? 270f : 90f;
 
         /// <summary>Wände rund um einen w × d großen Grundriss auf Höhe y; pick liefert den Bauteilnamen oder null.</summary>
-        private static void Walls(Builder b, int w, int d, float y, Func<int, int, Vector2Int, string> pick)
+        private static void Walls(Builder b, int w, int d, float y, Func<int, int, Vector2Int, string> pick) =>
+            Walls(b, Mask(w, d, (i, j) => true), y, pick);
+
+        /// <summary>Wände um die belegten Zellen der Maske: überall, wo die Nachbarzelle frei ist (auch zum Innenhof).</summary>
+        private static void Walls(Builder b, bool[,] mask, float y, Func<int, int, Vector2Int, string> pick)
         {
+            int w = mask.GetLength(0), d = mask.GetLength(1);
             for (int i = 0; i < w; i++)
                 for (int j = 0; j < d; j++)
+                {
+                    if (!mask[i, j]) continue;
                     foreach (var dir in Sides)
                     {
                         var n = new Vector2Int(i, j) + dir;
-                        if (n.x >= 0 && n.x < w && n.y >= 0 && n.y < d) continue;
+                        if (Filled(mask, n)) continue;
                         string part = pick(i, j, dir);
                         if (part == null) continue;
                         b.Put(FT + part, Cell(n.x, n.y, w, d) + Vector3.up * y, WallRot(dir));
                     }
+                }
+        }
+
+        private static bool[,] Mask(int w, int d, Func<int, int, bool> filled)
+        {
+            var mask = new bool[w, d];
+            for (int i = 0; i < w; i++)
+                for (int j = 0; j < d; j++)
+                    mask[i, j] = filled(i, j);
+            return mask;
+        }
+
+        private static bool Filled(bool[,] mask, Vector2Int c) =>
+            c.x >= 0 && c.y >= 0 && c.x < mask.GetLength(0) && c.y < mask.GetLength(1) && mask[c.x, c.y];
+
+        /// <summary>Flachdach auf allen belegten Zellen der Maske.</summary>
+        private static void FlatRoof(Builder b, bool[,] mask, float y)
+        {
+            int w = mask.GetLength(0), d = mask.GetLength(1);
+            for (int i = 0; i < w; i++)
+                for (int j = 0; j < d; j++)
+                    if (mask[i, j]) b.Put(FT + "roof-flat", Cell(i, j, w, d) + Vector3.up * y, 0f);
+        }
+
+        /// <summary>Halle w × d (w gerade) über mehrere Stockwerke, mit parallelen Satteldächern.</summary>
+        private static void Hall(Builder b, int w, int d, int storeys, string roof,
+            Func<int, int, Vector2Int, int, string> pick)
+        {
+            for (int level = 0; level < storeys; level++)
+            {
+                int l = level;
+                Walls(b, w, d, l, (i, j, dir) => pick(i, j, dir, l));
+            }
+            GableRoof(b, w, d, storeys, roof);
+        }
+
+        /// <summary>Holzboden für einen Werkhof.</summary>
+        private static void Planks(Builder b, int w, int d)
+        {
+            for (int i = 0; i < w; i++)
+                for (int j = 0; j < d; j++)
+                    b.Put(FT + "planks", Cell(i, j, w, d), 0f);
         }
 
         /// <summary>Anbauteil an der Außenseite der Zelle (i, j) in Richtung dir.</summary>
@@ -226,14 +450,18 @@ namespace EpochCity
             b.Put(FT + part, Cell(n.x, n.y, w, d) + Vector3.up * y, WallRot(dir));
         }
 
-        /// <summary>Satteldach mit First in z-Richtung über einem 2 Teile breiten Grundriss.</summary>
+        /// <summary>
+        /// Satteldächer mit First in z-Richtung, je eins pro 2 Teile Breite (breite Firste setzt der Bausatz nicht
+        /// sauber zusammen); bei breiten Hallen stehen sie nebeneinander.
+        /// </summary>
         private static void GableRoof(Builder b, int w, int d, float y, string part)
         {
-            for (int j = 0; j < d; j++)
-            {
-                b.Put(FT + part, Cell(0, j, w, d) + Vector3.up * y, 180f); // Traufe nach Westen
-                b.Put(FT + part, Cell(w - 1, j, w, d) + Vector3.up * y, 0f); // Traufe nach Osten
-            }
+            for (int i = 0; i + 1 < w; i += 2)
+                for (int j = 0; j < d; j++)
+                {
+                    b.Put(FT + part, Cell(i, j, w, d) + Vector3.up * y, 180f); // Traufe nach Westen
+                    b.Put(FT + part, Cell(i + 1, j, w, d) + Vector3.up * y, 0f); // Traufe nach Osten
+                }
         }
 
         // ---------------------------------------------------------------- Zusammenbau
@@ -244,12 +472,25 @@ namespace EpochCity
             private readonly Material palette;
 
             /// <summary>Ersetzt Materialien der Bauteile nach ihrem Namen (z. B. für goldenen Weizen).</summary>
-            public readonly Dictionary<string, Material> Overrides = new Dictionary<string, Material>();
+            public readonly Dictionary<string, Material> Overrides;
 
-            public Builder(Transform root, Material palette)
+            public Builder(Transform root, Material palette) : this(root, palette, new Dictionary<string, Material>()) { }
+
+            private Builder(Transform root, Material palette, Dictionary<string, Material> overrides)
             {
                 Root = root;
                 this.palette = palette;
+                Overrides = overrides;
+            }
+
+            /// <summary>Teilbauplatz, um (x, z) verschoben und gedreht; teilt Palette und Ersatzmaterialien.</summary>
+            public Builder At(float x, float z, float rotY = 0f)
+            {
+                var child = new GameObject("Part").transform;
+                child.SetParent(Root, false);
+                child.localPosition = new Vector3(x, 0f, z);
+                child.localRotation = Quaternion.Euler(0f, rotY, 0f);
+                return new Builder(child, palette, Overrides);
             }
 
             public void Put(string path, Vector3 position, float rotY, float scale = 1f)
@@ -334,9 +575,18 @@ namespace EpochCity
                 AssetDatabase.CreateAsset(mesh, path);
                 return mesh;
             }
-            string name = existing.name;
-            EditorUtility.CopySerialized(mesh, existing);
-            existing.name = name;
+            // Über die Mesh-API befüllen: Nach CopySerialized zeichnet der Editor weiter die alte Geometrie
+            existing.Clear();
+            existing.indexFormat = mesh.indexFormat;
+            existing.SetVertices(mesh.vertices);
+            existing.SetNormals(mesh.normals);
+            existing.SetTangents(mesh.tangents);
+            existing.SetUVs(0, mesh.uv);
+            existing.SetColors(mesh.colors);
+            existing.subMeshCount = mesh.subMeshCount;
+            for (int s = 0; s < mesh.subMeshCount; s++)
+                existing.SetIndices(mesh.GetIndices(s), mesh.GetTopology(s), s);
+            existing.RecalculateBounds();
             EditorUtility.SetDirty(existing);
             Object.DestroyImmediate(mesh);
             return existing;
