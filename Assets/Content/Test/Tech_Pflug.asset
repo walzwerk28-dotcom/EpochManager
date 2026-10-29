@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 700814366ef09df4abd2a49dd2964849, type: 3}
+  m_Name: Tech_Pflug
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.TechnologyDefinition
+  displayName: Pflug
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  path: 2
+  researchCost: 110
+  prerequisites:
+  - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
+  - {fileID: 11400000, guid: 5c4e1346606dbcd479a62abeda51e7cb, type: 2}
+  description: "Felder liefern weitere 30 % mehr Weizen. Schl\xFCsseltechnologie."

@@ -19,11 +19,18 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 0}
   buildCost: 120
   upkeepPerMonth: 2
   baseCapacity: 0
   baseFunctions: []
-  layers: []
+  layers:
+  - requiredTechnology: {fileID: 11400000, guid: 87da410d05f61d84783ed1c4afbe71e1, type: 2}
+    outputMultiplier: 1
+    additionalFunctions: []
+    extraCapacity: 0
+    capacityMultiplier: 1
+    extraCatchment: 10
   catchmentRange: 20
   efficiencyByDistance:
     serializedVersion: 2

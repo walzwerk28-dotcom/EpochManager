@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a4ec28928f75fe4294adfa1c49fb0d1, type: 3}
+  m_Name: Need_Glaube
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.NeedDefinition
+  displayName: Glaube
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  requiredTechnology: {fileID: 11400000, guid: 0a4ce302e4ed4da45bc7a5497d3dbbc8, type: 2}
+  pyramidLevel: 4
+  weight: 1
+  kind: 1
+  resource: {fileID: 0}
+  amountPerResidentPerMonth: 0.5
+  providers:
+  - {fileID: 11400000, guid: a7e0f07efedf69542a3b9942fb6c0646, type: 2}
+  range: 20
+  coverageByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.7
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.3
+      inSlope: -0.7
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

@@ -19,6 +19,7 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 0}
   buildCost: 300
   upkeepPerMonth: 5
   baseCapacity: 0

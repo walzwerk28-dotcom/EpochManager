@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "M\xFCnzpr\xE4gung"
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 0
-  researchCost: 80
+  researchCost: 100
   prerequisites:
   - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
-  description: "M\xE4rkte erl\xF6sen 25 % mehr M\xFCnzen."
+  description: "M\xE4rkte, Kontore und Handelsh\xE4user erl\xF6sen 25 % mehr. Schl\xFCsseltechnologie."

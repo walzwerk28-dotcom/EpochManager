@@ -686,7 +686,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
   - {fileID: 11400000, guid: 2862c34a54bc6a54eaf19a1d72aaef60, type: 2}
   - {fileID: 11400000, guid: 911b3c535dfd3894180a58eee9d20787, type: 2}
+  - {fileID: 11400000, guid: a7e0f07efedf69542a3b9942fb6c0646, type: 2}
+  - {fileID: 11400000, guid: e209751f86a92d4458274ab83a522a2b, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
+  roads:
+  - {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
+  - {fileID: 11400000, guid: d6ea6e1268ccf6e47b529078f24f817f, type: 2}
   residentialZone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   commercialZone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
@@ -791,9 +796,18 @@ MonoBehaviour:
   city: {fileID: 440537052}
   researchResource: {fileID: 11400000, guid: e87d03efb365c7047952fd91a09e4917, type: 2}
   technologies:
-  - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
-  - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
+  - {fileID: 11400000, guid: ecec991b2e2169a4d87588d3abeb2ca8, type: 2}
+  - {fileID: 11400000, guid: 87da410d05f61d84783ed1c4afbe71e1, type: 2}
   - {fileID: 11400000, guid: 29672d44702cb7340a292d7b6ebb2e4f, type: 2}
+  - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
+  - {fileID: 11400000, guid: 0a4ce302e4ed4da45bc7a5497d3dbbc8, type: 2}
+  - {fileID: 11400000, guid: a15c3d0eb2641ad45b01445af3357317, type: 2}
+  - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
+  - {fileID: 11400000, guid: 5c4e1346606dbcd479a62abeda51e7cb, type: 2}
+  - {fileID: 11400000, guid: 213a4bd8ac0d64e4a8809c016e16a540, type: 2}
+  - {fileID: 11400000, guid: 9b0c2338c71a03641b14efe83a98ecfc, type: 2}
+  - {fileID: 11400000, guid: 7fe402d342d5866418447367a10b77e2, type: 2}
+  - {fileID: 11400000, guid: 6cbf9965f7252654c97706b4f337747c, type: 2}
 --- !u!114 &1598712639
 MonoBehaviour:
   m_ObjectHideFlags: 0

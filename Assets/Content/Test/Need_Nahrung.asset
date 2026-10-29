@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.NeedDefinition
   displayName: Nahrung
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  requiredTechnology: {fileID: 0}
   pyramidLevel: 1
   weight: 2
   kind: 0

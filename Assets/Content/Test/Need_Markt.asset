@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.NeedDefinition
   displayName: Markt
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  requiredTechnology: {fileID: 0}
   pyramidLevel: 3
   weight: 1
   kind: 1

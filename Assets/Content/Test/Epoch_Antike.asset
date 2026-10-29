@@ -19,3 +19,4 @@ MonoBehaviour:
   keyTechnologies: []
   requiredKeyTechnologies: 0
   milestones: []
+  requiredPopulation: 0

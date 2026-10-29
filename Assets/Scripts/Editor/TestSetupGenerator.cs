@@ -283,16 +283,126 @@ namespace EpochCity
             var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
                 BuildingCategory.Housing, residential, 16, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f), 2);
 
-            foreach (var home in new[] { house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse })
-                home.populationTier = farmers;
+            var homes = new[] { house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse };
+            foreach (var home in homes) home.populationTier = farmers;
+
+            // ---------------------------------------------------------------- Forschung der Antike
+            // Vier Pfade mit Grund- und Aufbautechnologien (GDD Abschnitt 10); je Pfad eine Schlüsseltechnologie.
+
+            // Handel
+            var barter = Tech("Tech_Tauschhandel", "Tauschhandel", antike, TechPath.Trade, 40f,
+                "Läden und Tabernen erlösen 25 % mehr.");
+            var warehousing = Tech("Tech_Lagerwesen", "Lagerwesen", antike, TechPath.Trade, 50f,
+                "Lager versorgen 10 Straßenfelder weiter.");
+            Tech(minting, "Münzprägung", antike, TechPath.Trade, 100f,
+                "Märkte, Kontore und Handelshäuser erlösen 25 % mehr. Schlüsseltechnologie.", writing);
+            // Kultur
+            Tech(writing, "Schrift", antike, TechPath.Culture, 50f, "Bibliotheken forschen 50 % schneller.");
+            var cults = Tech("Tech_Kulte", "Kulte", antike, TechPath.Culture, 60f,
+                "Tempel baubar. Die Bewohner verlangen danach Glauben.");
+            var philosophy = Tech("Tech_Philosophie", "Philosophie", antike, TechPath.Culture, 120f,
+                "Alle Wohnhäuser bieten 25 % mehr Wohnplätze. Schlüsseltechnologie.", writing, cults);
+            // Industrie
+            Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 50f, "Felder liefern 50 % mehr Weizen.");
+            var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 50f,
+                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr.");
+            var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 110f,
+                "Felder liefern weitere 30 % mehr Weizen. Schlüsseltechnologie.", irrigation, crafts);
+            // Wissenschaft und Infrastruktur
+            var surveying = Tech("Tech_Vermessung", "Vermessung", antike, TechPath.Science, 60f,
+                "Pflasterstraße baubar: bessere Anbindung ans Lager.");
+            var mathematics = Tech("Tech_Mathematik", "Mathematik", antike, TechPath.Science, 90f,
+                "Bibliotheken forschen weitere 25 % schneller.", writing, surveying);
+            var waterworks = Tech("Tech_Wasserbau", "Wasserbau", antike, TechPath.Science, 120f,
+                "Brunnen baubar. Die Bewohner verlangen danach Wasser. Schlüsseltechnologie.", surveying);
+
+            // Wirkungen als Schichten auf den Gebäuden (das Aussehen bleibt)
+            shop.layers = taberna.layers = new[] { Boost(barter, 1.25f) };
+            storage.layers = new[] { new BuildingLayer { requiredTechnology = warehousing, outputMultiplier = 1f, extraCatchment = 10f } };
+            market.layers = office.layers = tradeHouse.layers = new[] { Boost(minting, 1.25f) };
+            library.layers = new[] { Boost(writing, 1.5f), Boost(mathematics, 1.25f) };
+            field.layers = new[] { Boost(irrigation, 1.5f), Boost(plough, 1.3f) };
+            workshop.layers = workyard.layers = granaryYard.layers = new[] { Boost(crafts, 1.25f) };
+            foreach (var home in homes)
+                home.layers = new[] { new BuildingLayer { requiredTechnology = philosophy, outputMultiplier = 1f, capacityMultiplier = 1.25f } };
+
+            // Neue Gebäude und Straßen durch Forschung
+            var temple = GetOrCreate<BuildingDefinition>("Bld_Tempel");
+            temple.displayName = "Tempel";
+            temple.epoch = antike;
+            temple.requiredTechnology = cults;
+            temple.category = BuildingCategory.Service;
+            temple.size = new Vector2Int(2, 3);
+            temple.buildCost = 250f;
+            temple.upkeepPerMonth = 4f;
+            temple.baseCapacity = 0;
+            temple.baseFunctions = new BuildingFunction[0];
+            temple.layers = new BuildingLayer[0];
+            temple.prefab = KeepModel(temple.prefab, () => CreatePrefab("Prefab_Tempel", temple.size, 3f, new Color(0.9f, 0.86f, 0.75f)));
+
+            var well = GetOrCreate<BuildingDefinition>("Bld_Brunnen");
+            well.displayName = "Brunnen";
+            well.epoch = antike;
+            well.requiredTechnology = waterworks;
+            well.category = BuildingCategory.Service;
+            well.size = Vector2Int.one;
+            well.buildCost = 60f;
+            well.upkeepPerMonth = 1f;
+            well.baseCapacity = 0;
+            well.baseFunctions = new BuildingFunction[0];
+            well.layers = new BuildingLayer[0];
+            well.prefab = KeepModel(well.prefab, () => CreatePrefab("Prefab_Brunnen", well.size, 0.8f, new Color(0.5f, 0.7f, 0.85f)));
+
+            var paved = GetOrCreate<RoadDefinition>("Road_Pflaster");
+            paved.displayName = "Pflasterstraße";
+            paved.epoch = antike;
+            paved.requiredTechnology = surveying;
+            paved.costPerCell = 15f;
+            paved.upkeepPerCellPerMonth = 0.25f;
+            paved.quality = 1.6f;
+            paved.visualWidth = 1.5f;
+            paved.prefab = CreateRoadPrefab("Prefab_Pflaster",
+                new Color(0.74f, 0.71f, 0.65f), new Color(0.48f, 0.45f, 0.40f));
+
+            // Neue Bedürfnisse, sobald die Technologie erforscht ist (wie neue Ansprüche in Anno)
+            var water = GetOrCreate<NeedDefinition>("Need_Wasser");
+            water.displayName = "Wasser";
+            water.epoch = antike;
+            water.requiredTechnology = waterworks;
+            water.pyramidLevel = 1;
+            water.weight = 1.5f;
+            water.kind = NeedKind.Service;
+            water.resource = null;
+            water.providers = new[] { well };
+            water.range = 10f;
+            water.coverageByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
+
+            var faith = GetOrCreate<NeedDefinition>("Need_Glaube");
+            faith.displayName = "Glaube";
+            faith.epoch = antike;
+            faith.requiredTechnology = cults;
+            faith.pyramidLevel = 4;
+            faith.weight = 1f;
+            faith.kind = NeedKind.Service;
+            faith.resource = null;
+            faith.providers = new[] { temple };
+            faith.range = 20f;
+            faith.coverageByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.3f);
+            farmers.needs = new[] { food, water, marketNeed, faith };
+
+            // Mittelalter: 3 der 4 Schlüsseltechnologien (je Pfad eine), eine Bibliothek und 300 Einwohner
+            mittelalter.keyTechnologies = new[] { minting, philosophy, plough, waterworks };
+            mittelalter.requiredKeyTechnologies = 3;
+            mittelalter.requiredPopulation = 300;
 
             var content = new ScriptableObject[]
             {
                 antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
-                field, market, library, mill, path, storage, residential, commercial,
+                barter, warehousing, cults, philosophy, crafts, plough, surveying, mathematics, waterworks,
+                field, market, library, mill, path, paved, storage, temple, well, residential, commercial,
                 house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
-                food, marketNeed, farmers
+                food, marketNeed, water, faith, farmers
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
@@ -306,6 +416,28 @@ namespace EpochCity
 
             Debug.Log($"Testaufbau erzeugt unter {Root}.");
         }
+
+        /// <summary>Technologie anlegen oder vorhandene überschreiben (Name, Pfad, Kosten, Voraussetzungen).</summary>
+        private static TechnologyDefinition Tech(string assetName, string displayName, EpochDefinition epoch, TechPath path,
+            float cost, string description, params TechnologyDefinition[] prerequisites) =>
+            Tech(GetOrCreate<TechnologyDefinition>(assetName), displayName, epoch, path, cost, description, prerequisites);
+
+        private static TechnologyDefinition Tech(TechnologyDefinition tech, string displayName, EpochDefinition epoch,
+            TechPath path, float cost, string description, params TechnologyDefinition[] prerequisites)
+        {
+            tech.displayName = displayName;
+            tech.epoch = epoch;
+            tech.path = path;
+            tech.researchCost = cost;
+            tech.prerequisites = prerequisites;
+            tech.description = description;
+            EditorUtility.SetDirty(tech);
+            return tech;
+        }
+
+        /// <summary>Schicht, die die Ausgaben aller Funktionen vervielfacht.</summary>
+        private static BuildingLayer Boost(TechnologyDefinition tech, float multiplier) =>
+            new BuildingLayer { requiredTechnology = tech, outputMultiplier = multiplier, capacityMultiplier = 1f };
 
         /// <summary>
         /// Straßen-Prefab für RoadVisuals: ein MeshFilter mit Fahrbahn- und Randmaterial. Das gespeicherte Mesh

@@ -19,6 +19,7 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 0}
   buildCost: 150
   upkeepPerMonth: 3
   baseCapacity: 0
@@ -36,6 +37,8 @@ MonoBehaviour:
     outputMultiplier: 1.25
     additionalFunctions: []
     extraCapacity: 0
+    capacityMultiplier: 1
+    extraCatchment: 0
   catchmentRange: 20
   efficiencyByDistance:
     serializedVersion: 2

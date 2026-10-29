@@ -17,10 +17,12 @@ MonoBehaviour:
   currencyName: Pfennige
   description: Testepoche
   keyTechnologies:
-  - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
-  - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
   - {fileID: 11400000, guid: 29672d44702cb7340a292d7b6ebb2e4f, type: 2}
-  requiredKeyTechnologies: 2
+  - {fileID: 11400000, guid: a15c3d0eb2641ad45b01445af3357317, type: 2}
+  - {fileID: 11400000, guid: 213a4bd8ac0d64e4a8809c016e16a540, type: 2}
+  - {fileID: 11400000, guid: 6cbf9965f7252654c97706b4f337747c, type: 2}
+  requiredKeyTechnologies: 3
   milestones:
   - building: {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
     count: 1
+  requiredPopulation: 300

@@ -18,8 +18,13 @@ namespace EpochCity
         public Camera cam;
         [Tooltip("Alle einzeln baubaren Gebäude; die Bauleiste ordnet sie nach ihrer Kategorie")]
         public BuildingDefinition[] hotbar;
-        [Tooltip("Straße, die mit R gewählt wird")]
+        [Tooltip("Aktuell gewählter Straßentyp (Startwert für R)")]
         public RoadDefinition road;
+        [Tooltip("Alle Straßentypen der Bauleiste; R wechselt im Straßenmodus zum nächsten baubaren")]
+        public RoadDefinition[] roads;
+
+        /// <summary>Straßentypen der Bauleiste (ohne Liste nur der eine Straßentyp).</summary>
+        public RoadDefinition[] Roads => roads != null && roads.Length > 0 ? roads : new[] { road };
 
         [Header("Zonen")]
         [Tooltip("Zone für Taste Z")]
@@ -252,9 +257,28 @@ namespace EpochCity
             demolishMode = enable;
         }
 
+        /// <summary>Straßenmodus; ist er schon an, wechselt R zum nächsten baubaren Straßentyp.</summary>
         public void SelectRoad()
         {
+            var list = Roads;
+            int start = Mathf.Max(0, System.Array.IndexOf(list, road));
+            int offset = roadMode ? 1 : 0;
+            for (int i = 0; i < list.Length; i++)
+            {
+                var candidate = list[(start + offset + i) % list.Length];
+                if (candidate != null && city.IsAvailable(candidate))
+                {
+                    SelectRoad(candidate);
+                    return;
+                }
+            }
+            SelectRoad(road);
+        }
+
+        public void SelectRoad(RoadDefinition type)
+        {
             ClearSelection();
+            if (type != null) road = type;
             roadMode = road != null;
         }
 

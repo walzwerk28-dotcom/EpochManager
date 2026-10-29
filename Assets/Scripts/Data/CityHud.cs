@@ -258,12 +258,19 @@ namespace EpochCity
             switch (openTab.Kind)
             {
                 case TabKind.Roads:
-                    var road = placer.road;
-                    AddEntry(icons != null ? icons.road : null, road.displayName, $"{road.costPerCell:0} {Currency()} / Feld",
-                        "R", () => placer.SelectRoad(), () => placer.RoadMode, () => !city.IsEpochReached(road.epoch),
-                        () => $"<b>{road.displayName}</b>\n{road.costPerCell:0.#} {Currency()} pro Feld, " +
-                              $"Unterhalt {road.upkeepPerCellPerMonth:0.##} pro Feld und Monat\n" +
-                              Muted("Mit der Maus ziehen, Rechtsklick bricht ab"));
+                    foreach (var type in placer.Roads)
+                    {
+                        if (type == null) continue;
+                        var road = type;
+                        AddEntry(icons != null ? icons.road : null, road.displayName,
+                            $"{road.costPerCell:0} {Currency()} / Feld", "R", () => placer.SelectRoad(road),
+                            () => placer.RoadMode && placer.road == road, () => !city.IsAvailable(road),
+                            () => $"<b>{road.displayName}</b>\n{road.costPerCell:0.#} {Currency()} pro Feld, " +
+                                  $"Unterhalt {road.upkeepPerCellPerMonth:0.##} pro Feld und Monat\n" +
+                                  $"Qualität {road.quality:0.#}: Wege zum Lager zählen {(1f / road.quality) * 100f:0} %\n" +
+                                  (LockReason(road.epoch, road.requiredTechnology) ??
+                                   Muted("Mit der Maus ziehen, R wechselt den Typ, Rechtsklick bricht ab")));
+                    }
                     break;
 
                 case TabKind.Zones:

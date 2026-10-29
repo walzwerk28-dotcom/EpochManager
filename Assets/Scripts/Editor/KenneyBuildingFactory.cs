@@ -47,7 +47,7 @@ namespace EpochCity
             grounds.Clear();
             foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
                 grounds[n] = gravel;
-            foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek" })
+            foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle" })
                 grounds[n] = earth;
@@ -61,6 +61,8 @@ namespace EpochCity
             Assign("Bld_Markt", Make("Markt", 2, antique, Market));
             Assign("Bld_Lager", Make("Lager", 2, antique, Storage));
             Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
+            Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
+            Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
             Assign("Bld_Feld", Make("Feld", 2, original, Field));
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
@@ -419,6 +421,36 @@ namespace EpochCity
             for (int k = 0; k <= w; k++)
                 b.Put(FT + "pillar-stone", Cell(0, 0, w, d) + new Vector3(k - 0.5f, 0f, -0.5f), 0f);
             GableRoof(b, w, d, 1, "roof");
+        }
+
+        /// <summary>
+        /// Tempel 2 × 3: Cella aus Stein mit zwei Bogentüren, davor eine offene Vorhalle mit drei Säulen und
+        /// darüber ein Satteldach aus Terrakotta (wie die Bibliothek, aber tiefer und ohne Fenster).
+        /// </summary>
+        private static void Temple(Builder b)
+        {
+            const int w = 2, d = 4;
+            // Wände nur um die hinteren drei Reihen; die vordere Reihe ist die offene Vorhalle
+            for (int i = 0; i < w; i++)
+                for (int j = 1; j < d; j++)
+                    foreach (var dir in Sides)
+                    {
+                        var n = new Vector2Int(i, j) + dir;
+                        bool outside = n.x < 0 || n.x >= w || n.y < 1 || n.y >= d;
+                        if (!outside) continue;
+                        string part = dir == Vector2Int.down ? "wall-doorway-round" : "wall";
+                        b.Put(FT + part, Cell(n.x, n.y, w, d), WallRot(dir));
+                    }
+            for (int k = 0; k <= w; k++)
+                b.Put(FT + "pillar-stone", Cell(0, 0, w, d) + new Vector3(k - 0.5f, 0f, -0.5f), 0f);
+            GableRoof(b, w, d, 1, "roof");
+        }
+
+        /// <summary>Brunnen 1 × 1: runder Brunnen mit klarem Wasser.</summary>
+        private static void Well(Builder b)
+        {
+            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
+            b.Put(FT + "fountain-round", Vector3.zero, 0f);
         }
 
         /// <summary>Laden: zwei Marktstände auf Holzboden.</summary>
