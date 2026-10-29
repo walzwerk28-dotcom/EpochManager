@@ -15,7 +15,7 @@ namespace EpochCity
         public EpochDefinition epoch;
         public BuildingCategory category;
         public GameObject prefab;
-        [Tooltip("Größe auf dem Raster in Zellen")]
+        [Tooltip("Größe auf dem Raster in Zellen: x = Breite der Vorderseite, y = Tiefe (Vorderseite im Modell nach −z)")]
         public Vector2Int size = Vector2Int.one;
         [Tooltip("Zone, in der dieses Gebäude von selbst wächst. Leer = nur einzeln platzierbar.")]
         public ZoneDefinition zone;
@@ -62,6 +62,10 @@ namespace EpochCity
                     m *= l.outputMultiplier;
             return m;
         }
+
+        /// <summary>Belegte Felder bei dieser Drehung: bei 90° und 270° sind Breite und Tiefe vertauscht.</summary>
+        public Vector2Int GetFootprint(float facing) =>
+            Mathf.RoundToInt(facing / 90f) % 2 != 0 ? new Vector2Int(size.y, size.x) : size;
 
         public int GetCapacity(HashSet<TechnologyDefinition> unlocked)
         {

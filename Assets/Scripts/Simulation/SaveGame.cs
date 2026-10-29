@@ -94,6 +94,8 @@ namespace EpochCity
         public string missingNeeds;
         [Tooltip("Fortschritt je aktiver Funktion, in der Reihenfolge von GetActiveFunctions")]
         public List<float> progress = new List<float>();
+        [Tooltip("Drehung (0, 90, 180, 270); −1 in älteren Spielständen = wie beim Bauen bestimmen")]
+        public float facing = -1f;
         [Tooltip("Gezeigte Modellvariante (RandomVariant), −1 = keine")]
         public int variant = -1;
     }

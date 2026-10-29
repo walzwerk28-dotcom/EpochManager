@@ -61,6 +61,17 @@ namespace EpochCity
             Assign("Bld_Werkstatthof", Make("Werkstatthof", 3, antique, WorkshopCourtFront, WorkshopCourtWings));
             Assign("Bld_Handelshaus", Make("Handelshaus", 4, antique, TradeHall, TradeCourt));
 
+            // Rechteckige Zonengebäude (Breite × Tiefe, Vorderseite nach −z an der Schmalseite)
+            Assign("Bld_Schmalhaus", Make("Schmalhaus", new Vector2Int(1, 2), antique,
+                b => House(b, "wall", 2, doorLeft: true, chimney: true, roof: "roof", d: 4),
+                NarrowHouseGarden));
+            Assign("Bld_Hofhaus", Make("Hofhaus", new Vector2Int(2, 3), antique, CourtHouseGarden,
+                b => Row(b, "wall", 6, 0f, (1, "roof", false), (2, "roof", true))));
+            Assign("Bld_Langhaus", Make("Langhaus", new Vector2Int(2, 4), antique, LongHouseCourt, LongHouseGarden));
+            Assign("Bld_Taberna", Make("Taberna", new Vector2Int(1, 2), antique, TabernaStall, TabernaHall));
+            Assign("Bld_Kontor", Make("Kontor", new Vector2Int(2, 3), antique, OfficeHall, OfficeYard));
+            Assign("Bld_Speicherhof", Make("Speicherhof", new Vector2Int(2, 4), antique, GranaryFront, GranaryYard));
+
             // Mittelalter: Fachwerk mit der Originalpalette (grüne Dächer)
             Assign("Bld_Fachwerkhaus", Make("Fachwerkhaus", 2, original,
                 b => Row(b, "wall-wood", 4, 0f, (2, "roof-high", true), (2, "roof-high", false)),
@@ -258,6 +269,100 @@ namespace EpochCity
             b.Put(FT + "fountain-round", new Vector3(0f, 0f, 0f), 0f, 0.7f);
             b.Put(FT + "stall-red", new Vector3(-1.5f, 0f, 1.6f), 0f);
             b.Put(FT + "stall-green", new Vector3(1.5f, 0f, 1.6f), 0f);
+        }
+
+        // ---------------------------------------------------------------- Rechteckige Zonengebäude
+
+        /// <summary>Schmalhaus 1 × 2: einstöckiges Haus an der Straße, Baum im Garten dahinter.</summary>
+        private static void NarrowHouseGarden(Builder b)
+        {
+            House(b.At(0f, -0.5f), "wall", 1, doorLeft: false, chimney: false, roof: "roof-high", d: 3);
+            b.Put(FT + "tree", new Vector3(0f, 0f, 1.6f), 30f);
+        }
+
+        /// <summary>Hofhaus 2 × 3: zwei Häuser an der Straße, Garten dahinter.</summary>
+        private static void CourtHouseGarden(Builder b)
+        {
+            Row(b, "wall", 4, -1f, (2, "roof", true), (1, "roof-high", false));
+            b.Put(FT + "tree-high-round", new Vector3(-1f, 0f, 2.2f), 0f);
+            b.Put(NK + "plant_bushLarge", new Vector3(1f, 0f, 2.2f), 0f, 3f);
+        }
+
+        /// <summary>Langhaus 2 × 4: Vorderhaus zweistöckig, Hinterhaus einstöckig, Hof dazwischen.</summary>
+        private static void LongHouseCourt(Builder b)
+        {
+            Row(b, "wall", 4, -2f, (2, "roof", true), (2, "roof-high", false));
+            Row(b, "wall", 3, 2.5f, (1, "roof", false), (1, "roof", false));
+        }
+
+        /// <summary>Langhaus 2 × 4: tiefe Häuserzeile mit Bäumen im Hinterhof.</summary>
+        private static void LongHouseGarden(Builder b)
+        {
+            Row(b, "wall", 6, -1f, (2, "roof", false), (3, "roof", true));
+            b.Put(FT + "tree", new Vector3(-1f, 0f, 3.2f), 0f);
+            b.Put(FT + "tree-high-crooked", new Vector3(1f, 0f, 3.2f), 200f);
+        }
+
+        /// <summary>Taberna 1 × 2: Stand auf Holzboden an der Straße, kleines Haus dahinter.</summary>
+        private static void TabernaStall(Builder b)
+        {
+            House(b.At(0f, 1f), "wall", 1, doorLeft: true, chimney: false, roof: "roof", d: 2);
+            Planks(b.At(0f, -1f), 2, 2);
+            b.Put(FT + "stall-red", new Vector3(0f, 0f, -1.3f), 0f);
+        }
+
+        /// <summary>Taberna 1 × 2: schmale Halle mit breitem Tor, Stand davor.</summary>
+        private static void TabernaHall(Builder b)
+        {
+            Hall(b.At(0f, 0.5f), 2, 3, 1, "roof-high", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 0 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                j == 1 ? "wall-wood-window-small" : "wall-wood");
+            b.Put(FT + "stall-green", new Vector3(0f, 0f, -1.5f), 0f);
+        }
+
+        /// <summary>Kontor 2 × 3: zweistöckiger Steinbau mit Bögen, Stände davor.</summary>
+        private static void OfficeHall(Builder b)
+        {
+            Hall(b.At(0f, 1f), 4, 4, 2, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down
+                    ? (level == 0 ? (i % 2 == 1 ? "wall-doorway-round" : "wall-window-stone") : "wall-window-shutters")
+                    : j % 2 == 1 || level == 1 ? "wall-window-small" : "wall");
+            b.Put(FT + "stall-red", new Vector3(-1f, 0f, -2.3f), 0f);
+            b.Put(FT + "stall-green", new Vector3(1f, 0f, -2.3f), 0f);
+        }
+
+        /// <summary>Kontor 2 × 3: zwei Häuser an der Straße, Werkhof mit Holz und Karren dahinter.</summary>
+        private static void OfficeYard(Builder b)
+        {
+            Row(b, "wall", 4, -1f, (2, "roof", false), (1, "roof", false));
+            Planks(b.At(0f, 2f), 4, 2);
+            b.Put(NK + "log_stack", new Vector3(-1f, 0f, 2f), 90f);
+            b.Put(FT + "cart", new Vector3(1.1f, 0f, 2f), 80f);
+        }
+
+        /// <summary>Speicherhof 2 × 4: lange Holzhalle hinten, Hof mit Ständen vorn.</summary>
+        private static void GranaryFront(Builder b)
+        {
+            Hall(b.At(0f, 1.5f), 4, 5, 1, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 1 || i == 2 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood");
+            Planks(b.At(0f, -2.5f), 4, 3);
+            b.Put(FT + "stall-red", new Vector3(-1f, 0f, -3.4f), 0f);
+            b.Put(FT + "stall", new Vector3(1f, 0f, -3.4f), 0f);
+            b.Put(FT + "cart", new Vector3(1.2f, 0f, -1.8f), 80f);
+        }
+
+        /// <summary>Speicherhof 2 × 4: hohe Halle hinten, offener Platz mit zwei Reihen Ständen vorn.</summary>
+        private static void GranaryYard(Builder b)
+        {
+            Hall(b.At(0f, 2f), 4, 4, 1, "roof-high", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 1 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood");
+            b.Put(FT + "stall-red", new Vector3(-1f, 0f, -3.3f), 0f);
+            b.Put(FT + "stall-green", new Vector3(1f, 0f, -3.3f), 0f);
+            b.Put(FT + "stall-green", new Vector3(-1f, 0f, -1.6f), 0f);
+            b.Put(FT + "stall-red", new Vector3(1f, 0f, -1.6f), 0f);
+            b.Put(NK + "log_stack", new Vector3(-1.2f, 0f, -0.3f), 90f);
         }
 
         /// <summary>
@@ -527,7 +632,11 @@ namespace EpochCity
         /// Baut jede Variante, skaliert sie auf die Grundfläche, verschmilzt sie und speichert ein Prefab.
         /// Bei mehreren Varianten wählt RandomVariant beim Bau eine aus.
         /// </summary>
-        private static GameObject Make(string name, int cells, Material palette, params Action<Builder>[] variants)
+        private static GameObject Make(string name, int cells, Material palette, params Action<Builder>[] variants) =>
+            Make(name, new Vector2Int(cells, cells), palette, variants);
+
+        /// <summary>Wie oben für rechteckige Grundflächen: cells.x = Breite (x), cells.y = Tiefe (z).</summary>
+        private static GameObject Make(string name, Vector2Int cells, Material palette, params Action<Builder>[] variants)
         {
             var root = new GameObject(name);
             for (int v = 0; v < variants.Length; v++)
@@ -537,8 +646,7 @@ namespace EpochCity
 
                 // Auf die Grundfläche skalieren (gleichmäßig), Unterkante auf 0, mittig
                 var bounds = GetBounds(temp);
-                float target = cells * CellSize * Fill;
-                float scale = Mathf.Min(target / bounds.size.x, target / bounds.size.z);
+                float scale = Mathf.Min(cells.x * CellSize * Fill / bounds.size.x, cells.y * CellSize * Fill / bounds.size.z);
                 var offset = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z) * scale;
 
                 var combined = Combine(temp, scale, offset, out var materials);
@@ -554,7 +662,7 @@ namespace EpochCity
 
                 var size = mesh.bounds.size;
                 Debug.Log($"{name} Variante {v}: {size.x:0.00} × {size.y:0.00} × {size.z:0.00} m " +
-                          $"(Grundfläche {cells * CellSize:0} m, Maßstab {scale:0.00}, {mesh.vertexCount} Vertices)");
+                          $"(Grundfläche {cells.x * CellSize:0} × {cells.y * CellSize:0} m, Maßstab {scale:0.00}, {mesh.vertexCount} Vertices)");
             }
             if (variants.Length > 1) root.AddComponent<RandomVariant>();
 

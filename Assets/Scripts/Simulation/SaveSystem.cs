@@ -179,6 +179,7 @@ namespace EpochCity
                     residents = b.Residents,
                     satisfaction = b.Satisfaction,
                     missingNeeds = b.MissingNeeds,
+                    facing = b.Facing,
                     variant = GetVariant(b)
                 };
                 foreach (var function in b.Definition.GetActiveFunctions(city.UnlockedTechnologies))
@@ -221,7 +222,7 @@ namespace EpochCity
             {
                 if (!Resolve<BuildingDefinition>(entry.definition, out var def)) continue;
                 Resolve<EpochDefinition>(entry.builtInEpoch, out var builtIn);
-                var b = city.RestoreBuilding(def, new Vector2Int(entry.x, entry.y), builtIn);
+                var b = city.RestoreBuilding(def, new Vector2Int(entry.x, entry.y), builtIn, entry.facing);
                 if (b == null)
                 {
                     Debug.LogWarning($"Beim Laden übersprungen: {def.name} bei ({entry.x}, {entry.y}) – Fläche belegt");

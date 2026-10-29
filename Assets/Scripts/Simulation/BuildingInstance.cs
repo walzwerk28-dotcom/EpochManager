@@ -11,6 +11,12 @@ namespace EpochCity
         public EpochDefinition BuiltInEpoch { get; }
         public GameObject View { get; set; }
 
+        /// <summary>Drehung um die Hochachse (0, 90, 180, 270): wohin die Vorderseite zeigt, siehe CityController.FrontSide.</summary>
+        public float Facing { get; }
+
+        /// <summary>Tatsächlich belegte Felder ab Origin (bei 90° / 270° Breite und Tiefe vertauscht).</summary>
+        public Vector2Int Footprint => Definition.GetFootprint(Facing);
+
         /// <summary>Fortschritt des aktuellen Zyklus pro Funktion (in Sekunden).</summary>
         public Dictionary<BuildingFunction, float> Progress { get; } = new Dictionary<BuildingFunction, float>();
 
@@ -35,11 +41,12 @@ namespace EpochCity
         /// <summary>Denkmalschutz: lässt sich nicht abreißen, bringt Kultur und Tourismus.</summary>
         public bool IsProtected { get; set; }
 
-        public BuildingInstance(BuildingDefinition definition, Vector2Int origin, EpochDefinition builtIn)
+        public BuildingInstance(BuildingDefinition definition, Vector2Int origin, EpochDefinition builtIn, float facing = 0f)
         {
             Definition = definition;
             Origin = origin;
             BuiltInEpoch = builtIn;
+            Facing = facing;
         }
     }
 }

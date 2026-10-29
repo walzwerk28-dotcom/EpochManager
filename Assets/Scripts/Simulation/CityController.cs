@@ -78,22 +78,49 @@ namespace EpochCity
         /// Lässt ein Zonengebäude wachsen: kostenlos (private Bauherren), nur auf Feldern seiner Zone
         /// und wie jedes Gebäude nur mit angrenzender Straße.
         /// </summary>
-        public bool TryGrow(BuildingDefinition def, Vector2Int origin, out BuildingInstance grown)
+        public bool TryGrow(BuildingDefinition def, Vector2Int origin, out BuildingInstance grown) =>
+            TryGrow(def, origin, GetFacingAngle(def, origin), out grown);
+
+        /// <summary>Wie TryGrow, mit vorgegebener Drehung (die Grundfläche dreht sich mit, siehe GetFootprint).</summary>
+        public bool TryGrow(BuildingDefinition def, Vector2Int origin, float facing, out BuildingInstance grown)
         {
             grown = null;
-            if (!CanGrow(def, origin)) return false;
-            grown = Place(def, origin);
+            if (!CanGrow(def, origin, facing)) return false;
+            grown = Place(def, origin, currentEpoch, facing, refresh: true);
             return true;
         }
 
-        /// <summary>Passt das Zonengebäude hier hin: ganze Grundfläche in seiner Zone, frei, mit Straße?</summary>
-        public bool CanGrow(BuildingDefinition def, Vector2Int origin)
+        public bool CanGrow(BuildingDefinition def, Vector2Int origin) =>
+            def != null && CanGrow(def, origin, GetFacingAngle(def, origin));
+
+        /// <summary>
+        /// Passt das Zonengebäude mit dieser Drehung hier hin? Gedrehte Grundfläche frei und ganz in seiner Zone,
+        /// Epoche erreicht, und an der Vorderseite liegt eine Straße.
+        /// </summary>
+        public bool CanGrow(BuildingDefinition def, Vector2Int origin, float facing)
         {
-            if (def == null || def.zone == null || !CanPlace(def, origin)) return false;
-            for (int x = 0; x < def.size.x; x++)
-                for (int y = 0; y < def.size.y; y++)
+            if (def == null || def.zone == null || !IsEpochReached(def.epoch)) return false;
+            var footprint = def.GetFootprint(facing);
+            if (!Grid.CanPlace(footprint, origin) || !Grid.SideHasRoad(origin, footprint, FrontSide(facing))) return false;
+            for (int x = 0; x < footprint.x; x++)
+                for (int y = 0; y < footprint.y; y++)
                     if (Grid.GetZone(new Vector2Int(origin.x + x, origin.y + y)) != def.zone) return false;
             return true;
+        }
+
+        /// <summary>Die vier Drehungen um die Hochachse (Vorderseite nach Süden, Westen, Norden, Osten).</summary>
+        public static readonly float[] Facings = { 0f, 90f, 180f, 270f };
+
+        /// <summary>Rasterrichtung, in die die Vorderseite (im Modell −z) bei dieser Drehung zeigt.</summary>
+        public static Vector2Int FrontSide(float facing)
+        {
+            switch (Mathf.RoundToInt(facing / 90f) & 3)
+            {
+                case 1: return Vector2Int.left;
+                case 2: return Vector2Int.up;
+                case 3: return Vector2Int.right;
+                default: return Vector2Int.down;
+            }
         }
 
         /// <summary>Summe der Wohnplätze aller Wohngebäude, inklusive Zusatzkapazität durch Technologien.</summary>
@@ -110,24 +137,26 @@ namespace EpochCity
         }
 
         private BuildingInstance Place(BuildingDefinition def, Vector2Int origin) =>
-            Place(def, origin, currentEpoch, refresh: true);
+            Place(def, origin, currentEpoch, GetFacingAngle(def, origin), refresh: true);
 
-        private BuildingInstance Place(BuildingDefinition def, Vector2Int origin, EpochDefinition builtIn, bool refresh)
+        private BuildingInstance Place(BuildingDefinition def, Vector2Int origin, EpochDefinition builtIn, float facing,
+            bool refresh)
         {
-            var placed = new BuildingInstance(def, origin, builtIn);
+            var placed = new BuildingInstance(def, origin, builtIn, facing);
+            var footprint = placed.Footprint;
 
             // Ein einzeln gesetztes Gebäude verdrängt die Zone unter sich; Zonengebäude behalten sie
             if (def.zone == null)
-                for (int x = 0; x < def.size.x; x++)
-                    for (int y = 0; y < def.size.y; y++)
+                for (int x = 0; x < footprint.x; x++)
+                    for (int y = 0; y < footprint.y; y++)
                         ClearZone(new Vector2Int(origin.x + x, origin.y + y));
 
             Grid.Place(placed);
             Buildings.Add(placed);
 
             if (def.prefab != null)
-                placed.View = Instantiate(def.prefab, GetFootprintCenter(def, origin),
-                    Quaternion.Euler(0f, GetFacingAngle(def, origin), 0f), transform);
+                placed.View = Instantiate(def.prefab, GetFootprintCenter(footprint, origin),
+                    Quaternion.Euler(0f, facing, 0f), transform);
             if (refresh) RefreshConnections();
             return placed;
         }
@@ -197,19 +226,24 @@ namespace EpochCity
 
         /// <summary>
         /// Gebäude aus einem Spielstand setzen: kostenlos, ohne Epochen- und Straßenprüfung (der Stand war beim
-        /// Speichern gültig), mit der gespeicherten Bau-Epoche. Null, wenn die Fläche belegt ist.
+        /// Speichern gültig), mit der gespeicherten Bau-Epoche und Drehung (negativ = wie beim Bauen bestimmen,
+        /// für Spielstände ohne Drehung). Null, wenn die Fläche belegt ist.
         /// Anbindungen berechnet erst RefreshConnections nach dem letzten Gebäude.
         /// </summary>
-        public BuildingInstance RestoreBuilding(BuildingDefinition def, Vector2Int origin, EpochDefinition builtIn)
+        public BuildingInstance RestoreBuilding(BuildingDefinition def, Vector2Int origin, EpochDefinition builtIn,
+            float facing = -1f)
         {
-            if (def == null || !Grid.CanPlace(def, origin)) return null;
-            return Place(def, origin, builtIn, refresh: false);
+            if (def == null) return null;
+            if (facing < 0f) facing = GetFacingAngle(def, origin);
+            if (!Grid.CanPlace(def.GetFootprint(facing), origin)) return null;
+            return Place(def, origin, builtIn, facing, refresh: false);
         }
 
         /// <summary>
         /// Drehung um die Hochachse, damit die Vorderseite eines Modells (im Prefab nach −z/Süden) zu einer
         /// angrenzenden Straße zeigt. Bevorzugt Süden, dann Osten, Westen, Norden. Nur bei quadratischer
-        /// Grundfläche, damit sich die belegten Felder nicht ändern. Reine Darstellung.
+        /// Grundfläche, weil sich sonst die belegten Felder ändern; rechteckige Zonengebäude wählen ihre Drehung
+        /// beim Wachsen selbst (ZoneGrowth), einzeln gesetzte bleiben bei 0°.
         /// </summary>
         public float GetFacingAngle(BuildingDefinition def, Vector2Int origin)
         {
@@ -222,10 +256,13 @@ namespace EpochCity
         }
 
         /// <summary>Weltposition der Mitte der vom Gebäude belegten Fläche.</summary>
-        public Vector3 GetFootprintCenter(BuildingDefinition def, Vector2Int origin)
+        public Vector3 GetFootprintCenter(BuildingDefinition def, Vector2Int origin) =>
+            GetFootprintCenter(def.size, origin);
+
+        public Vector3 GetFootprintCenter(Vector2Int footprint, Vector2Int origin)
         {
             var basePos = Grid.CellToWorld(origin, transform.position);
-            var offset = new Vector3(def.size.x * cellSize * 0.5f, 0f, def.size.y * cellSize * 0.5f);
+            var offset = new Vector3(footprint.x * cellSize * 0.5f, 0f, footprint.y * cellSize * 0.5f);
             return basePos + offset;
         }
 

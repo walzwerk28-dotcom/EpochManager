@@ -32,10 +32,13 @@ namespace EpochCity
 
         public BuildingInstance GetAt(Vector2Int c) => InBounds(c) ? cells[c.x, c.y] : null;
 
-        public bool CanPlace(BuildingDefinition def, Vector2Int origin)
+        public bool CanPlace(BuildingDefinition def, Vector2Int origin) => CanPlace(def.size, origin);
+
+        /// <summary>Ist die Grundfläche ab origin frei (im Raster, ohne Gebäude und Straßen)?</summary>
+        public bool CanPlace(Vector2Int size, Vector2Int origin)
         {
-            for (int x = 0; x < def.size.x; x++)
-                for (int y = 0; y < def.size.y; y++)
+            for (int x = 0; x < size.x; x++)
+                for (int y = 0; y < size.y; y++)
                 {
                     var c = new Vector2Int(origin.x + x, origin.y + y);
                     if (!InBounds(c) || cells[c.x, c.y] != null || roads[c.x, c.y] != null) return false;
@@ -45,7 +48,7 @@ namespace EpochCity
 
         public void Place(BuildingInstance inst)
         {
-            var size = inst.Definition.size;
+            var size = inst.Footprint;
             for (int x = 0; x < size.x; x++)
                 for (int y = 0; y < size.y; y++)
                     cells[inst.Origin.x + x, inst.Origin.y + y] = inst;
@@ -53,7 +56,7 @@ namespace EpochCity
 
         public void Remove(BuildingInstance inst)
         {
-            var size = inst.Definition.size;
+            var size = inst.Footprint;
             for (int x = 0; x < size.x; x++)
                 for (int y = 0; y < size.y; y++)
                     cells[inst.Origin.x + x, inst.Origin.y + y] = null;
@@ -75,7 +78,7 @@ namespace EpochCity
 
         /// <summary>Zellen, die seitlich an die Grundfläche des Gebäudes grenzen (ohne Ecken).</summary>
         public IEnumerable<Vector2Int> GetAdjacentCells(BuildingInstance inst) =>
-            GetAdjacentCells(inst.Origin, inst.Definition.size);
+            GetAdjacentCells(inst.Origin, inst.Footprint);
 
         /// <summary>Zellen, die seitlich an eine Grundfläche grenzen (ohne Ecken).</summary>
         public static IEnumerable<Vector2Int> GetAdjacentCells(Vector2Int origin, Vector2Int size)
@@ -110,7 +113,7 @@ namespace EpochCity
             return false;
         }
 
-        public bool TouchesRoad(BuildingInstance inst) => TouchesRoad(inst.Origin, inst.Definition.size);
+        public bool TouchesRoad(BuildingInstance inst) => TouchesRoad(inst.Origin, inst.Footprint);
 
         /// <summary>Grenzt die Grundfläche an mindestens ein Straßenfeld?</summary>
         public bool TouchesRoad(Vector2Int origin, Vector2Int size)

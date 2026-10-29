@@ -835,6 +835,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 39f7c53390593254292e04c022f44521, type: 2}
   - {fileID: 11400000, guid: 3572addee9bb1184db6be1a3b5e829fd, type: 2}
   - {fileID: 11400000, guid: 64566615b35b8a747bf424cfcb349267, type: 2}
+  - {fileID: 11400000, guid: f0466291d7e625444a6ef3acda087a5d, type: 2}
+  - {fileID: 11400000, guid: a6bc86b0f81c97d4595978caec07cdd6, type: 2}
+  - {fileID: 11400000, guid: a0fe16ad3040952498da79cb9faac427, type: 2}
+  - {fileID: 11400000, guid: 30638ebb2ead846489028e0995c2df2e, type: 2}
+  - {fileID: 11400000, guid: 1705fc5e3c2fe014594e73daee9eb7b8, type: 2}
+  - {fileID: 11400000, guid: 14565d5a8aeefea46b106e9e6345c8c7, type: 2}
   growthInterval: 2
   sizeWeights:
   - 1

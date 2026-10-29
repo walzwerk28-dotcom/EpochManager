@@ -6,9 +6,10 @@ namespace EpochCity
     /// <summary>
     /// Lässt Zonen von selbst bebauen: In festen Abständen (im Takt der Spielgeschwindigkeit) wächst an einem
     /// freien Zonenfeld mit angrenzender Straße ein Gebäude der aktuellen Epoche. Gibt es für die aktuelle Epoche
-    /// keines, wird das neueste ältere genommen. Zonengebäude sind 1 × 1 bis 4 × 4 groß: Geprüft werden alle
-    /// Größen und alle Lagen des Grundstücks, die das Feld enthalten und ganz in der Zone liegen; gewählt wird
-    /// zufällig, gewichtet nach Größe. Bestehende Gebäude werden nie ersetzt; nach einem Abriss wächst neu.
+    /// keines, wird das neueste ältere genommen. Zonengebäude sind 1 × 1 bis 4 × 4 groß, auch rechteckig: Geprüft
+    /// werden alle Größen, Drehungen und Lagen des Grundstücks, die das Feld enthalten, ganz in der Zone liegen
+    /// und ihre Vorderseite an der Straße haben; gewählt wird zufällig, gewichtet nach Fläche.
+    /// Bestehende Gebäude werden nie ersetzt; nach einem Abriss wächst neu.
     /// Jede Zone hat ihren eigenen Takt, verlangsamt durch ihre Nachfrage (ZoneDemand): bei 100 % ein Gebäude je
     /// growthInterval, bei 0 % keines. Ohne ZoneDemand wachsen alle Zonen mit voller Rate.
     /// </summary>
@@ -21,7 +22,7 @@ namespace EpochCity
         public BuildingDefinition[] zoneBuildings;
         [Tooltip("Spielsekunden zwischen zwei neuen Gebäuden")]
         [Min(0.1f)] public float growthInterval = 2f;
-        [Tooltip("Gewicht je Grundstücksgröße (Index 0 = 1 × 1, 1 = 2 × 2, ...); höher = häufiger")]
+        [Tooltip("Gewicht je Grundstücksgröße (Index 0 = 1 × 1, 1 = 2 × 2, ...; Rechtecke nach Fläche dazwischen); höher = häufiger")]
         public float[] sizeWeights = { 1f, 2f, 2f, 2f };
         [Tooltip("1 × 1 nur, wo kein größeres Grundstück passt; sonst versperren kleine Häuser an der Straße " +
                  "den Zugang zu den Feldern dahinter")]
@@ -31,8 +32,8 @@ namespace EpochCity
         private readonly List<ZoneDefinition> zones = new List<ZoneDefinition>();
         private readonly List<Vector2Int> candidates = new List<Vector2Int>();
         private readonly List<BuildingDefinition> choices = new List<BuildingDefinition>();
-        private readonly List<(BuildingDefinition def, Vector2Int origin, float weight)> options =
-            new List<(BuildingDefinition, Vector2Int, float)>();
+        private readonly List<(BuildingDefinition def, Vector2Int origin, float facing, float weight)> options =
+            new List<(BuildingDefinition, Vector2Int, float, float)>();
 
         private static readonly Vector2Int[] Sides =
             { Vector2Int.down, Vector2Int.up, Vector2Int.left, Vector2Int.right };
@@ -84,52 +85,65 @@ namespace EpochCity
 
                 CollectOptions(cell);
                 if (options.Count == 0) continue;
-                var (def, origin) = PickWeighted();
-                if (city.TryGrow(def, origin, out _)) return true;
+                var (def, origin, facing) = PickWeighted();
+                if (city.TryGrow(def, origin, facing, out _)) return true;
             }
             return false;
         }
 
-        /// <summary>Alle passenden Gebäude und Lagen, deren Grundfläche das Feld enthält.</summary>
+        /// <summary>
+        /// Alle passenden Gebäude, Lagen und Drehungen, deren Grundfläche das Feld enthält. Quadratische Gebäude
+        /// drehen sich wie bisher nach dem Vorrang zur Straße (CityController.GetFacingAngle); rechteckige probieren
+        /// alle vier Drehungen, bei denen die Vorderseite an einer Straße liegt.
+        /// </summary>
         private void CollectOptions(Vector2Int cell)
         {
             options.Clear();
             foreach (var def in GetBuildings(city.Grid.GetZone(cell)))
-                for (int dx = 0; dx < def.size.x; dx++)
-                    for (int dy = 0; dy < def.size.y; dy++)
-                    {
-                        var origin = new Vector2Int(cell.x - dx, cell.y - dy);
-                        if (!city.CanGrow(def, origin)) continue;
-                        // Grundstücke, die freie Zonenfelder dahinter von der Straße abschneiden, seltener wählen
-                        float weight = Weight(def) / (1f + CutOffCells(def, origin));
-                        options.Add((def, origin, weight));
-                    }
+            {
+                bool square = def.size.x == def.size.y;
+                foreach (float facing in square ? SquareOnly : CityController.Facings)
+                {
+                    var footprint = def.GetFootprint(facing);
+                    for (int dx = 0; dx < footprint.x; dx++)
+                        for (int dy = 0; dy < footprint.y; dy++)
+                        {
+                            var origin = new Vector2Int(cell.x - dx, cell.y - dy);
+                            float f = square ? city.GetFacingAngle(def, origin) : facing;
+                            if (!city.CanGrow(def, origin, f)) continue;
+                            // Grundstücke, die freie Zonenfelder dahinter von der Straße abschneiden, seltener wählen
+                            float weight = Weight(def) / (1f + CutOffCells(def.zone, footprint, origin));
+                            options.Add((def, origin, f, weight));
+                        }
+                }
+            }
 
             if (smallOnlyAsFallback && options.Exists(o => o.def.size.x > 1 || o.def.size.y > 1))
                 options.RemoveAll(o => o.def.size.x == 1 && o.def.size.y == 1);
         }
 
+        private static readonly float[] SquareOnly = { 0f };
+
         /// <summary>
         /// Freie Felder derselben Zone direkt hinter dem Grundstück, von der Straße aus gesehen. Sie wären nur noch
         /// über eine andere Straße erreichbar. Liegt auch dahinter eine Straße, wird nichts abgeschnitten.
         /// </summary>
-        private int CutOffCells(BuildingDefinition def, Vector2Int origin)
+        private int CutOffCells(ZoneDefinition zone, Vector2Int size, Vector2Int origin)
         {
             var grid = city.Grid;
-            var zone = def.zone;
             foreach (var side in Sides)
             {
-                if (!grid.SideHasRoad(origin, def.size, side)) continue;
+                if (!grid.SideHasRoad(origin, size, side)) continue;
                 var behind = -side;
-                if (grid.SideHasRoad(origin, def.size, behind)) return 0;
+                if (grid.SideHasRoad(origin, size, behind)) return 0;
 
                 int count = 0;
-                int length = side.x == 0 ? def.size.x : def.size.y;
+                int length = side.x == 0 ? size.x : size.y;
                 for (int k = 0; k < length; k++)
                 {
                     var c = side.x == 0
-                        ? new Vector2Int(origin.x + k, behind.y > 0 ? origin.y + def.size.y : origin.y - 1)
-                        : new Vector2Int(behind.x > 0 ? origin.x + def.size.x : origin.x - 1, origin.y + k);
+                        ? new Vector2Int(origin.x + k, behind.y > 0 ? origin.y + size.y : origin.y - 1)
+                        : new Vector2Int(behind.x > 0 ? origin.x + size.x : origin.x - 1, origin.y + k);
                     if (grid.GetZone(c) == zone && grid.GetAt(c) == null && !ReachableFromBehind(c, behind)) count++;
                 }
                 return count;
@@ -145,7 +159,7 @@ namespace EpochCity
             return false;
         }
 
-        private (BuildingDefinition, Vector2Int) PickWeighted()
+        private (BuildingDefinition, Vector2Int, float) PickWeighted()
         {
             float total = 0f;
             foreach (var o in options) total += o.weight;
@@ -153,17 +167,24 @@ namespace EpochCity
             foreach (var o in options)
             {
                 roll -= o.weight;
-                if (roll <= 0f) return (o.def, o.origin);
+                if (roll <= 0f) return (o.def, o.origin, o.facing);
             }
             var last = options[options.Count - 1];
-            return (last.def, last.origin);
+            return (last.def, last.origin, last.facing);
         }
 
+        /// <summary>
+        /// Gewicht nach Fläche: sizeWeights gilt für n × n, Rechtecke liegen dazwischen (Seitenlänge √Fläche),
+        /// z. B. 1 × 2 zwischen 1 × 1 und 2 × 2.
+        /// </summary>
         private float Weight(BuildingDefinition def)
         {
-            int index = Mathf.Max(def.size.x, def.size.y) - 1;
             if (sizeWeights == null || sizeWeights.Length == 0) return 1f;
-            return Mathf.Max(0f, sizeWeights[Mathf.Clamp(index, 0, sizeWeights.Length - 1)]);
+            float side = Mathf.Sqrt(def.size.x * def.size.y);
+            int last = sizeWeights.Length - 1;
+            int i0 = Mathf.Clamp(Mathf.FloorToInt(side) - 1, 0, last);
+            int i1 = Mathf.Clamp(Mathf.CeilToInt(side) - 1, 0, last);
+            return Mathf.Max(0f, Mathf.Lerp(sizeWeights[i0], sizeWeights[i1], side - Mathf.Floor(side)));
         }
 
         /// <summary>Alle Gebäude dieser Zone aus der neuesten bereits erreichten Epoche (alle Größen).</summary>

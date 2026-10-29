@@ -265,17 +265,33 @@ namespace EpochCity
             var tradeHouse = CreateZoneBuilding("Bld_Handelshaus", "Handelshaus", antike, BuildingCategory.Commerce,
                 commercial, 0, SellWheat(wheat, coins, 14f, 40f), 2.4f, new Color(0.55f, 0.65f, 0.9f), 4);
 
+            // Rechteckige Zonengebäude (Breite × Tiefe, schmale Front zur Straße), Werte ebenfalls nach Fläche
+            var narrowHouse = CreateZoneBuilding("Bld_Schmalhaus", "Schmalhaus", antike, BuildingCategory.Housing,
+                residential, 8, new BuildingFunction[0], 1.4f, new Color(0.85f, 0.8f, 0.7f), new Vector2Int(1, 2));
+            var courtHouse = CreateZoneBuilding("Bld_Hofhaus", "Hofhaus", antike, BuildingCategory.Housing,
+                residential, 24, new BuildingFunction[0], 1.7f, new Color(0.85f, 0.8f, 0.7f), new Vector2Int(2, 3));
+            var longHouse = CreateZoneBuilding("Bld_Langhaus", "Langhaus", antike, BuildingCategory.Housing,
+                residential, 32, new BuildingFunction[0], 1.9f, new Color(0.85f, 0.8f, 0.7f), new Vector2Int(2, 4));
+            var taberna = CreateZoneBuilding("Bld_Taberna", "Taberna", antike, BuildingCategory.Commerce,
+                commercial, 0, SellWheat(wheat, coins, 3f, 7f), 1.3f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(1, 2));
+            var office = CreateZoneBuilding("Bld_Kontor", "Kontor", antike, BuildingCategory.Commerce,
+                commercial, 0, SellWheat(wheat, coins, 6f, 15f), 1.6f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(2, 3));
+            var granaryYard = CreateZoneBuilding("Bld_Speicherhof", "Speicherhof", antike, BuildingCategory.Commerce,
+                commercial, 0, SellWheat(wheat, coins, 7f, 19f), 1.8f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(2, 4));
+
             // Nur zum Testen des Epochenbezugs: im Mittelalter wachsen Fachwerkhäuser statt Wohnhäusern
             var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
                 BuildingCategory.Housing, residential, 16, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f), 2);
 
-            foreach (var home in new[] { house, townHouse, domus, insula, timberHouse }) home.populationTier = farmers;
+            foreach (var home in new[] { house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse })
+                home.populationTier = farmers;
 
             var content = new ScriptableObject[]
             {
                 antike, mittelalter, coins, wheat, research, irrigation, writing, minting,
                 field, market, library, mill, path, storage, residential, commercial,
-                house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse, timberHouse,
+                house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
+                narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
                 food, marketNeed, farmers
             };
 
@@ -346,17 +362,23 @@ namespace EpochCity
             return createPlaceholder();
         }
 
-        /// <summary>Zonengebäude (size × size Felder): kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>
         private static BuildingDefinition CreateZoneBuilding(string assetName, string displayName,
             EpochDefinition epoch, BuildingCategory category, ZoneDefinition zone, int capacity,
-            BuildingFunction[] functions, float height, Color color, int size = 1)
+            BuildingFunction[] functions, float height, Color color, int size = 1) =>
+            CreateZoneBuilding(assetName, displayName, epoch, category, zone, capacity, functions, height, color,
+                new Vector2Int(size, size));
+
+        /// <summary>Zonengebäude (Breite × Tiefe in Feldern): kostenlos, ohne Unterhalt, wächst in der angegebenen Zone.</summary>
+        private static BuildingDefinition CreateZoneBuilding(string assetName, string displayName,
+            EpochDefinition epoch, BuildingCategory category, ZoneDefinition zone, int capacity,
+            BuildingFunction[] functions, float height, Color color, Vector2Int size)
         {
             var def = GetOrCreate<BuildingDefinition>(assetName);
             def.displayName = displayName;
             def.epoch = epoch;
             def.category = category;
             def.zone = zone;
-            def.size = new Vector2Int(size, size);
+            def.size = size;
             def.buildCost = 0f;
             def.upkeepPerMonth = 0f;
             def.baseCapacity = capacity;
