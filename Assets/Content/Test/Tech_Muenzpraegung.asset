@@ -18,4 +18,4 @@ MonoBehaviour:
   researchCost: 100
   prerequisites:
   - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
-  description: "M\xE4rkte, Kontore und Handelsh\xE4user erl\xF6sen 25 % mehr. Schl\xFCsseltechnologie."
+  description: "M\xE4rkte, Kontore und Handelsh\xE4user erl\xF6sen 25 % mehr."

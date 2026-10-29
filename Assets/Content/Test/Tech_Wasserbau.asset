@@ -18,4 +18,4 @@ MonoBehaviour:
   researchCost: 120
   prerequisites:
   - {fileID: 11400000, guid: 9b0c2338c71a03641b14efe83a98ecfc, type: 2}
-  description: "Brunnen baubar. Die Bewohner verlangen danach Wasser. Schl\xFCsseltechnologie."
+  description: Brunnen baubar. Die Bewohner verlangen danach Wasser.

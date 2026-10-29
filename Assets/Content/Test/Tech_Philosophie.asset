@@ -19,4 +19,4 @@ MonoBehaviour:
   prerequisites:
   - {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
   - {fileID: 11400000, guid: 0a4ce302e4ed4da45bc7a5497d3dbbc8, type: 2}
-  description: "Alle Wohnh\xE4user bieten 25 % mehr Wohnpl\xE4tze. Schl\xFCsseltechnologie."
+  description: "Alle Wohnh\xE4user bieten 25 % mehr Wohnpl\xE4tze."

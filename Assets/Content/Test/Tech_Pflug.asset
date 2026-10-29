@@ -19,4 +19,4 @@ MonoBehaviour:
   prerequisites:
   - {fileID: 11400000, guid: 6b5135c0bab861e4d937d724538afc31, type: 2}
   - {fileID: 11400000, guid: 5c4e1346606dbcd479a62abeda51e7cb, type: 2}
-  description: "Felder liefern weitere 30 % mehr Weizen. Schl\xFCsseltechnologie."
+  description: Felder liefern weitere 30 % mehr Weizen.

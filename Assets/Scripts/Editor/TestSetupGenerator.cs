@@ -295,26 +295,26 @@ namespace EpochCity
             var warehousing = Tech("Tech_Lagerwesen", "Lagerwesen", antike, TechPath.Trade, 50f,
                 "Lager versorgen 10 Straßenfelder weiter.");
             Tech(minting, "Münzprägung", antike, TechPath.Trade, 100f,
-                "Märkte, Kontore und Handelshäuser erlösen 25 % mehr. Schlüsseltechnologie.", writing);
+                "Märkte, Kontore und Handelshäuser erlösen 25 % mehr.", writing);
             // Kultur
             Tech(writing, "Schrift", antike, TechPath.Culture, 50f, "Bibliotheken forschen 50 % schneller.");
             var cults = Tech("Tech_Kulte", "Kulte", antike, TechPath.Culture, 60f,
                 "Tempel baubar. Die Bewohner verlangen danach Glauben.");
             var philosophy = Tech("Tech_Philosophie", "Philosophie", antike, TechPath.Culture, 120f,
-                "Alle Wohnhäuser bieten 25 % mehr Wohnplätze. Schlüsseltechnologie.", writing, cults);
+                "Alle Wohnhäuser bieten 25 % mehr Wohnplätze.", writing, cults);
             // Industrie
             Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 50f, "Felder liefern 50 % mehr Weizen.");
             var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 50f,
                 "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr.");
             var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 110f,
-                "Felder liefern weitere 30 % mehr Weizen. Schlüsseltechnologie.", irrigation, crafts);
+                "Felder liefern weitere 30 % mehr Weizen.", irrigation, crafts);
             // Wissenschaft und Infrastruktur
             var surveying = Tech("Tech_Vermessung", "Vermessung", antike, TechPath.Science, 60f,
                 "Pflasterstraße baubar: bessere Anbindung ans Lager.");
             var mathematics = Tech("Tech_Mathematik", "Mathematik", antike, TechPath.Science, 90f,
                 "Bibliotheken forschen weitere 25 % schneller.", writing, surveying);
             var waterworks = Tech("Tech_Wasserbau", "Wasserbau", antike, TechPath.Science, 120f,
-                "Brunnen baubar. Die Bewohner verlangen danach Wasser. Schlüsseltechnologie.", surveying);
+                "Brunnen baubar. Die Bewohner verlangen danach Wasser.", surveying);
 
             // Wirkungen als Schichten auf den Gebäuden (das Aussehen bleibt)
             shop.layers = taberna.layers = new[] { Boost(barter, 1.25f) };

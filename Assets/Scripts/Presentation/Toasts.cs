@@ -6,8 +6,8 @@ using UnityEngine.UI;
 namespace EpochCity
 {
     /// <summary>
-    /// Kurze Meldungen oben in der Mitte unter der TopBar, die nach einigen Sekunden ausblenden (wie die Hinweise in
-    /// Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel.
+    /// Kurze Meldungen oben rechts unter der TopBar (neben dem mittigen Forschungsfenster), die nach einigen
+    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel.
     /// Andere Darstellungen können über Show eigene Meldungen zeigen.
     /// </summary>
     public class Toasts : MonoBehaviour
@@ -40,12 +40,12 @@ namespace EpochCity
             var go = new GameObject("Toasts", typeof(RectTransform));
             go.transform.SetParent(canvas, false);
             stack = (RectTransform)go.transform;
-            stack.anchorMin = stack.anchorMax = new Vector2(0.5f, 1f);
-            stack.pivot = new Vector2(0.5f, 1f);
-            stack.anchoredPosition = new Vector2(0f, -TopBar.Height - 14f);
+            stack.anchorMin = stack.anchorMax = new Vector2(1f, 1f);
+            stack.pivot = new Vector2(1f, 1f);
+            stack.anchoredPosition = new Vector2(-16f, -TopBar.Height - 14f);
             stack.sizeDelta = new Vector2(560f, 0f);
             var column = go.AddComponent<VerticalLayoutGroup>();
-            column.childAlignment = TextAnchor.UpperCenter;
+            column.childAlignment = TextAnchor.UpperRight;
             column.spacing = 8f;
             column.childControlWidth = column.childControlHeight = true;
             column.childForceExpandWidth = column.childForceExpandHeight = false;
