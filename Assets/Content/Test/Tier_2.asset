@@ -25,6 +25,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 64f75f0d09407bb47a149e6ed6e9462c, type: 2}
   - {fileID: 11400000, guid: 8e78558306768a649b300295d15a670d, type: 2}
   - {fileID: 11400000, guid: 2c5caa4a25715494f9b76d2ea1f20ca8, type: 2}
+  - {fileID: 11400000, guid: d5998f1c3ed9a324f99f287d0e3a391a, type: 2}
   nextTier: {fileID: 0}
   upgradeSatisfaction: 0.75
   upgradeMonths: 3

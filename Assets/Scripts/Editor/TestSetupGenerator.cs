@@ -348,7 +348,7 @@ namespace EpochCity
             // Industrie
             Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 100f, "Felder liefern 50 % mehr Weizen.");
             var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 100f,
-                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr; Zimmereien, Steinbrüche und Ölpressen liefern 25 % mehr.");
+                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr; Zimmereien, Steinbrüche, Ölpressen und Töpfereien liefern 25 % mehr.");
             var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 220f,
                 "Felder liefern weitere 30 % mehr Weizen.", irrigation, crafts);
             // Wissenschaft und Infrastruktur
@@ -557,7 +557,7 @@ namespace EpochCity
                 new EpochName { epoch = antike, name = "Handwerker" },
                 new EpochName { epoch = mittelalter, name = "Bürger" }
             };
-            // Bedürfnisse siehe unten (Bauern-Bedürfnisse plus Öl)
+            // Bedürfnisse siehe unten (Bauern-Bedürfnisse plus Öl und Keramik)
             artisans.taxPerResidentPerMonth = 2f;
             artisans.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             artisans.nextTier = null;
@@ -590,7 +590,32 @@ namespace EpochCity
             oilNeed.resource = oil;
             oilNeed.amountPerResidentPerMonth = 0.25f;
             oilNeed.providers = new BuildingDefinition[0];
-            artisans.needs = new[] { food, water, marketNeed, faith, oilNeed };
+            // Keramik für Handwerker: Lehmgrube (Bauern) → Lehm → Töpferei (Handwerker) → Keramik
+            var clay = Resource("Res_Lehm", "Lehm", antike, false);
+            var ceramics = Resource("Res_Keramik", "Keramik", antike, false);
+            var clayPit = ProductionBuilding("Bld_Lehmgrube", "Lehmgrube", antike, 80f, 1f,
+                "Lehm stechen", null, 0f, clay, 2f, 5f, new Color(0.6f, 0.45f, 0.3f));
+            clayPit.workerTier = farmers;
+            clayPit.workers = 3;
+            var pottery = ProductionBuilding("Bld_Toepferei", "Töpferei", antike, 150f, 3f,
+                "Töpfern", clay, 2f, ceramics, 1f, 5f, new Color(0.8f, 0.5f, 0.35f));
+            pottery.materialCosts = Cost((boards, 4f), (stone, 4f));
+            pottery.workerTier = artisans;
+            pottery.workers = 4;
+            pottery.layers = new[] { Boost(crafts, 1.25f) };
+
+            var ceramicNeed = GetOrCreate<NeedDefinition>("Need_Keramik");
+            ceramicNeed.displayName = "Keramik";
+            ceramicNeed.epoch = antike;
+            ceramicNeed.requiredTechnology = null;
+            ceramicNeed.pyramidLevel = 3;
+            ceramicNeed.weight = 1f;
+            ceramicNeed.kind = NeedKind.Goods;
+            ceramicNeed.resource = ceramics;
+            ceramicNeed.amountPerResidentPerMonth = 0.15f;
+            ceramicNeed.providers = new BuildingDefinition[0];
+
+            artisans.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed };
 
             farmers.nextTier = artisans;
             farmers.upgradeSatisfaction = 0.75f;
@@ -612,7 +637,8 @@ namespace EpochCity
                 workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
                 food, marketNeed, water, faith, farmers,
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
-                school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed
+                school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
+                clay, ceramics, clayPit, pottery, ceramicNeed
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
