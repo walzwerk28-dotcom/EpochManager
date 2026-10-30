@@ -19,7 +19,8 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
-  requiredTechnology: {fileID: 0}
+  requiredTechnology: {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
+  menuTier: {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}
   workerTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   workers: 3
   requiredDeposit: {fileID: 0}

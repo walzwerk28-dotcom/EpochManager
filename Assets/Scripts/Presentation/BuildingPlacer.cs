@@ -7,7 +7,7 @@ namespace EpochCity
 {
     /// <summary>
     /// Platzieren und Abreißen per Maus (neues Input System).
-    /// 1-9: Gebäude der in der Bauleiste offenen Kategorie wählen · R: Straße · Linksklick: bauen / abreißen
+    /// 1-9, 0: Gebäude des in der Bauleiste offenen Reiters wählen · R: Straße · Linksklick: bauen / abreißen
     /// Straße: Maustaste halten und ziehen, die Strecke folgt dem Raster in L-Form
     /// Z / H / J / G: Bauern- / Handwerker- / Gelehrten- / Gewerbezone, U: Zone aufheben – jeweils ein Rechteck ziehen
     /// Rechtsklick oder Esc: Auswahl aufheben · X: Abriss-Modus an/aus (Gebäude und Straßen)
@@ -16,7 +16,7 @@ namespace EpochCity
     {
         public CityController city;
         public Camera cam;
-        [Tooltip("Alle einzeln baubaren Gebäude; die Bauleiste ordnet sie nach ihrer Kategorie")]
+        [Tooltip("Alle einzeln baubaren Gebäude; die Bauleiste ordnet sie nach menuTier in Reiter und darin nach Kategorie")]
         public BuildingDefinition[] hotbar;
         [Tooltip("Aktuell gewählter Straßentyp (Startwert für R)")]
         public RoadDefinition road;
@@ -94,27 +94,62 @@ namespace EpochCity
             if (mouse.rightButton.wasPressedThisFrame) ClearSelection();
         }
 
-        /// <summary>In der Bauleiste geöffnete Gebäudekategorie; die Zifferntasten wählen darin.</summary>
-        public BuildingCategory? ActiveCategory { get; set; }
+        /// <summary>Ist ein Gebäude-Reiter der Bauleiste offen? Die Zifferntasten wählen dann darin.</summary>
+        public bool MenuOpen { get; set; }
 
-        /// <summary>Baubare Gebäude einer Kategorie in der Reihenfolge der Liste.</summary>
-        public List<BuildingDefinition> GetCategoryBuildings(BuildingCategory category)
+        /// <summary>Stufe des offenen Gebäude-Reiters (null = „Sonstiges“).</summary>
+        public PopulationTierDefinition MenuTier { get; set; }
+
+        /// <summary>Gruppe eines Gebäudes im Reiter (0 = Produktion, 1 = Lager und Handel, 2 = Dienste, 3 = Übriges).</summary>
+        public static int MenuGroup(BuildingDefinition def)
+        {
+            switch (def.category)
+            {
+                case BuildingCategory.Production: return 0;
+                case BuildingCategory.Storage:
+                case BuildingCategory.Commerce: return 1;
+                case BuildingCategory.Service: return 2;
+                default: return 3;
+            }
+        }
+
+        /// <summary>Stufen mit Gebäuden in der Bauleiste, aufsteigend; null steht für Gebäude ohne Stufe.</summary>
+        public List<PopulationTierDefinition> GetMenuTiers()
+        {
+            var tiers = new List<PopulationTierDefinition>();
+            bool other = false;
+            if (hotbar != null)
+                foreach (var def in hotbar)
+                {
+                    if (def == null) continue;
+                    if (def.menuTier == null) other = true;
+                    else if (!tiers.Contains(def.menuTier)) tiers.Add(def.menuTier);
+                }
+            tiers.Sort((a, b) => a.tier.CompareTo(b.tier));
+            if (other) tiers.Add(null);
+            return tiers;
+        }
+
+        /// <summary>Gebäude eines Reiters, nach Gruppe sortiert, innerhalb der Gruppe in der Reihenfolge der Liste.</summary>
+        public List<BuildingDefinition> GetMenuBuildings(PopulationTierDefinition tier)
         {
             var list = new List<BuildingDefinition>();
             if (hotbar == null) return list;
-            foreach (var def in hotbar)
-                if (def != null && def.category == category) list.Add(def);
+            for (int group = 0; group <= 3; group++)
+                foreach (var def in hotbar)
+                    if (def != null && def.menuTier == tier && MenuGroup(def) == group) list.Add(def);
             return list;
         }
 
         private void HandleHotkeys(Keyboard kb)
         {
-            if (ActiveCategory.HasValue)
+            if (MenuOpen)
             {
-                var list = GetCategoryBuildings(ActiveCategory.Value);
-                for (int i = 0; i < list.Count && i < 9; i++)
+                // 1–9 und 0 für das zehnte Gebäude
+                var list = GetMenuBuildings(MenuTier);
+                for (int i = 0; i < list.Count && i < 10; i++)
                 {
-                    var key = kb[(Key)((int)Key.Digit1 + i)];
+                    var key = kb[i < 9 ? (Key)((int)Key.Digit1 + i) : Key.Digit0];
                     if (key.wasPressedThisFrame) Select(list[i]);
                 }
             }

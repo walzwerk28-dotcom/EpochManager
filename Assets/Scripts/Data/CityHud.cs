@@ -5,8 +5,8 @@ using UnityEngine;
 namespace EpochCity
 {
     /// <summary>
-    /// Bauleiste (uGUI + TextMeshPro), die sich beim Start selbst aufbaut: unten die Kategorien (Straßen, Zonen,
-    /// Gebäudekategorien aus den Daten), deren Werkzeuge in einer Reihe darüber aufklappen, dazu Abriss und
+    /// Bauleiste (uGUI + TextMeshPro), die sich beim Start selbst aufbaut: unten die Reiter (Straßen, Zonen,
+    /// je Bevölkerungsstufe ein Gebäude-Reiter wie in Anno), deren Werkzeuge in einer Reihe darüber aufklappen, dazu Abriss und
     /// Anbindungs-Overlay, darüber die Infozeile zum Feld unter der Maus und die Tastenhilfe (über TopBar „?“).
     /// Epoche, Geld und Nachfrage zeigt die TopBar.
     /// Es muss weder ein Canvas noch ein EventSystem manuell angelegt werden.
@@ -42,7 +42,7 @@ namespace EpochCity
         {
             public string Label;
             public TabKind Kind;
-            public BuildingCategory Category;
+            public PopulationTierDefinition Tier; // Gebäude-Reiter: Stufe (null = Sonstiges)
             public UnityEngine.UI.Image Image;
         }
 
@@ -63,17 +63,6 @@ namespace EpochCity
         private readonly List<Entry> entries = new List<Entry>();
         private Tab openTab;
         private RectTransform subMenu;
-
-        private static readonly (BuildingCategory category, string label)[] CategoryOrder =
-        {
-            (BuildingCategory.Production, "Produktion"),
-            (BuildingCategory.Commerce, "Handel"),
-            (BuildingCategory.Service, "Dienste"),
-            (BuildingCategory.Storage, "Lager"),
-            (BuildingCategory.Housing, "Wohnen"),
-            (BuildingCategory.Monument, "Denkmäler"),
-            (BuildingCategory.Wonder, "Wunderbauten")
-        };
 
         private void Awake()
         {
@@ -207,11 +196,14 @@ namespace EpochCity
                     AddTab(bottom, "Zonen", TabKind.Zones, default, icons != null ? icons.zones : null,
                         "Bauern Z  ·  Handwerker H  ·  Gelehrte J  ·  Gewerbe G  ·  aufheben U");
 
-                // Kategorien aus den Daten: nur die, für die es baubare Gebäude gibt
-                foreach (var (category, label) in CategoryOrder)
-                    if (placer.GetCategoryBuildings(category).Count > 0)
-                        AddTab(bottom, label, TabKind.Buildings, category,
-                            icons != null ? icons.ForCategory(category) : null, "Tasten 1–9 wählen ein Gebäude");
+                // Reiter nach Stufen wie in Anno: die Gebäude der Kette, die einer Stufe dient
+                foreach (var tier in placer.GetMenuTiers())
+                {
+                    string label = tier != null ? tier.displayName : "Sonstiges";
+                    AddTab(bottom, label, TabKind.Buildings, tier,
+                        icons != null ? (tier != null ? icons.residents : icons.production) : null,
+                        "Tasten 1–9 und 0 wählen ein Gebäude", tier != null ? $"Waren und Dienste für die {label}" : null);
+                }
             }
 
             var demolish = UiFactory.CreateButton(bottom, "DemolishButton", "Abreißen", new Vector2(150f, 72f),
@@ -232,17 +224,19 @@ namespace EpochCity
 
             float above = BarHeight + SubMenuHeight + 12f;
             hintText = CreateBottomLine(canvas, "Hint",
-                "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / H / J / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                "1-9, 0: Gebäude des offenen Reiters  |  R: Straße  |  Z / H / J / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
                 18f, theme.textMuted, above);
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, above + 28f);
         }
 
-        private void AddTab(Transform bar, string label, TabKind kind, BuildingCategory category, Sprite icon, string keys)
+        private void AddTab(Transform bar, string label, TabKind kind, PopulationTierDefinition tier, Sprite icon, string keys,
+            string description = null)
         {
-            var tab = new Tab { Label = label, Kind = kind, Category = category };
+            var tab = new Tab { Label = label, Kind = kind, Tier = tier };
             var button = UiFactory.CreateButton(bar, "Tab_" + label, label, new Vector2(150f, 72f),
                 22f, buttonColor, textColor, () => ToggleTab(tab), icon);
-            Tooltip.Attach(button.gameObject, () => $"<b>{label}</b>\n" + Muted(keys));
+            Tooltip.Attach(button.gameObject, () => $"<b>{label}</b>\n" +
+                (description != null ? description + "\n" : "") + Muted(keys));
             tab.Image = (UnityEngine.UI.Image)button.targetGraphic;
             tabs.Add(tab);
         }
@@ -258,7 +252,8 @@ namespace EpochCity
         {
             if (tab == openTab) return;
             openTab = tab;
-            placer.ActiveCategory = tab != null && tab.Kind == TabKind.Buildings ? tab.Category : (BuildingCategory?)null;
+            placer.MenuOpen = tab != null && tab.Kind == TabKind.Buildings;
+            placer.MenuTier = placer.MenuOpen ? tab.Tier : null;
             RebuildSubMenu();
         }
 
@@ -269,7 +264,7 @@ namespace EpochCity
             if (placer.RoadMode) wanted = tabs.Find(t => t.Kind == TabKind.Roads);
             else if (placer.ZoneMode) wanted = tabs.Find(t => t.Kind == TabKind.Zones);
             else if (placer.SelectedBuilding != null)
-                wanted = tabs.Find(t => t.Kind == TabKind.Buildings && t.Category == placer.SelectedBuilding.category);
+                wanted = tabs.Find(t => t.Kind == TabKind.Buildings && t.Tier == placer.SelectedBuilding.menuTier);
             if (wanted != null) OpenTab(wanted);
         }
 
@@ -320,20 +315,31 @@ namespace EpochCity
                     break;
 
                 case TabKind.Buildings:
-                    var list = placer.GetCategoryBuildings(openTab.Category);
+                    var list = placer.GetMenuBuildings(openTab.Tier);
                     for (int i = 0; i < list.Count; i++)
                     {
                         var def = list[i];
+                        // Abstand zwischen Produktion, Lager und Handel, Diensten
+                        if (i > 0 && BuildingPlacer.MenuGroup(def) != BuildingPlacer.MenuGroup(list[i - 1]))
+                            AddGroupGap();
                         string materials = Amounts(def.materialCosts);
                         AddEntry(icons != null ? icons.ForCategory(def.category) : null, def.displayName,
                             $"{def.size.x} × {def.size.y}  ·  {Mathf.FloorToInt(def.buildCost)}" +
-                            (materials != "" ? "\n" + materials : ""), i < 9 ? $"{i + 1}" : "",
+                            (materials != "" ? "\n" + materials : ""), i < 9 ? $"{i + 1}" : i == 9 ? "0" : "",
                             () => placer.Select(def), () => placer.SelectedBuilding == def,
                             () => !city.IsAvailable(def), () => BuildingTooltip(def)).CanAfford =
                             () => city.CanAfford(def);
                     }
                     break;
             }
+        }
+
+        /// <summary>Schmale Lücke in der aufgeklappten Reihe zwischen zwei Gruppen.</summary>
+        private void AddGroupGap()
+        {
+            var gap = new GameObject("Gap", typeof(RectTransform), typeof(UnityEngine.UI.LayoutElement));
+            gap.transform.SetParent(subMenu, false);
+            gap.GetComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 8f;
         }
 
         private void AddZoneEntry(ZoneDefinition zone, string key, string description)

@@ -23,6 +23,9 @@ namespace EpochCity
         public PopulationTierDefinition populationTier;
         [Tooltip("Erst baubar, wenn diese Technologie erforscht ist (leer = ab der Epoche)")]
         public TechnologyDefinition requiredTechnology;
+        [Tooltip("Reiter der Bauleiste: die Stufe, deren Kette das Gebäude dient (wie in Anno), nicht die der Arbeiter. " +
+                 "Leer = Reiter „Sonstiges“")]
+        public PopulationTierDefinition menuTier;
 
         [Header("Arbeitskräfte")]
         [Tooltip("Stufe der Arbeitskräfte, die dieses Gebäude braucht (leer = keine)")]

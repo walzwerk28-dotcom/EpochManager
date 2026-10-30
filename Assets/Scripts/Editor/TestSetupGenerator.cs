@@ -739,6 +739,19 @@ namespace EpochCity
             wineNeed.providers = new BuildingDefinition[0];
             scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed, wineNeed };
 
+            // Reiter der Bauleiste (wie in Anno): die Stufe, deren Kette ein Gebäude dient, nicht die seiner Arbeiter
+            foreach (var def in new[] { field, woodcutter, carpentry, quarry, storage, market, school, well, temple, mill })
+                def.menuTier = farmers;
+            foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
+                def.menuTier = artisans;
+            foreach (var def in new[] { vineyard, winePress, academy })
+                def.menuTier = scholars;
+            // Ketten einer Stufe erst mit deren Wohnzone baubar; die Bibliothek bleibt frei (sie erforscht die Schrift)
+            foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery })
+                def.requiredTechnology = writing;
+            foreach (var def in new[] { vineyard, winePress })
+                def.requiredTechnology = philosophy;
+
             // Mittelalter: 3 der 4 Schlüsseltechnologien (je Pfad eine), eine Bibliothek und 300 Einwohner
             mittelalter.keyTechnologies = new[] { minting, philosophy, plough, waterworks };
             mittelalter.requiredKeyTechnologies = 3;

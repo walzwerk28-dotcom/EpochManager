@@ -20,6 +20,7 @@ MonoBehaviour:
   zone: {fileID: 11400000, guid: 4ba6d175a3d351e45aad229dc4ceb83f, type: 2}
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   requiredTechnology: {fileID: 0}
+  menuTier: {fileID: 0}
   workerTier: {fileID: 0}
   workers: 0
   requiredDeposit: {fileID: 0}
