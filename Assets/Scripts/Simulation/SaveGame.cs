@@ -93,6 +93,7 @@ namespace EpochCity
         public int y;
         public string builtInEpoch;
         public bool isProtected;
+        public bool isPaused;
         public int residents;
         public float satisfaction;
         public string missingNeeds;

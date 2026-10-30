@@ -32,7 +32,7 @@ namespace EpochCity
 
             foreach (var storage in buildings)
             {
-                if (storage.Definition.category != BuildingCategory.Storage) continue;
+                if (storage.Definition.category != BuildingCategory.Storage || storage.IsPaused) continue;
 
                 var def = storage.Definition;
                 float range = def.GetCatchmentRange(unlocked);

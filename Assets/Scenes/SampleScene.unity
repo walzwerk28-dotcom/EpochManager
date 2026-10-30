@@ -775,6 +775,8 @@ MonoBehaviour:
   city: {fileID: 440537052}
   clock: {fileID: 2124652275}
   stepSeconds: 1
+  unpaidEfficiency: 0.5
+  pausedUpkeepFactor: 0.25
 --- !u!4 &1598712637
 Transform:
   m_ObjectHideFlags: 0
@@ -1150,6 +1152,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingInfoPanel
   city: {fileID: 440537052}
   placer: {fileID: 1216388725}
+  economy: {fileID: 1598712635}
   theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!114 &1732010462
 MonoBehaviour:
@@ -1219,6 +1222,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.DepositTiles
   city: {fileID: 440537052}
+  spread: 0.32
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

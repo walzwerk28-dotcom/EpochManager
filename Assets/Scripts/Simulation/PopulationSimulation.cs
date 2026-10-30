@@ -204,7 +204,7 @@ namespace EpochCity
             {
                 var starts = new List<Vector2Int>();
                 foreach (var b in city.Buildings)
-                    if (need.IsProvider(b.Definition)) starts.AddRange(city.Grid.GetAdjacentCells(b));
+                    if (need.IsProvider(b.Definition) && !b.IsPaused) starts.AddRange(city.Grid.GetAdjacentCells(b));
                 distances = ConnectionMap.ShortestDistances(city.Grid, starts);
                 serviceDistances[need] = distances;
             }

@@ -66,6 +66,15 @@ namespace EpochCity
             if (population != null)
                 builder.AppendLine($"Steuern +{population.LastMonthTaxes:0}");
 
+            // Prognose: bei dieser Bilanz ist die Kasse in X Monaten leer
+            float balance = (economy != null ? economy.LastMonthIncome - economy.LastMonthUpkeep : 0f) +
+                            (population != null ? population.LastMonthTaxes : 0f);
+            string danger = UiTheme.Hex(theme.danger);
+            if (city.Money < 0f)
+                builder.AppendLine($"<color={danger}>Kasse leer: Gebäude mit Unterhalt arbeiten langsamer</color>");
+            else if (balance < 0f)
+                builder.AppendLine($"<color={danger}>Bei dieser Bilanz in {Mathf.FloorToInt(city.Money / -balance)} Monaten leer</color>");
+
             builder.AppendLine();
             builder.AppendLine($"<color={UiTheme.Hex(theme.heading)}>Bevölkerung</color>");
             if (population != null)

@@ -7,7 +7,8 @@ namespace EpochCity
 {
     /// <summary>
     /// Kurze Meldungen oben rechts unter der TopBar (neben dem mittigen Forschungsfenster), die nach einigen
-    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel.
+    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel,
+    /// leere und wieder ausgeglichene Stadtkasse.
     /// Andere Darstellungen können über Show eigene Meldungen zeigen.
     /// </summary>
     public class Toasts : MonoBehaviour
@@ -29,6 +30,7 @@ namespace EpochCity
         private RectTransform stack;
         private readonly List<(CanvasGroup group, float shownAt)> visible = new List<(CanvasGroup, float)>();
         private bool couldAdvance;
+        private bool wasInDebt;
         private float epochTimer;
 
         private void Awake()
@@ -127,6 +129,18 @@ namespace EpochCity
                 if (can && !couldAdvance && progression.NextEpoch != null)
                     Show($"Epochenwechsel zu {progression.NextEpoch.displayName} möglich", theme.heading, Icon(i => i.epoch));
                 couldAdvance = can;
+            }
+
+            // Kasse unter 0 bzw. wieder ausgeglichen: nur beim Übergang melden
+            if (city != null)
+            {
+                bool inDebt = city.Money < 0f;
+                if (inDebt && !wasInDebt)
+                    Show("Die Stadtkasse ist leer: Gebäude mit Unterhalt arbeiten langsamer", theme.danger,
+                        Icon(i => i.warning));
+                else if (!inDebt && wasInDebt)
+                    Show("Die Stadtkasse ist wieder ausgeglichen", theme.positive, Icon(i => i.done));
+                wasInDebt = inDebt;
             }
 
             for (int i = visible.Count - 1; i >= 0; i--)

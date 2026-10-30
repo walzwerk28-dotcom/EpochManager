@@ -47,6 +47,9 @@ namespace EpochCity
         /// <summary>Denkmalschutz: lässt sich nicht abreißen, bringt Kultur und Tourismus.</summary>
         public bool IsProtected { get; set; }
 
+        /// <summary>Stillgelegt (wie in Anno): produziert nichts, bietet keine Dienste, zahlt nur einen Teil des Unterhalts.</summary>
+        public bool IsPaused { get; set; }
+
         public BuildingInstance(BuildingDefinition definition, Vector2Int origin, EpochDefinition builtIn, float facing = 0f)
         {
             Definition = definition;

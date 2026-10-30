@@ -6,6 +6,8 @@ namespace EpochCity
     /// Rechnet die Wirtschaft in festen Zeitschritten: jedes Gebäude arbeitet seine
     /// aktiven Funktionen ab (Grundfunktionen plus durch Technologien freigeschaltete).
     /// Reine Zahlen, keine Optik. Einmal pro Spielmonat wird der Unterhalt abgezogen.
+    /// Leere Kasse: Gebäude mit Unterhalt arbeiten langsamer (unpaidEfficiency); stillgelegte Gebäude arbeiten
+    /// nicht und zahlen nur einen Teil ihres Unterhalts (pausedUpkeepFactor).
     /// </summary>
     public class EconomySimulation : MonoBehaviour
     {
@@ -13,6 +15,16 @@ namespace EpochCity
         [SerializeField] private GameClock clock;
         [Tooltip("Länge eines Simulationsschritts in Spielsekunden")]
         [SerializeField, Min(0.1f)] private float stepSeconds = 1f;
+
+        [Header("Leere Kasse und Stilllegen")]
+        [Tooltip("Effizienz von Gebäuden mit Unterhalt, solange die Kasse unter 0 steht")]
+        [Range(0f, 1f)] public float unpaidEfficiency = 0.5f;
+        [Tooltip("Anteil des Unterhalts, den ein stillgelegtes Gebäude weiter zahlt")]
+        [Range(0f, 1f)] public float pausedUpkeepFactor = 0.25f;
+
+        /// <summary>Unterhalt pro Monat, den dieses Gebäude gerade kostet (stillgelegt nur ein Teil).</summary>
+        public float GetUpkeep(BuildingInstance building) =>
+            building.Definition.upkeepPerMonth * (building.IsPaused ? pausedUpkeepFactor : 1f);
 
         public float LastMonthIncome { get; private set; }
         public float LastMonthUpkeep { get; private set; }
@@ -52,14 +64,24 @@ namespace EpochCity
 
         private void Step(float dt)
         {
+            bool unpaid = city.Money < 0f;
             foreach (var building in city.Buildings)
             {
+                var functions = building.Definition.GetActiveFunctions(city.UnlockedTechnologies);
+                if (building.IsPaused)
+                {
+                    building.Status = functions.Count > 0 ? "stillgelegt" : "";
+                    continue;
+                }
+
                 float efficiency = GetEfficiency(building);
                 float multiplier = city.GetMultiplier(building);
-                var functions = building.Definition.GetActiveFunctions(city.UnlockedTechnologies);
+                bool upkeepUnpaid = unpaid && building.Definition.upkeepPerMonth > 0f;
+                if (upkeepUnpaid) efficiency *= unpaidEfficiency;
 
                 string issue = string.Join(", ", System.Array.FindAll(
-                    new[] { building.ConnectionIssue, building.DepositIssue }, s => !string.IsNullOrEmpty(s)));
+                    new[] { building.ConnectionIssue, building.DepositIssue, upkeepUnpaid ? "Unterhalt nicht bezahlt" : null },
+                    s => !string.IsNullOrEmpty(s)));
                 if (functions.Count == 0) building.Status = "";
                 else if (efficiency <= 0f) building.Status = issue;
                 else if (efficiency >= 1f) building.Status = "läuft";
@@ -150,7 +172,7 @@ namespace EpochCity
             if (city == null) return;
 
             float upkeep = 0f;
-            foreach (var building in city.Buildings) upkeep += building.Definition.upkeepPerMonth;
+            foreach (var building in city.Buildings) upkeep += GetUpkeep(building);
             upkeep += city.RoadUpkeepPerMonth;
             city.AddMoney(-upkeep);
 

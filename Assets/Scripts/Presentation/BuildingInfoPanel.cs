@@ -12,13 +12,15 @@ namespace EpochCity
     /// Kategoriesymbol, Kategorie und Bau-Epoche, dann Balken für Anbindung, bei Betrieben mit Rohstoff-Vorkommen
     /// dessen Anteil im Umkreis, bei Wohnhäusern Belegung und
     /// Zufriedenheit samt fehlenden Bedürfnissen, bei Produktion den Fortschritt je Funktion mit Ein- und Ausgaben
-    /// (inklusive Technologie-Multiplikator), darunter Unterhalt und Besonderheiten. Unten Denkmalschutz an/aus und
-    /// Abreißen. Der Inhalt wird beim Wechsel des Gebäudes neu aufgebaut und danach nur noch aktualisiert.
+    /// (inklusive Technologie-Multiplikator), darunter Unterhalt und Besonderheiten. Unten Stilllegen/Fortsetzen
+    /// (nur Gebäude mit Unterhalt, keine Wohnhäuser), Denkmalschutz an/aus und Abreißen. Der Inhalt wird beim Wechsel des Gebäudes neu aufgebaut und danach nur noch aktualisiert.
     /// </summary>
     public class BuildingInfoPanel : MonoBehaviour
     {
         [SerializeField] private CityController city;
         [SerializeField] private BuildingPlacer placer;
+        [Tooltip("Für den Unterhalt stillgelegter Gebäude")]
+        [SerializeField] private EconomySimulation economy;
 
         [Header("Aussehen")]
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
@@ -28,6 +30,8 @@ namespace EpochCity
         private RectTransform content;
         private TextMeshProUGUI title;
         private Image categoryIcon;
+        private Button pauseButton;
+        private TextMeshProUGUI pauseLabel;
         private Button protectButton;
         private TextMeshProUGUI protectLabel;
         private Button demolishButton;
@@ -81,7 +85,11 @@ namespace EpochCity
 
         private void RefreshButtons(BuildingInstance b)
         {
-            protectLabel.text = b.IsProtected ? "Denkmalschutz: an" : "Denkmalschutz: aus";
+            bool canPause = CityController.CanPause(b.Definition);
+            pauseButton.gameObject.SetActive(canPause);
+            pauseLabel.text = b.IsPaused ? "Fortsetzen" : "Stilllegen";
+            pauseButton.targetGraphic.color = b.IsPaused ? theme.accent : theme.button;
+            protectLabel.text = b.IsProtected ? "Schutz: an" : "Schutz: aus";
             protectButton.targetGraphic.color = b.IsProtected ? theme.accent : theme.button;
             demolishButton.interactable = !b.IsProtected;
             demolishButton.targetGraphic.color = b.IsProtected ? theme.locked : theme.danger;
@@ -168,7 +176,11 @@ namespace EpochCity
                 if (multiplier > 1f) sb.AppendLine($"Technologie-Bonus ×{multiplier:0.##}");
                 if (def.category == BuildingCategory.Storage)
                     sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
-                if (def.upkeepPerMonth > 0f) sb.Append($"Unterhalt {def.upkeepPerMonth:0.#} {Currency()} pro Monat");
+                if (def.upkeepPerMonth > 0f)
+                {
+                    float upkeep = economy != null ? economy.GetUpkeep(b) : def.upkeepPerMonth;
+                    sb.Append($"Unterhalt {upkeep:0.##} {Currency()} pro Monat" + (b.IsPaused ? " (stillgelegt)" : ""));
+                }
                 return sb.ToString().TrimEnd();
             });
         }
@@ -242,15 +254,31 @@ namespace EpochCity
             actions.transform.SetParent(panel, false);
             UiFactory.AddRow(actions, TextAnchor.MiddleLeft, 0, 10f);
             var icons = theme.icons;
-            protectButton = UiFactory.CreateButton(actions.transform, "Protect", "Denkmalschutz: aus",
-                new Vector2(236f, 48f), theme.smallSize + 1f, theme.button, theme.text, ToggleProtection,
+            pauseButton = UiFactory.CreateButton(actions.transform, "Pause", "Stilllegen",
+                new Vector2(136f, 48f), theme.smallSize + 1f, theme.button, theme.text, TogglePause,
+                icons != null ? icons.pause : null);
+            pauseLabel = pauseButton.GetComponentInChildren<TextMeshProUGUI>();
+            Tooltip.Attach(pauseButton.gameObject, () =>
+                "<b>Stilllegen</b>\nDas Gebäude arbeitet nicht und bietet keine Dienste, zahlt aber nur " +
+                $"{(economy != null ? economy.pausedUpkeepFactor : 0.25f) * 100f:0} % seines Unterhalts.");
+            protectButton = UiFactory.CreateButton(actions.transform, "Protect", "Schutz: aus",
+                new Vector2(136f, 48f), theme.smallSize + 1f, theme.button, theme.text, ToggleProtection,
                 icons != null ? icons.monument : null);
             protectLabel = protectButton.GetComponentInChildren<TextMeshProUGUI>();
+            Tooltip.Attach(protectButton.gameObject, () => "<b>Denkmalschutz</b>\nVerhindert den Abriss.");
             demolishButton = UiFactory.CreateButton(actions.transform, "Demolish", "Abreißen",
-                new Vector2(160f, 48f), theme.smallSize + 1f, theme.danger, theme.text, Demolish,
+                new Vector2(124f, 48f), theme.smallSize + 1f, theme.danger, theme.text, Demolish,
                 icons != null ? icons.demolish : null);
 
             panel.gameObject.SetActive(false);
+        }
+
+        private void TogglePause()
+        {
+            var b = placer.Inspected;
+            if (b == null) return;
+            city.SetPaused(b, !b.IsPaused);
+            refreshTimer = 0f;
         }
 
         private void ToggleProtection()

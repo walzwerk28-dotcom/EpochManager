@@ -182,6 +182,7 @@ namespace EpochCity
                     y = b.Origin.y,
                     builtInEpoch = ContentRegistry.IdOf(b.BuiltInEpoch),
                     isProtected = b.IsProtected,
+                    isPaused = b.IsPaused,
                     residents = b.Residents,
                     satisfaction = b.Satisfaction,
                     missingNeeds = b.MissingNeeds,
@@ -245,6 +246,7 @@ namespace EpochCity
                     continue;
                 }
                 b.IsProtected = entry.isProtected;
+                b.IsPaused = entry.isPaused; // Anbindung (stillgelegte Lager) folgt mit RefreshConnections
                 b.Residents = entry.residents;
                 b.Satisfaction = entry.satisfaction;
                 b.MissingNeeds = entry.missingNeeds ?? "";

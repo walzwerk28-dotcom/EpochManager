@@ -339,6 +339,21 @@ namespace EpochCity
             if (inst != null) inst.IsProtected = isProtected;
         }
 
+        /// <summary>Wohnhäuser lassen sich nicht stilllegen, ebenso Gebäude ohne Unterhalt (z. B. Zonengebäude).</summary>
+        public static bool CanPause(BuildingDefinition def) =>
+            def != null && def.populationTier == null && def.upkeepPerMonth > 0f;
+
+        /// <summary>
+        /// Stilllegen oder fortsetzen. Ein stillgelegtes Lager dient nicht mehr als Knotenpunkt, daher wird die
+        /// Anbindung neu berechnet.
+        /// </summary>
+        public void SetPaused(BuildingInstance inst, bool paused)
+        {
+            if (inst == null || inst.IsPaused == paused || (paused && !CanPause(inst.Definition))) return;
+            inst.IsPaused = paused;
+            RefreshConnections();
+        }
+
         /// <summary>Abriss. Gebäude unter Denkmalschutz lassen sich nicht abreißen.</summary>
         public bool TryRemove(BuildingInstance inst)
         {

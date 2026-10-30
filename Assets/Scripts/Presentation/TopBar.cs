@@ -95,7 +95,11 @@ namespace EpochCity
             float balance = (economy != null ? economy.LastMonthIncome - economy.LastMonthUpkeep : 0f) +
                             (population != null ? population.LastMonthTaxes : 0f);
             var balanceColor = balance >= 0f ? theme.positive : theme.danger;
-            moneyText.text = $"{Mathf.FloorToInt(city.Money)} {currency}  " +
+            // Leere Kasse: Betrag rot (Gebäude mit Unterhalt arbeiten dann langsamer)
+            string money = city.Money < 0f
+                ? $"<color={UiTheme.Hex(theme.danger)}>{Mathf.FloorToInt(city.Money)}</color>"
+                : $"{Mathf.FloorToInt(city.Money)}";
+            moneyText.text = $"{money} {currency}  " +
                              $"<size=75%><color={UiTheme.Hex(balanceColor)}>{balance:+0;-0;±0}/Monat</color></size>";
 
             // Baumaterial im Lager, wie die Baustoffe in der Leiste bei Anno
