@@ -18,4 +18,4 @@ MonoBehaviour:
   researchCost: 100
   prerequisites: []
   description: "Werkst\xE4tten, Werkh\xF6fe und Speicherh\xF6fe erl\xF6sen 25 % mehr;
-    Zimmereien und Steinbr\xFCche liefern 25 % mehr."
+    Zimmereien, Steinbr\xFCche und \xD6lpressen liefern 25 % mehr."

@@ -48,10 +48,11 @@ namespace EpochCity
             foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
-                         "Schreibschule", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus" })
+                         "Schreibschule", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
+                         "Oelpresse" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Zimmerei", "Steinbruch" })
+                         "Holzfaeller", "Zimmerei", "Steinbruch", "Olivenhain" })
                 grounds[n] = earth;
 
             // Antike: Kalkstein und Terrakotta-Dächer
@@ -70,6 +71,8 @@ namespace EpochCity
             Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
             Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
             Assign("Bld_Steinbruch", Make("Steinbruch", 2, antique, Quarry));
+            Assign("Bld_Olivenhain", Make("Olivenhain", 2, antique, OliveGrove));
+            Assign("Bld_Oelpresse", Make("Oelpresse", 2, antique, OilPress));
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
             Assign("Bld_Stadthaus", Make("Stadthaus", 2, antique,
@@ -722,6 +725,29 @@ namespace EpochCity
             b.Put(FT + "rock-wide", new Vector3(-0.3f, 0f, -0.9f), 15f, 0.8f);
             b.Put(FT + "rock-small", new Vector3(-1.4f, 0f, -1.5f), 0f, 0.8f);
             b.Put(FT + "cart", new Vector3(1.2f, 0f, -1.6f), 80f, 0.8f);
+        }
+
+        /// <summary>Olivenhain: drei Reihen breiter, niedriger Bäume mit graugrünem Laub, vorn Karren und Bank.</summary>
+        private static void OliveGrove(Builder b)
+        {
+            NatureColors(b);
+            b.Overrides["leafsGreen"] = Solid("Olivenlaub", new Color(0.50f, 0.58f, 0.40f));
+            for (int row = 0; row < 3; row++)
+                for (int k = 0; k < 3; k++)
+                    b.Put(NK + "tree_oak", new Vector3(-1.3f + k * 1.3f, 0f, -0.6f + row * 1.0f),
+                        (row * 3 + k) * 47f, 1.0f);
+            b.Put(FT + "cart", new Vector3(-0.8f, 0f, -1.7f), 0f, 0.8f);
+            b.Put(FT + "stall-bench", new Vector3(1f, 0f, -1.7f), 0f, 0.8f);
+        }
+
+        /// <summary>Ölpresse: kleiner Steinbau hinten, vorn ein großer Mühlstein, daneben Holz für die Presse.</summary>
+        private static void OilPress(Builder b)
+        {
+            Hall(b.At(0f, 0.8f), 2, 2, 1, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 0 ? "wall-door" : "wall-window-stone") :
+                dir == Vector2Int.up ? "wall" : "wall-window-small");
+            b.Put(FT + "wheel", new Vector3(-0.6f, 0f, -1.3f), 90f, 1.6f);
+            b.Put(NK + "log_stack", new Vector3(1.3f, 0f, -1.3f), 90f, 0.8f);
         }
 
         /// <summary>

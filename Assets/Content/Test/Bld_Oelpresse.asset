@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 940d9108773fac84ab420d97f53a3ac3, type: 3}
+  m_Name: Bld_Oelpresse
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingDefinition
+  displayName: "\xD6lpresse"
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  category: 2
+  prefab: {fileID: 8026979742133425190, guid: 8a07ecc688a8d9f46b9a631eafce094d, type: 3}
+  size: {x: 2, y: 2}
+  zone: {fileID: 0}
+  populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 0}
+  workerTier: {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}
+  workers: 3
+  requiredDeposit: {fileID: 0}
+  depositRange: 0
+  depositCellsForFull: 1
+  buildCost: 150
+  materialCosts:
+  - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
+    amount: 4
+  - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
+    amount: 2
+  upkeepPerMonth: 3
+  baseCapacity: 0
+  baseFunctions:
+  - label: "\xD6l pressen"
+    inputs:
+    - resource: {fileID: 11400000, guid: 278ea97b995d50d4ebffdbe5723c0300, type: 2}
+      amount: 3
+    outputs:
+    - resource: {fileID: 11400000, guid: 224fdd2dbf7d3bc4eab34e224d439439, type: 2}
+      amount: 2
+    cycleSeconds: 5
+  layers:
+  - requiredTechnology: {fileID: 11400000, guid: 5c4e1346606dbcd479a62abeda51e7cb, type: 2}
+    outputMultiplier: 1.25
+    additionalFunctions: []
+    extraCapacity: 0
+    capacityMultiplier: 1
+    extraCatchment: 0
+  catchmentRange: 20
+  efficiencyByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.75
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.25
+      inSlope: -0.75
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  minEfficiency: 0.25

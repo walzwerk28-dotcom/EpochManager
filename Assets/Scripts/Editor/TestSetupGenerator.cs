@@ -348,7 +348,7 @@ namespace EpochCity
             // Industrie
             Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 100f, "Felder liefern 50 % mehr Weizen.");
             var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 100f,
-                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr; Zimmereien und Steinbrüche liefern 25 % mehr.");
+                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr; Zimmereien, Steinbrüche und Ölpressen liefern 25 % mehr.");
             var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 220f,
                 "Felder liefern weitere 30 % mehr Weizen.", irrigation, crafts);
             // Wissenschaft und Infrastruktur
@@ -557,13 +557,40 @@ namespace EpochCity
                 new EpochName { epoch = antike, name = "Handwerker" },
                 new EpochName { epoch = mittelalter, name = "Bürger" }
             };
-            artisans.needs = new[] { food, water, marketNeed, faith }; // Öl folgt mit der Ölpresse
+            // Bedürfnisse siehe unten (Bauern-Bedürfnisse plus Öl)
             artisans.taxPerResidentPerMonth = 2f;
             artisans.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             artisans.nextTier = null;
             artisans.upgradeRequires = new NeedDefinition[0];
             artisans.downgradeSatisfaction = 0.4f;
             artisans.downgradeMonths = 3;
+
+            // Öl für Handwerker: Olivenhain (Bauern) → Oliven → Ölpresse (Handwerker) → Öl
+            var olives = Resource("Res_Oliven", "Oliven", antike, false);
+            var oil = Resource("Res_Oel", "Öl", antike, false);
+            var oliveGrove = ProductionBuilding("Bld_Olivenhain", "Olivenhain", antike, 100f, 2f,
+                "Oliven ernten", null, 0f, olives, 3f, 5f, new Color(0.55f, 0.6f, 0.35f));
+            oliveGrove.materialCosts = Cost((boards, 2f));
+            oliveGrove.workerTier = farmers;
+            oliveGrove.workers = 4;
+            var oilPress = ProductionBuilding("Bld_Oelpresse", "Ölpresse", antike, 150f, 3f,
+                "Öl pressen", olives, 3f, oil, 2f, 5f, new Color(0.75f, 0.65f, 0.4f));
+            oilPress.materialCosts = Cost((boards, 4f), (stone, 2f));
+            oilPress.workerTier = artisans;
+            oilPress.workers = 3;
+            oilPress.layers = new[] { Boost(crafts, 1.25f) };
+
+            var oilNeed = GetOrCreate<NeedDefinition>("Need_Oel");
+            oilNeed.displayName = "Öl";
+            oilNeed.epoch = antike;
+            oilNeed.requiredTechnology = null;
+            oilNeed.pyramidLevel = 2;
+            oilNeed.weight = 1.5f;
+            oilNeed.kind = NeedKind.Goods;
+            oilNeed.resource = oil;
+            oilNeed.amountPerResidentPerMonth = 0.25f;
+            oilNeed.providers = new BuildingDefinition[0];
+            artisans.needs = new[] { food, water, marketNeed, faith, oilNeed };
 
             farmers.nextTier = artisans;
             farmers.upgradeSatisfaction = 0.75f;
@@ -585,7 +612,7 @@ namespace EpochCity
                 workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
                 food, marketNeed, water, faith, farmers,
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
-                school, education, artisans, upperResidential
+                school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
