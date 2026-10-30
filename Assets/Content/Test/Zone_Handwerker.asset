@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Handwerkerzone
   shortName: Handwerker
   requiredTechnology: {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
-  buildingsOf: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
+  buildingsOf: {fileID: 0}
   maxTier: 2
   tilePrefab: {fileID: 1556856563105994781, guid: e47681db959d61544b0d09b4b55d5512, type: 3}
   demandColor: {r: 0.95, g: 0.72, b: 0.25, a: 1}

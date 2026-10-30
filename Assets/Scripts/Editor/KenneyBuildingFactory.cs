@@ -48,7 +48,7 @@ namespace EpochCity
             foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
-                         "Schreibschule" })
+                         "Schreibschule", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
                          "Holzfaeller", "Zimmerei", "Steinbruch" })
@@ -91,6 +91,15 @@ namespace EpochCity
             Assign("Bld_Taberna", Make("Taberna", new Vector2Int(1, 2), antique, TabernaStall, TabernaHall));
             Assign("Bld_Kontor", Make("Kontor", new Vector2Int(2, 3), antique, OfficeHall, OfficeYard));
             Assign("Bld_Speicherhof", Make("Speicherhof", new Vector2Int(2, 4), antique, GranaryFront, GranaryYard));
+
+            // Handwerkerzone: zweistöckige Häuser mit Laden unten, Bannern und Werkhöfen, Pflaster statt Kies
+            Assign("Bld_Werkstatthaus", Make("Werkstatthaus", 1, antique,
+                b => ArtisanHouse(b, 2, doorLeft: true, roof: "roof", banner: "banner-red"),
+                b => ArtisanHouse(b, 2, doorLeft: false, roof: "roof-high", banner: "banner-green")));
+            Assign("Bld_Handwerkerhaus", Make("Handwerkerhaus", new Vector2Int(1, 2), antique, ArtisanHouseShed, ArtisanHouseYard));
+            Assign("Bld_Handwerkerzeile", Make("Handwerkerzeile", 2, antique, ArtisanRowAwnings, ArtisanRowTall));
+            Assign("Bld_Werkhof", Make("Werkhof", new Vector2Int(2, 3), antique, WorkyardHall, WorkyardShed));
+            Assign("Bld_Zunfthaus", Make("Zunfthaus", 3, antique, GuildHall, GuildCourt));
 
             // Mittelalter: Fachwerk mit der Originalpalette (grüne Dächer)
             Assign("Bld_Fachwerkhaus", Make("Fachwerkhaus", 2, original,
@@ -300,6 +309,127 @@ namespace EpochCity
             b.Put(FT + "fountain-round", new Vector3(0f, 0f, 0f), 0f, 0.7f);
             b.Put(FT + "stall-red", new Vector3(-1.5f, 0f, 1.6f), 0f);
             b.Put(FT + "stall-green", new Vector3(1.5f, 0f, 1.6f), 0f);
+        }
+
+        // ---------------------------------------------------------------- Handwerkerzone
+
+        /// <summary>
+        /// Handwerkerhaus 2 Teile breit und d tief: unten Laden (breite Öffnung) und Tür zur Straße mit Vordach,
+        /// oben Wohnung mit Fensterläden und einem Banner über dem Laden, Satteldach.
+        /// </summary>
+        private static void ArtisanHouse(Builder b, int d, bool doorLeft, string roof, string banner, int storeys = 2)
+        {
+            const int w = 2;
+            int shop = doorLeft ? 1 : 0;
+            for (int level = 0; level < storeys; level++)
+            {
+                int l = level;
+                Walls(b, w, d, l, (i, j, dir) =>
+                {
+                    if (dir == Vector2Int.down)
+                        return l > 0 ? "wall-window-shutters" : i == shop ? "wall-doorway-square" : "wall-door";
+                    if (dir == Vector2Int.up) return l == 0 ? "wall" : "wall-window-small";
+                    return j % 2 == 0 ? "wall-window-small" : "wall";
+                });
+            }
+            Side(b, "overhang", shop, 0, Vector2Int.down, 0, w, d);
+            Side(b, banner, shop, 0, Vector2Int.down, 1, w, d);
+            GableRoof(b, w, d, storeys, roof);
+        }
+
+        /// <summary>Offener Werkschuppen 2 × 2 Teile: vier Holzpfosten, Rückwand, Satteldach, Stämme darunter.</summary>
+        private static void WorkShed(Builder b)
+        {
+            const int w = 2, d = 2;
+            for (int x = 0; x <= w; x += w)
+                for (int z = 0; z <= d; z += d)
+                    b.Put(FT + "pillar-wood", new Vector3(x - w * 0.5f, 0f, z - d * 0.5f), 0f);
+            Walls(b, w, d, 0, (i, j, dir) => dir == Vector2Int.up ? "wall-wood" : null);
+            GableRoof(b, w, d, 1, "roof");
+            b.Put(NK + "log_stack", new Vector3(0f, 0f, 0.2f), 90f);
+        }
+
+        /// <summary>Handwerkerhaus 1 × 2: Haus an der Straße, offener Werkschuppen dahinter.</summary>
+        private static void ArtisanHouseShed(Builder b)
+        {
+            ArtisanHouse(b.At(0f, -1f), 2, doorLeft: true, roof: "roof", banner: "banner-green");
+            WorkShed(b.At(0f, 1.2f));
+        }
+
+        /// <summary>Handwerkerhaus 1 × 2: tieferes Haus, dahinter ein Werkhof mit Bohlen und Karren.</summary>
+        private static void ArtisanHouseYard(Builder b)
+        {
+            ArtisanHouse(b.At(0f, -0.5f), 3, doorLeft: false, roof: "roof-high", banner: "banner-red");
+            Planks(b.At(0f, 1.5f), 2, 1);
+            b.Put(FT + "cart", new Vector3(0f, 0f, 1.6f), 90f, 0.7f);
+        }
+
+        /// <summary>Handwerkerzeile 2 × 2: zwei Läden nebeneinander mit Vordächern, dahinter ein schmaler Hof.</summary>
+        private static void ArtisanRowAwnings(Builder b)
+        {
+            ArtisanHouse(b.At(-1f, -0.5f), 3, doorLeft: true, roof: "roof", banner: "banner-red");
+            ArtisanHouse(b.At(1f, -0.5f), 3, doorLeft: false, roof: "roof", banner: "banner-green");
+            b.Put(FT + "stall-bench", new Vector3(-1f, 0f, 1.6f), 0f);
+            b.Put(NK + "log_stack", new Vector3(1f, 0f, 1.6f), 90f);
+        }
+
+        /// <summary>Handwerkerzeile 2 × 2: ein dreistöckiges und ein zweistöckiges Haus, Werkhof dahinter.</summary>
+        private static void ArtisanRowTall(Builder b)
+        {
+            ArtisanHouse(b.At(-1f, -1f), 2, doorLeft: true, roof: "roof-high", banner: "banner-green", storeys: 3);
+            ArtisanHouse(b.At(1f, -1f), 2, doorLeft: false, roof: "roof", banner: "banner-red");
+            Planks(b.At(0f, 1f), 4, 2);
+            b.Put(FT + "cart", new Vector3(1f, 0f, 1.1f), 80f, 0.8f);
+        }
+
+        /// <summary>Werkhof 2 × 3: zwei Läden an der Straße, Hof mit Werkbank, hinten eine Holzhalle.</summary>
+        private static void WorkyardHall(Builder b)
+        {
+            ArtisanHouse(b.At(-1f, -2f), 2, doorLeft: true, roof: "roof", banner: "banner-red");
+            ArtisanHouse(b.At(1f, -2f), 2, doorLeft: false, roof: "roof-high", banner: "banner-green");
+            Planks(b.At(0f, 0f), 4, 2);
+            b.Put(FT + "stall-bench", new Vector3(-1f, 0f, 0f), 0f);
+            b.Put(FT + "cart", new Vector3(1f, 0f, 0f), 80f, 0.8f);
+            Hall(b.At(0f, 2f), 4, 2, 1, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 1 || i == 2 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
+                "wall-wood");
+        }
+
+        /// <summary>Werkhof 2 × 3: tiefes Haus links, offener Schuppen und Stapel rechts.</summary>
+        private static void WorkyardShed(Builder b)
+        {
+            ArtisanHouse(b.At(-1f, -1f), 4, doorLeft: true, roof: "roof", banner: "banner-green");
+            WorkShed(b.At(1f, -1.5f));
+            WorkShed(b.At(1f, 1f));
+            b.Put(NK + "log_stackLarge", new Vector3(-1f, 0f, 2.4f), 90f);
+            b.Put(FT + "cart", new Vector3(1f, 0f, 2.6f), 90f, 0.8f);
+        }
+
+        /// <summary>Zunfthaus 3 × 3: zweistöckiger Steinbau mit Bogentor, Balkon und zwei Bannern, Werkhof dahinter.</summary>
+        private static void GuildHall(Builder b)
+        {
+            Hall(b.At(0f, -1f), 6, 4, 2, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down
+                    ? (level == 0 ? (i == 2 || i == 3 ? "wall-doorway-round" : "wall-doorway-square")
+                        : i == 2 || i == 3 ? "balcony-wall" : "wall-window-shutters")
+                    : j % 2 == 1 || level == 1 ? "wall-window-small" : "wall");
+            var front = b.At(0f, -1f);
+            Side(front, "banner-red", 0, 0, Vector2Int.down, 1, 6, 4);
+            Side(front, "banner-green", 5, 0, Vector2Int.down, 1, 6, 4);
+            Planks(b.At(0f, 2.5f), 6, 1);
+            b.Put(NK + "log_stack", new Vector3(-2f, 0f, 2.5f), 90f);
+            b.Put(FT + "cart", new Vector3(2f, 0f, 2.5f), 90f, 0.8f);
+        }
+
+        /// <summary>Zunfthaus 3 × 3: drei Läden an der Straße, dahinter ein Hof mit Brunnen und Werkschuppen.</summary>
+        private static void GuildCourt(Builder b)
+        {
+            ArtisanHouse(b.At(-2f, -2f), 2, doorLeft: true, roof: "roof", banner: "banner-red");
+            ArtisanHouse(b.At(0f, -2f), 2, doorLeft: false, roof: "roof-high", banner: "banner-green", storeys: 3);
+            ArtisanHouse(b.At(2f, -2f), 2, doorLeft: true, roof: "roof", banner: "banner-red");
+            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
+            b.Put(FT + "fountain-round", new Vector3(-1f, 0f, 1.2f), 0f, 0.6f);
+            WorkShed(b.At(1.8f, 1.8f));
         }
 
         // ---------------------------------------------------------------- Rechteckige Zonengebäude

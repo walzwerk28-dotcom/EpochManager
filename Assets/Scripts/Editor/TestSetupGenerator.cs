@@ -209,12 +209,12 @@ namespace EpochCity
             residential.starterCapacity = 24;
             residential.starterDemand = 0.6f;
 
-            // Gleiche Häuser wie die Bauernzone; freigeschaltet mit der Schrift (wie die Schreibschule)
+            // Eigene Häuser (siehe unten); freigeschaltet mit der Schrift (wie die Schreibschule)
             var upperResidential = GetOrCreate<ZoneDefinition>("Zone_Handwerker");
             upperResidential.displayName = "Handwerkerzone";
             upperResidential.shortName = "Handwerker";
             upperResidential.maxTier = 2;
-            upperResidential.buildingsOf = residential;
+            upperResidential.buildingsOf = null; // eigene Häuser (Werkstatthaus bis Zunfthaus)
             upperResidential.requiredTechnology = writing;
             upperResidential.tilePrefab =
                 CreatePrefab("Prefab_Zone_Handwerker", Vector2Int.one, 0.02f, new Color(1f, 0.78f, 0.30f, 0.45f), 0.92f, true);
@@ -309,7 +309,24 @@ namespace EpochCity
             var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
                 BuildingCategory.Housing, residential, 16, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f), 2);
 
-            var homes = new[] { house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse };
+            // Eigene Häuser der Handwerkerzone: zuerst ziehen Bauern ein, die dort aufsteigen; das Modell zeigt von
+            // Anfang an ein Handwerkerhaus (Laden unten, Werkhof). Etwa 4 Wohnplätze je Feld wie bei den Bauern.
+            var workshopHouse = CreateZoneBuilding("Bld_Werkstatthaus", "Werkstatthaus", antike, BuildingCategory.Housing,
+                upperResidential, 6, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.75f, 0.55f));
+            var artisanHouse = CreateZoneBuilding("Bld_Handwerkerhaus", "Handwerkerhaus", antike, BuildingCategory.Housing,
+                upperResidential, 8, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.75f, 0.55f), new Vector2Int(1, 2));
+            var artisanRow = CreateZoneBuilding("Bld_Handwerkerzeile", "Handwerkerzeile", antike, BuildingCategory.Housing,
+                upperResidential, 16, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.75f, 0.55f), 2);
+            var workyardHouse = CreateZoneBuilding("Bld_Werkhof", "Werkhof", antike, BuildingCategory.Housing,
+                upperResidential, 24, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.75f, 0.55f), new Vector2Int(2, 3));
+            var guildHouse = CreateZoneBuilding("Bld_Zunfthaus", "Zunfthaus", antike, BuildingCategory.Housing,
+                upperResidential, 36, new BuildingFunction[0], 2.2f, new Color(0.9f, 0.75f, 0.55f), 3);
+
+            var homes = new[]
+            {
+                house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse,
+                workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse
+            };
             foreach (var home in homes) home.populationTier = farmers;
 
             // ---------------------------------------------------------------- Forschung der Antike
@@ -565,6 +582,7 @@ namespace EpochCity
                 field, market, library, mill, path, paved, storage, temple, well, residential, commercial,
                 house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
+                workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
                 food, marketNeed, water, faith, farmers,
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
                 school, education, artisans, upperResidential
