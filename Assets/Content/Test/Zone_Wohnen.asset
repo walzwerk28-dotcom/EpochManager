@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: afdcce9be4018704bba9ac079f0c454e, type: 3}
   m_Name: Zone_Wohnen
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneDefinition
-  displayName: Wohnzone
+  displayName: Bauernzone
+  shortName: Bauern
+  requiredTechnology: {fileID: 0}
+  buildingsOf: {fileID: 0}
+  maxTier: 1
   tilePrefab: {fileID: 328253906637148315, guid: 6b1510f06e6f83f4490ab60c8c882cce, type: 3}
   demandColor: {r: 0.45, g: 0.85, b: 0.35, a: 1}
   demandKind: 0

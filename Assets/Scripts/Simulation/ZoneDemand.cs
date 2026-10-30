@@ -6,7 +6,7 @@ namespace EpochCity
     /// <summary>
     /// Nachfrage je Zone (0 bis 1), wie die Nachfrage-Balken in Cities: Skylines. Sie steuert nur, wie schnell
     /// Zonen neu bebaut werden; bestehende Gebäude bleiben immer stehen.
-    /// Wohnen: Belegung aller Wohnhäuser, zwischen zwei Schwellen auf 0..1 abgebildet. Leere oder unzufriedene
+    /// Wohnen: Belegung der Wohnhäuser in dieser Zone (jede Wohnzone für sich), zwischen zwei Schwellen auf 0..1 abgebildet. Leere oder unzufriedene
     /// Häuser (die Einwohner streben Kapazität × Zufriedenheit an) senken sie; unter der Startkapazität gilt
     /// eine Mindestnachfrage. Gewerbe: 1 − bebaute Gewerbefelder / (Einwohner / Einwohner je Feld); ohne
     /// Einwohner keine Nachfrage. Wird aus dem Zustand berechnet und deshalb nicht gespeichert.
@@ -55,12 +55,20 @@ namespace EpochCity
             foreach (var zone in zones)
                 if (zone != null)
                     demand[zone] = zone.demandKind == ZoneDemandKind.Residential
-                        ? Residential(zone, residents, capacity)
+                        ? Residential(zone)
                         : Commercial(zone, residents);
         }
 
-        private static float Residential(ZoneDefinition zone, int residents, int capacity)
+        /// <summary>Wohnen: Belegung der Häuser in dieser Zone (jede Wohnzone, z. B. Bauern und Handwerker, für sich).</summary>
+        private float Residential(ZoneDefinition zone)
         {
+            int residents = 0, capacity = 0;
+            foreach (var b in city.Buildings)
+            {
+                if (b.Definition.populationTier == null || city.Grid.GetZone(b.Origin) != zone) continue;
+                residents += b.Residents;
+                capacity += b.Definition.GetCapacity(city.UnlockedTechnologies);
+            }
             float occupancy = capacity > 0 ? (float)residents / capacity : 0f;
             float value = Mathf.InverseLerp(zone.occupancyForNoDemand, zone.occupancyForFullDemand, occupancy);
             if (capacity < zone.starterCapacity) value = Mathf.Max(value, zone.starterDemand);

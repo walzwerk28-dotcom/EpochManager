@@ -43,8 +43,14 @@ namespace EpochCity
             if (city == null || clock == null || city.Grid == null) return;
 
             if (zones.Count == 0 && zoneBuildings != null)
+            {
                 foreach (var def in zoneBuildings)
                     if (def != null && def.zone != null && !zones.Contains(def.zone)) zones.Add(def.zone);
+                // Zonen ohne eigene Gebäude (z. B. Handwerkerzone mit den Häusern der Bauernzone)
+                if (demand != null && demand.zones != null)
+                    foreach (var zone in demand.zones)
+                        if (zone != null && !zones.Contains(zone)) zones.Add(zone);
+            }
 
             float dt = Time.deltaTime * clock.Speed;
             foreach (var zone in zones)
@@ -99,7 +105,8 @@ namespace EpochCity
         private void CollectOptions(Vector2Int cell)
         {
             options.Clear();
-            foreach (var def in GetBuildings(city.Grid.GetZone(cell)))
+            var zone = city.Grid.GetZone(cell);
+            foreach (var def in GetBuildings(zone))
             {
                 bool square = def.size.x == def.size.y;
                 foreach (float facing in square ? SquareOnly : CityController.Facings)
@@ -112,7 +119,7 @@ namespace EpochCity
                             float f = square ? city.GetFacingAngle(def, origin) : facing;
                             if (!city.CanGrow(def, origin, f)) continue;
                             // Grundstücke, die freie Zonenfelder dahinter von der Straße abschneiden, seltener wählen
-                            float weight = Weight(def) / (1f + CutOffCells(def.zone, footprint, origin));
+                            float weight = Weight(def) / (1f + CutOffCells(zone, footprint, origin));
                             options.Add((def, origin, f, weight));
                         }
                 }
@@ -187,7 +194,10 @@ namespace EpochCity
             return Mathf.Max(0f, Mathf.Lerp(sizeWeights[i0], sizeWeights[i1], side - Mathf.Floor(side)));
         }
 
-        /// <summary>Alle Gebäude dieser Zone aus der neuesten bereits erreichten Epoche (alle Größen).</summary>
+        /// <summary>
+        /// Alle Gebäude, die in dieser Zone wachsen (ihre eigenen oder die der Zone aus buildingsOf), aus der neuesten
+        /// bereits erreichten Epoche (alle Größen).
+        /// </summary>
         public List<BuildingDefinition> GetBuildings(ZoneDefinition zone)
         {
             choices.Clear();
@@ -196,7 +206,7 @@ namespace EpochCity
 
             foreach (var def in zoneBuildings)
             {
-                if (def == null || def.zone != zone || !city.IsAvailable(def)) continue;
+                if (def == null || def.zone != zone.BuildingZone || !city.IsAvailable(def)) continue;
                 int order = def.epoch != null ? def.epoch.order : 0;
                 if (order > bestOrder)
                 {

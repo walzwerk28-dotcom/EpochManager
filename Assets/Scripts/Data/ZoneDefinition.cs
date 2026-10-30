@@ -19,6 +19,24 @@ namespace EpochCity
     public class ZoneDefinition : ScriptableObject
     {
         public string displayName;
+        [Tooltip("Kurzer Name für den Nachfrage-Balken (leer = displayName)")]
+        public string shortName;
+        [Tooltip("Erst nutzbar, wenn diese Technologie erforscht ist (leer = immer)")]
+        public TechnologyDefinition requiredTechnology;
+
+        [Header("Wohnzonen nach Stufen")]
+        [Tooltip("Hier wachsen die Gebäude dieser Zone (leer = eigene Gebäude mit BuildingDefinition.zone = diese Zone), " +
+                 "z. B. Handwerkerzone mit den Häusern der Bauernzone")]
+        public ZoneDefinition buildingsOf;
+        [Tooltip("Höchste Bevölkerungsstufe, bis zu der Häuser hier aufsteigen (0 = ohne Grenze)")]
+        [Min(0)] public int maxTier;
+
+        /// <summary>Zone, deren Gebäude hier wachsen.</summary>
+        public ZoneDefinition BuildingZone => buildingsOf != null ? buildingsOf : this;
+
+        /// <summary>Name für den Nachfrage-Balken.</summary>
+        public string ShortName => string.IsNullOrEmpty(shortName) ? displayName : shortName;
+
         [Tooltip("Flache Kachel für genau ein Rasterfeld, zeigt die Zone an")]
         public GameObject tilePrefab;
         [Tooltip("Farbe des Nachfrage-Balkens")]

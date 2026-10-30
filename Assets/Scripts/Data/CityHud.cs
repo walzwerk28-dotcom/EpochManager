@@ -205,7 +205,7 @@ namespace EpochCity
                     AddTab(bottom, "Straßen", TabKind.Roads, default, icons != null ? icons.road : null, "Taste R");
                 if (placer.residentialZone != null || placer.commercialZone != null)
                     AddTab(bottom, "Zonen", TabKind.Zones, default, icons != null ? icons.zones : null,
-                        "Wohnen Z  ·  Gewerbe G  ·  aufheben U");
+                        "Bauern Z  ·  Handwerker H  ·  Gewerbe G  ·  aufheben U");
 
                 // Kategorien aus den Daten: nur die, für die es baubare Gebäude gibt
                 foreach (var (category, label) in CategoryOrder)
@@ -232,7 +232,7 @@ namespace EpochCity
 
             float above = BarHeight + SubMenuHeight + 12f;
             hintText = CreateBottomLine(canvas, "Hint",
-                "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / H / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
                 18f, theme.textMuted, above);
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, above + 28f);
         }
@@ -306,6 +306,9 @@ namespace EpochCity
                 case TabKind.Zones:
                     if (placer.residentialZone != null)
                         AddZoneEntry(placer.residentialZone, "Z", "Wohnhäuser wachsen von selbst an Straßen.");
+                    if (placer.upperResidentialZone != null)
+                        AddZoneEntry(placer.upperResidentialZone, "H",
+                            "Wohnhäuser wachsen von selbst an Straßen und können hier aufsteigen.");
                     if (placer.commercialZone != null)
                         AddZoneEntry(placer.commercialZone, "G", "Läden und Werkstätten wachsen von selbst an Straßen.");
                     AddEntry(icons != null ? icons.close : null, "Aufheben", "Zone entfernen", "U",
@@ -332,9 +335,19 @@ namespace EpochCity
 
         private void AddZoneEntry(ZoneDefinition zone, string key, string description)
         {
-            AddEntry(theme.icons != null ? theme.icons.zones : null, zone.displayName, "kostenlos", key,
-                () => placer.SelectZone(zone), () => placer.ZoneMode && placer.SelectedZone == zone, null,
-                () => $"<b>{zone.displayName}</b>\n{description}\n" + Muted("Rechteck ziehen, Rechtsklick bricht ab"));
+            // Kurzname auf der Karte (der volle Name wie „Handwerkerzone“ passt nicht), voller Name im Tooltip
+            AddEntry(theme.icons != null ? theme.icons.zones : null, zone.ShortName, "Zone · kostenlos", key,
+                () => placer.SelectZone(zone), () => placer.ZoneMode && placer.SelectedZone == zone,
+                () => !city.IsUnlocked(zone.requiredTechnology),
+                () => $"<b>{zone.displayName}</b>\n{description}\n" + TierLimit(zone) +
+                      (LockReason(null, zone.requiredTechnology) ?? Muted("Rechteck ziehen, Rechtsklick bricht ab")));
+        }
+
+        /// <summary>Bis zu welcher Stufe Häuser in dieser Wohnzone aufsteigen, mit Zeilenumbruch; sonst leer.</summary>
+        private string TierLimit(ZoneDefinition zone)
+        {
+            if (zone.demandKind != ZoneDemandKind.Residential || zone.maxTier <= 0) return "";
+            return zone.maxTier == 1 ? "Häuser steigen hier nicht auf.\n" : $"Häuser steigen hier bis Stufe {zone.maxTier} auf.\n";
         }
 
         /// <summary>Karte in der aufgeklappten Reihe: Symbol, Name, Kurzinfo, Taste oben links; Details im Tooltip.</summary>

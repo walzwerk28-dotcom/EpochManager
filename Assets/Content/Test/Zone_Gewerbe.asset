@@ -13,6 +13,10 @@ MonoBehaviour:
   m_Name: Zone_Gewerbe
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneDefinition
   displayName: Gewerbezone
+  shortName: Gewerbe
+  requiredTechnology: {fileID: 0}
+  buildingsOf: {fileID: 0}
+  maxTier: 0
   tilePrefab: {fileID: 8503346403519037484, guid: f4c570be62c25634bb3ef22219d1c219, type: 3}
   demandColor: {r: 0.4, g: 0.62, b: 1, a: 1}
   demandKind: 1

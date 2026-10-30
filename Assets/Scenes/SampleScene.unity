@@ -705,6 +705,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d6ea6e1268ccf6e47b529078f24f817f, type: 2}
   residentialZone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   commercialZone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
+  upperResidentialZone: {fileID: 11400000, guid: 7713a74dfec593a47851c01b45fe9539, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
   invalidColor: {r: 1, g: 0.35, b: 0.35, a: 1}
   ghostAlpha: 0.55
@@ -929,6 +930,7 @@ MonoBehaviour:
   city: {fileID: 440537052}
   zones:
   - {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
+  - {fileID: 11400000, guid: 7713a74dfec593a47851c01b45fe9539, type: 2}
   - {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   refreshSeconds: 0.5
 --- !u!1 &1627082945

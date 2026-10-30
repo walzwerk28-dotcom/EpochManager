@@ -161,7 +161,8 @@ namespace EpochCity
             def != null && CanGrow(def, origin, GetFacingAngle(def, origin));
 
         /// <summary>
-        /// Passt das Zonengebäude mit dieser Drehung hier hin? Gedrehte Grundfläche frei und ganz in seiner Zone,
+        /// Passt das Zonengebäude mit dieser Drehung hier hin? Gedrehte Grundfläche frei und ganz in einer Zone, in
+        /// der es wächst (seine eigene oder eine mit ZoneDefinition.buildingsOf),
         /// Epoche erreicht, und an der Vorderseite liegt eine Straße.
         /// </summary>
         public bool CanGrow(BuildingDefinition def, Vector2Int origin, float facing)
@@ -170,9 +171,12 @@ namespace EpochCity
             var footprint = def.GetFootprint(facing);
             if (!Grid.CanPlace(footprint, origin) || !Grid.SideHasRoad(origin, footprint, FrontSide(facing)) ||
                 !DepositAllows(def, origin, footprint)) return false;
+            // Ganz in einer Zone, deren Gebäude dieses sind (die Handwerkerzone nutzt die Häuser der Bauernzone)
+            var zone = Grid.GetZone(origin);
+            if (zone == null || zone.BuildingZone != def.zone) return false;
             for (int x = 0; x < footprint.x; x++)
                 for (int y = 0; y < footprint.y; y++)
-                    if (Grid.GetZone(new Vector2Int(origin.x + x, origin.y + y)) != def.zone) return false;
+                    if (Grid.GetZone(new Vector2Int(origin.x + x, origin.y + y)) != zone) return false;
             return true;
         }
 

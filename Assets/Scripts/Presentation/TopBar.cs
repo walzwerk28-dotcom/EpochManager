@@ -42,6 +42,7 @@ namespace EpochCity
         private class DemandBar
         {
             public ZoneDefinition Zone;
+            public GameObject Group;
             public RectTransform Fill;
             public TextMeshProUGUI Value;
         }
@@ -138,6 +139,9 @@ namespace EpochCity
             if (demand != null)
                 foreach (var bar in demandBars)
                 {
+                    // Zonen, die noch gesperrt sind (Technologie fehlt), erscheinen erst mit der Freischaltung
+                    bool unlocked = city.IsUnlocked(bar.Zone.requiredTechnology);
+                    if (bar.Group.activeSelf != unlocked) bar.Group.SetActive(unlocked);
                     float value = demand.GetDemand(bar.Zone);
                     bar.Fill.anchorMax = new Vector2(value, 1f);
                     bar.Value.text = $"{value * 100f:0} %";
@@ -275,26 +279,32 @@ namespace EpochCity
 
         private void AddDemandBar(Transform parent, ZoneDefinition zone)
         {
+            // Kurzer Name über Balken und Wert, damit drei und mehr Zonen in die Leiste passen
             var group = new GameObject("Demand_" + zone.name, typeof(RectTransform));
             group.transform.SetParent(parent, false);
-            UiFactory.AddRow(group, TextAnchor.MiddleLeft, 0, 8f);
+            UiFactory.AddColumn(group, 0, 2f);
+            group.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            group.AddComponent<LayoutElement>().preferredWidth = 108f;
 
-            var label = Text(group.transform, "Label", theme.smallSize, theme.textMuted, 100f);
-            label.text = zone.displayName;
-            label.alignment = TextAlignmentOptions.MidlineRight;
+            var label = Text(group.transform, "Label", theme.smallSize - 1f, theme.textMuted, 108f);
+            label.text = zone.ShortName;
 
-            var track = UiFactory.CreatePanel("Track", group.transform, Vector2.zero, Vector2.zero, Vector2.zero,
-                new Vector2(80f, 12f), theme.track, PanelStyle.Flat);
+            var row = new GameObject("Row", typeof(RectTransform));
+            row.transform.SetParent(group.transform, false);
+            UiFactory.AddRow(row, TextAnchor.MiddleLeft, 0, 6f);
+            var track = UiFactory.CreatePanel("Track", row.transform, Vector2.zero, Vector2.zero, Vector2.zero,
+                new Vector2(60f, 10f), theme.track, PanelStyle.Flat);
             var trackLayout = track.gameObject.AddComponent<LayoutElement>();
-            trackLayout.preferredWidth = 80f;
-            trackLayout.preferredHeight = 12f;
+            trackLayout.preferredWidth = 60f;
+            trackLayout.preferredHeight = 10f;
 
             var fill = UiFactory.CreatePanel("Fill", track, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f),
                 Vector2.zero, zone.demandColor, PanelStyle.Flat);
             fill.offsetMin = fill.offsetMax = Vector2.zero;
 
-            var value = Text(group.transform, "Value", theme.smallSize, theme.text, 44f);
-            demandBars.Add(new DemandBar { Zone = zone, Fill = fill, Value = value });
+            var value = Text(row.transform, "Value", theme.smallSize, theme.text, 42f);
+            Tooltip.Attach(group, () => $"<b>Nachfrage {zone.displayName}</b>\nWie schnell die Zone neu bebaut wird");
+            demandBars.Add(new DemandBar { Zone = zone, Group = group, Fill = fill, Value = value });
         }
 
         /// <summary>Kleines Menü unter dem Menü-Button: Speichern und Laden.</summary>

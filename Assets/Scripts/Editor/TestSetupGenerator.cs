@@ -193,8 +193,13 @@ namespace EpochCity
             storage.minEfficiency = 0.25f;
             storage.prefab = KeepModel(storage.prefab, () => CreatePrefab("Prefab_Lager", storage.size, 1.5f, new Color(0.5f, 0.38f, 0.25f)));
 
+            // Wohnzonen nach Stufen: in der Bauernzone steigen Häuser nicht auf, in der Handwerkerzone bis Stufe 2
             var residential = GetOrCreate<ZoneDefinition>("Zone_Wohnen");
-            residential.displayName = "Wohnzone";
+            residential.displayName = "Bauernzone";
+            residential.shortName = "Bauern";
+            residential.maxTier = 1;
+            residential.buildingsOf = null;
+            residential.requiredTechnology = null;
             residential.tilePrefab =
                 CreatePrefab("Prefab_Zone_Wohnen", Vector2Int.one, 0.02f, new Color(0.62f, 0.95f, 0.45f, 0.4f), 0.92f, true);
             residential.demandColor = new Color(0.45f, 0.85f, 0.35f);
@@ -204,8 +209,28 @@ namespace EpochCity
             residential.starterCapacity = 24;
             residential.starterDemand = 0.6f;
 
+            // Gleiche Häuser wie die Bauernzone; freigeschaltet mit der Schrift (wie die Schreibschule)
+            var upperResidential = GetOrCreate<ZoneDefinition>("Zone_Handwerker");
+            upperResidential.displayName = "Handwerkerzone";
+            upperResidential.shortName = "Handwerker";
+            upperResidential.maxTier = 2;
+            upperResidential.buildingsOf = residential;
+            upperResidential.requiredTechnology = writing;
+            upperResidential.tilePrefab =
+                CreatePrefab("Prefab_Zone_Handwerker", Vector2Int.one, 0.02f, new Color(1f, 0.78f, 0.30f, 0.45f), 0.92f, true);
+            upperResidential.demandColor = new Color(0.95f, 0.72f, 0.25f);
+            upperResidential.demandKind = ZoneDemandKind.Residential;
+            upperResidential.occupancyForNoDemand = 0.5f;
+            upperResidential.occupancyForFullDemand = 0.9f;
+            upperResidential.starterCapacity = 24;
+            upperResidential.starterDemand = 0.6f;
+
             var commercial = GetOrCreate<ZoneDefinition>("Zone_Gewerbe");
             commercial.displayName = "Gewerbezone";
+            commercial.shortName = "Gewerbe";
+            commercial.maxTier = 0;
+            commercial.buildingsOf = null;
+            commercial.requiredTechnology = null;
             commercial.tilePrefab =
                 CreatePrefab("Prefab_Zone_Gewerbe", Vector2Int.one, 0.02f, new Color(0.40f, 0.62f, 1f, 0.45f), 0.92f, true);
             commercial.demandColor = new Color(0.40f, 0.62f, 1f);
@@ -542,7 +567,7 @@ namespace EpochCity
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
                 food, marketNeed, water, faith, farmers,
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
-                school, education, artisans
+                school, education, artisans, upperResidential
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann

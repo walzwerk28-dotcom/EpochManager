@@ -244,6 +244,10 @@ namespace EpochCity
         {
             var tier = house.Tier;
             if (tier.nextTier == null) return "höchste Stufe";
+            // Die Zone legt die höchste Stufe fest (Bauernzone: kein Aufstieg), wie Zonenarten in Cities: Skylines
+            var zone = city.Grid.GetZone(house.Origin);
+            if (zone != null && zone.maxTier > 0 && tier.nextTier.tier > zone.maxTier)
+                return $"nicht in der {zone.displayName}";
             if (house.Satisfaction < tier.upgradeSatisfaction)
                 return $"Zufriedenheit unter {tier.upgradeSatisfaction * 100f:0} %";
             if (tier.upgradeRequires != null)
