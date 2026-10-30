@@ -9,7 +9,7 @@ namespace EpochCity
     /// Platzieren und Abreißen per Maus (neues Input System).
     /// 1-9: Gebäude der in der Bauleiste offenen Kategorie wählen · R: Straße · Linksklick: bauen / abreißen
     /// Straße: Maustaste halten und ziehen, die Strecke folgt dem Raster in L-Form
-    /// Z / H / G: Bauern- / Handwerker- / Gewerbezone, U: Zone aufheben – jeweils ein Rechteck ziehen
+    /// Z / H / J / G: Bauern- / Handwerker- / Gelehrten- / Gewerbezone, U: Zone aufheben – jeweils ein Rechteck ziehen
     /// Rechtsklick oder Esc: Auswahl aufheben · X: Abriss-Modus an/aus (Gebäude und Straßen)
     /// </summary>
     public class BuildingPlacer : MonoBehaviour
@@ -33,6 +33,8 @@ namespace EpochCity
         public ZoneDefinition commercialZone;
         [Tooltip("Wohnzone der zweiten Stufe für Taste H (z. B. Handwerker)")]
         public ZoneDefinition upperResidentialZone;
+        [Tooltip("Wohnzone der dritten Stufe für Taste J (z. B. Gelehrte)")]
+        public ZoneDefinition topResidentialZone;
 
         public Color validColor = new Color(0.4f, 1f, 0.4f, 1f);
         public Color invalidColor = new Color(1f, 0.35f, 0.35f, 1f);
@@ -122,6 +124,7 @@ namespace EpochCity
             if (kb.zKey.wasPressedThisFrame && residentialZone != null) SelectZone(residentialZone);
             if (kb.gKey.wasPressedThisFrame && commercialZone != null) SelectZone(commercialZone);
             if (kb.hKey.wasPressedThisFrame && upperResidentialZone != null) SelectZone(upperResidentialZone);
+            if (kb.jKey.wasPressedThisFrame && topResidentialZone != null) SelectZone(topResidentialZone);
             if (kb.uKey.wasPressedThisFrame) SelectZone(null);
         }
 

@@ -205,7 +205,7 @@ namespace EpochCity
                     AddTab(bottom, "Straßen", TabKind.Roads, default, icons != null ? icons.road : null, "Taste R");
                 if (placer.residentialZone != null || placer.commercialZone != null)
                     AddTab(bottom, "Zonen", TabKind.Zones, default, icons != null ? icons.zones : null,
-                        "Bauern Z  ·  Handwerker H  ·  Gewerbe G  ·  aufheben U");
+                        "Bauern Z  ·  Handwerker H  ·  Gelehrte J  ·  Gewerbe G  ·  aufheben U");
 
                 // Kategorien aus den Daten: nur die, für die es baubare Gebäude gibt
                 foreach (var (category, label) in CategoryOrder)
@@ -232,7 +232,7 @@ namespace EpochCity
 
             float above = BarHeight + SubMenuHeight + 12f;
             hintText = CreateBottomLine(canvas, "Hint",
-                "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / H / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
+                "1-9: Gebäude der offenen Kategorie  |  R: Straße  |  Z / H / J / G / U: Zonen  |  X: abreißen  |  C: Anbindung  |  Rechtsklick: abbrechen  |  WASD, Q/E, Mausrad: Kamera",
                 18f, theme.textMuted, above);
             hoverText = CreateBottomLine(canvas, "HoverInfo", "", 22f, textColor, above + 28f);
         }
@@ -309,6 +309,9 @@ namespace EpochCity
                     if (placer.upperResidentialZone != null)
                         AddZoneEntry(placer.upperResidentialZone, "H",
                             "Wohnhäuser wachsen von selbst an Straßen und können hier aufsteigen.");
+                    if (placer.topResidentialZone != null)
+                        AddZoneEntry(placer.topResidentialZone, "J",
+                            "Villen wachsen von selbst an Straßen; die Bewohner können bis zur dritten Stufe aufsteigen.");
                     if (placer.commercialZone != null)
                         AddZoneEntry(placer.commercialZone, "G", "Läden und Werkstätten wachsen von selbst an Straßen.");
                     AddEntry(icons != null ? icons.close : null, "Aufheben", "Zone entfernen", "U",

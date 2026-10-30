@@ -225,6 +225,21 @@ namespace EpochCity
             upperResidential.starterCapacity = 24;
             upperResidential.starterDemand = 0.6f;
 
+            // Gelehrtenzone: eigene Häuser, Aufstieg bis Stufe 3; freigeschaltet mit Philosophie (siehe unten)
+            var topResidential = GetOrCreate<ZoneDefinition>("Zone_Gelehrte");
+            topResidential.displayName = "Gelehrtenzone";
+            topResidential.shortName = "Gelehrte";
+            topResidential.maxTier = 3;
+            topResidential.buildingsOf = null;
+            topResidential.tilePrefab =
+                CreatePrefab("Prefab_Zone_Gelehrte", Vector2Int.one, 0.02f, new Color(0.72f, 0.50f, 0.95f, 0.45f), 0.92f, true);
+            topResidential.demandColor = new Color(0.68f, 0.48f, 0.92f);
+            topResidential.demandKind = ZoneDemandKind.Residential;
+            topResidential.occupancyForNoDemand = 0.5f;
+            topResidential.occupancyForFullDemand = 0.9f;
+            topResidential.starterCapacity = 24;
+            topResidential.starterDemand = 0.6f;
+
             var commercial = GetOrCreate<ZoneDefinition>("Zone_Gewerbe");
             commercial.displayName = "Gewerbezone";
             commercial.shortName = "Gewerbe";
@@ -322,10 +337,22 @@ namespace EpochCity
             var guildHouse = CreateZoneBuilding("Bld_Zunfthaus", "Zunfthaus", antike, BuildingCategory.Housing,
                 upperResidential, 36, new BuildingFunction[0], 2.2f, new Color(0.9f, 0.75f, 0.55f), 3);
 
+            // Häuser der Gelehrtenzone: Steinbauten mit Säulen und Gärten, etwas mehr Platz (etwa 3 je Feld);
+            // zuerst Bauern, die über Handwerker zu Gelehrten aufsteigen
+            var scholarHouse = CreateZoneBuilding("Bld_Gelehrtenhaus", "Gelehrtenhaus", antike, BuildingCategory.Housing,
+                topResidential, 6, new BuildingFunction[0], 1.6f, new Color(0.9f, 0.88f, 0.8f), new Vector2Int(1, 2));
+            var townVilla = CreateZoneBuilding("Bld_Stadtvilla", "Stadtvilla", antike, BuildingCategory.Housing,
+                topResidential, 12, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.88f, 0.8f), 2);
+            var gardenVilla = CreateZoneBuilding("Bld_Villa", "Villa mit Garten", antike, BuildingCategory.Housing,
+                topResidential, 18, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.88f, 0.8f), new Vector2Int(2, 3));
+            var peristyle = CreateZoneBuilding("Bld_Peristylhaus", "Peristylhaus", antike, BuildingCategory.Housing,
+                topResidential, 27, new BuildingFunction[0], 2f, new Color(0.9f, 0.88f, 0.8f), 3);
+
             var homes = new[]
             {
                 house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse,
-                workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse
+                workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
+                scholarHouse, townVilla, gardenVilla, peristyle
             };
             foreach (var home in homes) home.populationTier = farmers;
 
@@ -622,6 +649,69 @@ namespace EpochCity
             farmers.upgradeMonths = 3;
             farmers.upgradeRequires = new[] { education };
 
+            // ---------------------------------------------------------------- Stufe 3: Gelehrte
+            // Handwerker steigen in der Gelehrtenzone auf, wenn eine Akademie in Reichweite liegt (GDD: Bildung hebt).
+            // Die Akademie bietet höhere Bildung auch ohne Personal; ihre Forschung braucht Gelehrte.
+
+            var scholars = GetOrCreate<PopulationTierDefinition>("Tier_3");
+            scholars.tier = 3;
+            scholars.displayName = "Gelehrte"; // GDD: „Gelehrte und Priester“, im Spiel kurz
+            scholars.namesByEpoch = new[]
+            {
+                new EpochName { epoch = antike, name = "Gelehrte" },
+                new EpochName { epoch = mittelalter, name = "Gelehrte und Kaufleute" }
+            };
+            scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed }; // Wein folgt mit Teil B
+            scholars.taxPerResidentPerMonth = 4f;
+            scholars.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
+            scholars.nextTier = null;
+            scholars.upgradeRequires = new NeedDefinition[0];
+            scholars.downgradeSatisfaction = 0.4f;
+            scholars.downgradeMonths = 3;
+
+            var academy = GetOrCreate<BuildingDefinition>("Bld_Akademie");
+            academy.displayName = "Akademie";
+            academy.epoch = antike;
+            academy.requiredTechnology = philosophy;
+            academy.category = BuildingCategory.Service;
+            academy.size = new Vector2Int(2, 3);
+            academy.buildCost = 300f;
+            academy.materialCosts = Cost((boards, 6f), (stone, 10f));
+            academy.upkeepPerMonth = 5f;
+            academy.baseCapacity = 0;
+            academy.baseFunctions = new[]
+            {
+                new BuildingFunction
+                {
+                    label = "Lehren und forschen",
+                    inputs = new[] { new ResourceAmount { resource = coins, amount = 2f } },
+                    outputs = new[] { new ResourceAmount { resource = research, amount = 2f } },
+                    cycleSeconds = 5f
+                }
+            };
+            academy.layers = new BuildingLayer[0];
+            academy.workerTier = scholars;
+            academy.workers = 3;
+            academy.prefab = KeepModel(academy.prefab, () => CreatePrefab("Prefab_Akademie", academy.size, 2.5f, new Color(0.92f, 0.9f, 0.82f)));
+
+            var higherEducation = GetOrCreate<NeedDefinition>("Need_HoehereBildung");
+            higherEducation.displayName = "Höhere Bildung";
+            higherEducation.epoch = antike;
+            higherEducation.requiredTechnology = philosophy;
+            higherEducation.pyramidLevel = 5;
+            higherEducation.weight = 1f;
+            higherEducation.kind = NeedKind.Service;
+            higherEducation.resource = null;
+            higherEducation.providers = new[] { academy };
+            higherEducation.range = 20f;
+            higherEducation.coverageByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
+
+            artisans.nextTier = scholars;
+            artisans.upgradeSatisfaction = 0.75f;
+            artisans.upgradeMonths = 3;
+            artisans.upgradeRequires = new[] { higherEducation };
+            topResidential.requiredTechnology = philosophy;
+
             // Mittelalter: 3 der 4 Schlüsseltechnologien (je Pfad eine), eine Bibliothek und 300 Einwohner
             mittelalter.keyTechnologies = new[] { minting, philosophy, plough, waterworks };
             mittelalter.requiredKeyTechnologies = 3;
@@ -638,7 +728,8 @@ namespace EpochCity
                 food, marketNeed, water, faith, farmers,
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
-                clay, ceramics, clayPit, pottery, ceramicNeed
+                clay, ceramics, clayPit, pottery, ceramicNeed,
+                topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann

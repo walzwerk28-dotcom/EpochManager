@@ -703,6 +703,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a7e0f07efedf69542a3b9942fb6c0646, type: 2}
   - {fileID: 11400000, guid: e209751f86a92d4458274ab83a522a2b, type: 2}
   - {fileID: 11400000, guid: 229afdcbf2f5dc848a6fed0eb044946e, type: 2}
+  - {fileID: 11400000, guid: 431f110eb0d44b440822a951a0019a8c, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
   roads:
   - {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
@@ -710,6 +711,7 @@ MonoBehaviour:
   residentialZone: {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   commercialZone: {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   upperResidentialZone: {fileID: 11400000, guid: 7713a74dfec593a47851c01b45fe9539, type: 2}
+  topResidentialZone: {fileID: 11400000, guid: 4ba6d175a3d351e45aad229dc4ceb83f, type: 2}
   validColor: {r: 0.4, g: 1, b: 0.4, a: 1}
   invalidColor: {r: 1, g: 0.35, b: 0.35, a: 1}
   ghostAlpha: 0.55
@@ -878,6 +880,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2233204dec1fe674db3cd747ced1e8f7, type: 2}
   - {fileID: 11400000, guid: 6c46ada9d25ad7d4fb74f0bfa44e4778, type: 2}
   - {fileID: 11400000, guid: 620507b357ad2af4b90d30b20e873198, type: 2}
+  - {fileID: 11400000, guid: fd1eb865542b1ac46ba6bf7a59946aa2, type: 2}
+  - {fileID: 11400000, guid: 95da33e20d7c922439e878e1eca82bb5, type: 2}
+  - {fileID: 11400000, guid: 08f51451597641b43a800f275d2cb237, type: 2}
+  - {fileID: 11400000, guid: a9299c713494b6446b987d0251f80040, type: 2}
   growthInterval: 2
   sizeWeights:
   - 1
@@ -905,6 +911,7 @@ MonoBehaviour:
   tiers:
   - {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   - {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}
+  - {fileID: 11400000, guid: e9c0dae1736404c4784f862fbfb8af43, type: 2}
 --- !u!114 &1598712642
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -940,6 +947,7 @@ MonoBehaviour:
   zones:
   - {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   - {fileID: 11400000, guid: 7713a74dfec593a47851c01b45fe9539, type: 2}
+  - {fileID: 11400000, guid: 4ba6d175a3d351e45aad229dc4ceb83f, type: 2}
   - {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   refreshSeconds: 0.5
 --- !u!1 &1627082945
