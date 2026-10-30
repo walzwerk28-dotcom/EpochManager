@@ -54,6 +54,8 @@ namespace EpochCity
             public CanvasGroup Content;
             public System.Func<bool> IsSelected;
             public System.Func<bool> IsLocked;
+            public TextMeshProUGUI Meta;
+            public System.Func<bool> CanAfford; // Kosten rot, solange Geld oder Material fehlen
             public bool Removes; // Zone aufheben: rot statt grün hervorheben
         }
 
@@ -102,6 +104,9 @@ namespace EpochCity
                 entry.Image.color = locked ? lockedColor
                     : selected ? (entry.Removes ? demolishColor : selectedColor) : buttonColor;
                 entry.Content.alpha = locked ? 0.45f : 1f;
+                if (entry.CanAfford != null)
+                    entry.Meta.color = locked || entry.CanAfford() ? theme.textMuted
+                        : selected ? Color.Lerp(demolishColor, Color.white, 0.55f) : demolishColor; // lesbar auf Grün
             }
             demolishImage.color = placer.DemolishMode ? demolishColor : buttonColor;
             if (overlayImage != null) overlayImage.color = overlay.Visible ? selectedColor : buttonColor;
@@ -121,6 +126,14 @@ namespace EpochCity
         private string GetHoverInfo()
         {
             if (!placer.TryGetHover(out var cell)) return "";
+
+            // Mit gewähltem Gebäude: was zum Bau noch fehlt
+            var selected = placer.SelectedBuilding;
+            if (selected != null && city.IsAvailable(selected))
+            {
+                string lack = city.GetMissingCost(selected.buildCost, selected.materialCosts);
+                if (lack != null) return $"{selected.displayName}  |  fehlt: {lack}";
+            }
 
             var building = city.Grid.GetAt(cell);
             if (building != null)
@@ -154,7 +167,7 @@ namespace EpochCity
         }
 
         private const float BarHeight = 96f;
-        private const float SubMenuHeight = 112f;
+        private const float SubMenuHeight = 126f;
 
         private void BuildBottomBar(Transform canvas)
         {
@@ -262,12 +275,16 @@ namespace EpochCity
                     {
                         if (type == null) continue;
                         var road = type;
+                        string roadMaterials = Amounts(road.materialCostsPerCell);
                         AddEntry(icons != null ? icons.road : null, road.displayName,
-                            $"{road.costPerCell:0} {Currency()} / Feld", "R", () => placer.SelectRoad(road),
+                            $"{road.costPerCell:0} {Currency()} / Feld" +
+                            (roadMaterials != "" ? $"\n{roadMaterials} / Feld" : ""), "R", () => placer.SelectRoad(road),
                             () => placer.RoadMode && placer.road == road, () => !city.IsAvailable(road),
-                            () => $"<b>{road.displayName}</b>\n{road.costPerCell:0.#} {Currency()} pro Feld, " +
+                            () => $"<b>{road.displayName}</b>\n{road.costPerCell:0.#} {Currency()}" +
+                                  (roadMaterials != "" ? $" + {roadMaterials}" : "") + " pro Feld, " +
                                   $"Unterhalt {road.upkeepPerCellPerMonth:0.##} pro Feld und Monat\n" +
                                   $"Qualität {road.quality:0.#}: Wege zum Lager zählen {(1f / road.quality) * 100f:0} %\n" +
+                                  (city.IsAvailable(road) ? MissingLine(road.costPerCell, road.materialCostsPerCell) : "") +
                                   (LockReason(road.epoch, road.requiredTechnology) ??
                                    Muted("Mit der Maus ziehen, R wechselt den Typ, Rechtsklick bricht ab")));
                     }
@@ -288,10 +305,13 @@ namespace EpochCity
                     for (int i = 0; i < list.Count; i++)
                     {
                         var def = list[i];
+                        string materials = Amounts(def.materialCosts);
                         AddEntry(icons != null ? icons.ForCategory(def.category) : null, def.displayName,
-                            $"{def.size.x} × {def.size.y}  ·  {Mathf.FloorToInt(def.buildCost)}", i < 9 ? $"{i + 1}" : "",
+                            $"{def.size.x} × {def.size.y}  ·  {Mathf.FloorToInt(def.buildCost)}" +
+                            (materials != "" ? "\n" + materials : ""), i < 9 ? $"{i + 1}" : "",
                             () => placer.Select(def), () => placer.SelectedBuilding == def,
-                            () => !city.IsAvailable(def), () => BuildingTooltip(def));
+                            () => !city.IsAvailable(def), () => BuildingTooltip(def)).CanAfford =
+                            () => city.CanAfford(def);
                     }
                     break;
             }
@@ -308,7 +328,7 @@ namespace EpochCity
         private Entry AddEntry(Sprite icon, string title, string meta, string key, UnityEngine.Events.UnityAction onClick,
             System.Func<bool> isSelected, System.Func<bool> isLocked, System.Func<string> tooltip)
         {
-            var button = UiFactory.CreateButton(subMenu, "Entry_" + entries.Count, "", new Vector2(150f, 92f),
+            var button = UiFactory.CreateButton(subMenu, "Entry_" + entries.Count, "", new Vector2(150f, 106f),
                 theme.bodySize, buttonColor, textColor, onClick);
             Destroy(button.GetComponentInChildren<TextMeshProUGUI>().gameObject);
 
@@ -331,8 +351,9 @@ namespace EpochCity
                 TextAlignmentOptions.Center, textColor);
             name.textWrappingMode = TextWrappingModes.NoWrap;
             name.overflowMode = TextOverflowModes.Ellipsis;
-            UiFactory.CreateText("Meta", content.transform, meta, theme.smallSize - 2f, TextAlignmentOptions.Center,
-                theme.textMuted).textWrappingMode = TextWrappingModes.NoWrap;
+            var metaText = UiFactory.CreateText("Meta", content.transform, meta, theme.smallSize - 2f,
+                TextAlignmentOptions.Center, theme.textMuted);
+            metaText.textWrappingMode = TextWrappingModes.NoWrap;
 
             if (!string.IsNullOrEmpty(key))
             {
@@ -353,7 +374,8 @@ namespace EpochCity
                 Image = (UnityEngine.UI.Image)button.targetGraphic,
                 Content = content.GetComponent<CanvasGroup>(),
                 IsSelected = isSelected,
-                IsLocked = isLocked
+                IsLocked = isLocked,
+                Meta = metaText
             };
             entries.Add(entry);
             return entry;
@@ -364,8 +386,9 @@ namespace EpochCity
         {
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"<b>{def.displayName}</b>");
-            sb.AppendLine($"{def.size.x} × {def.size.y} Felder  ·  {def.buildCost:0} {Currency()}  ·  " +
-                          $"Unterhalt {def.upkeepPerMonth:0.#} pro Monat");
+            string materials = Amounts(def.materialCosts);
+            sb.AppendLine($"{def.size.x} × {def.size.y} Felder  ·  {def.buildCost:0} {Currency()}" +
+                          (materials != "" ? $" + {materials}" : "") + $"  ·  Unterhalt {def.upkeepPerMonth:0.#} pro Monat");
             foreach (var function in def.GetActiveFunctions(city.UnlockedTechnologies))
             {
                 if (function == null) continue;
@@ -379,6 +402,7 @@ namespace EpochCity
             if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
             if (def.category == BuildingCategory.Storage)
                 sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
+            if (city.IsAvailable(def)) sb.Append(MissingLine(def.buildCost, def.materialCosts));
             sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ?? Muted("Braucht ein angrenzendes Straßenfeld"));
             return sb.ToString().TrimEnd();
         }
@@ -391,6 +415,13 @@ namespace EpochCity
                 if (a.resource != null)
                     parts.Add($"{a.amount:0.##} {(a.resource.isCurrency ? Currency() : a.resource.displayName)}");
             return string.Join(" + ", parts);
+        }
+
+        /// <summary>Rote Zeile „Fehlt: …“ mit Zeilenumbruch, wenn Geld oder Material nicht reichen, sonst leer.</summary>
+        private string MissingLine(float money, ResourceAmount[] materials)
+        {
+            string lack = city.GetMissingCost(money, materials);
+            return lack == null ? "" : $"<color={UiTheme.Hex(theme.danger)}>Fehlt: {lack}</color>\n";
         }
 
         /// <summary>Warum etwas noch nicht baubar ist (Epoche oder Forschung), sonst null.</summary>

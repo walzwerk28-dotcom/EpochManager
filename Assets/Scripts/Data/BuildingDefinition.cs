@@ -26,6 +26,8 @@ namespace EpochCity
 
         [Header("Kosten")]
         public float buildCost = 100f;
+        [Tooltip("Baumaterial aus dem Lager zusätzlich zum Geld (Zonengebäude wachsen trotzdem kostenlos)")]
+        public ResourceAmount[] materialCosts;
         [Tooltip("Unterhalt pro Spielmonat. Sollte über Epochen kaum wachsen.")]
         public float upkeepPerMonth = 1f;
 

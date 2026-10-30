@@ -17,6 +17,8 @@ namespace EpochCity
 
         [Header("Kosten")]
         [Min(0f)] public float costPerCell = 5f;
+        [Tooltip("Baumaterial aus dem Lager pro neuem Feld, zusätzlich zum Geld")]
+        public ResourceAmount[] materialCostsPerCell;
         [Min(0f)] public float upkeepPerCellPerMonth = 0.1f;
 
         [Tooltip("Höhere Qualität lässt Entfernungen zum Lager kürzer wirken (ab der Lager-Anbindung)")]

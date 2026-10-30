@@ -19,6 +19,8 @@ namespace EpochCity
         public EpochDefinition currentEpoch;
         public TechnologyDefinition[] startTechnologies;
         public float startMoney = 1000f;
+        [Tooltip("Startvorrat im Lager, z. B. Baumaterial für die ersten Gebäude")]
+        public ResourceAmount[] startStock;
 
         [Header("Debug (Rechtsklick auf die Komponente -> Debug: Platzieren)")]
         public BuildingDefinition debugBuilding;
@@ -38,6 +40,9 @@ namespace EpochCity
         {
             Grid = new GridMap(gridWidth, gridHeight, cellSize);
             Money = startMoney;
+            if (startStock != null)
+                foreach (var a in startStock)
+                    if (a.resource != null && !a.resource.isCurrency) Stock.Add(a.resource, a.amount);
             if (startTechnologies != null)
                 foreach (var t in startTechnologies)
                     if (t != null) UnlockedTechnologies.Add(t);
@@ -69,7 +74,7 @@ namespace EpochCity
 
         /// <summary>
         /// Lässt sich das Gebäude hier bauen? Freie Fläche, Epoche erreicht und mindestens ein angrenzendes
-        /// Straßenfeld – jedes Gebäude braucht beim Bau einen Straßenanschluss. Geld prüft TryPlace.
+        /// Straßenfeld – jedes Gebäude braucht beim Bau einen Straßenanschluss. Geld und Material prüft CanAfford.
         /// </summary>
         public bool CanPlace(BuildingDefinition def, Vector2Int origin) =>
             IsAvailable(def) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size);
@@ -77,11 +82,55 @@ namespace EpochCity
         public bool TryPlace(BuildingDefinition def, Vector2Int origin, out BuildingInstance placed)
         {
             placed = null;
-            if (def == null || Money < def.buildCost || !CanPlace(def, origin)) return false;
+            if (def == null || !CanAfford(def) || !CanPlace(def, origin)) return false;
 
-            Money -= def.buildCost;
+            Pay(def.buildCost, def.materialCosts);
             placed = Place(def, origin);
             return true;
+        }
+
+        // ---------------------------------------------------------------- Baukosten
+
+        /// <summary>Reichen Geld und Baumaterial für dieses Gebäude?</summary>
+        public bool CanAfford(BuildingDefinition def) =>
+            def != null && GetMissingCost(def.buildCost, def.materialCosts) == null;
+
+        /// <summary>
+        /// Was fehlt für diese Kosten (Geld plus Material × Anzahl), z. B. „3 Stein, 12 Drachmen“; null, wenn alles reicht.
+        /// </summary>
+        public string GetMissingCost(float money, ResourceAmount[] materials, float count = 1f)
+        {
+            var missing = new List<string>();
+            if (materials != null)
+                foreach (var m in materials)
+                {
+                    if (m.resource == null || m.resource.isCurrency) continue;
+                    float lack = m.amount * count - Stock.Get(m.resource);
+                    if (lack > 0.001f) missing.Add($"{lack:0.##} {m.resource.displayName}");
+                }
+            float totalMoney = money + CurrencyIn(materials) * count;
+            if (Money < totalMoney)
+                missing.Add($"{totalMoney - Money:0} {(currentEpoch != null ? currentEpoch.currencyName : "Geld")}");
+            return missing.Count > 0 ? string.Join(", ", missing) : null;
+        }
+
+        /// <summary>Zieht Geld und Material (× Anzahl) ab; vorher mit GetMissingCost prüfen.</summary>
+        private void Pay(float money, ResourceAmount[] materials, float count = 1f)
+        {
+            Money -= money + CurrencyIn(materials) * count;
+            if (materials == null) return;
+            foreach (var m in materials)
+                if (m.resource != null && !m.resource.isCurrency) Stock.Add(m.resource, -m.amount * count);
+        }
+
+        /// <summary>Geld, das als Material eingetragen ist (Ressource mit isCurrency), zählt zur Stadtkasse.</summary>
+        private static float CurrencyIn(ResourceAmount[] materials)
+        {
+            float sum = 0f;
+            if (materials != null)
+                foreach (var m in materials)
+                    if (m.resource != null && m.resource.isCurrency) sum += m.amount;
+            return sum;
         }
 
         /// <summary>
@@ -307,27 +356,36 @@ namespace EpochCity
         private readonly Dictionary<Vector2Int, GameObject> roadViews = new Dictionary<Vector2Int, GameObject>();
 
         /// <summary>
-        /// Prüft eine Strecke: alle Felder im Raster und ohne Gebäude, Epoche erreicht, genug Geld.
+        /// Prüft eine Strecke: alle Felder im Raster und ohne Gebäude, Epoche erreicht, genug Geld und Material.
         /// Felder mit vorhandener Straße kosten nichts.
         /// </summary>
-        public bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost)
+        public bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost) =>
+            CanBuildRoad(road, path, out cost, out int newCells) &&
+            GetMissingCost(cost, road.materialCostsPerCell, newCells) == null;
+
+        /// <summary>Wie CanBuildRoad, aber ohne Kostenprüfung; liefert Geldkosten und Anzahl neuer Felder.</summary>
+        private bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost, out int newCells)
         {
             cost = 0f;
+            newCells = 0;
             if (road == null || path == null || path.Count == 0) return false;
             if (!IsAvailable(road)) return false;
             foreach (var c in path)
             {
                 if (!Grid.CanPlaceRoad(c)) return false;
-                if (!Grid.HasRoad(c)) cost += road.costPerCell;
+                if (Grid.HasRoad(c)) continue;
+                cost += road.costPerCell;
+                newCells++;
             }
-            return Money >= cost;
+            return true;
         }
 
         public bool TryBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path)
         {
-            if (!CanBuildRoad(road, path, out float cost)) return false;
+            if (!CanBuildRoad(road, path, out float cost, out int newCells) ||
+                GetMissingCost(cost, road.materialCostsPerCell, newCells) != null) return false;
 
-            Money -= cost;
+            Pay(cost, road.materialCostsPerCell, newCells);
             var built = new List<Vector2Int>();
             foreach (var c in path)
             {
@@ -456,7 +514,7 @@ namespace EpochCity
             if (TryPlace(debugBuilding, debugCell, out var b))
                 Debug.Log($"Gebaut: {b.Definition.displayName} bei {b.Origin}, Multiplikator {GetMultiplier(b):0.00}");
             else
-                Debug.LogWarning("Platzieren nicht möglich (Zelle belegt, außerhalb, keine Straße angrenzend oder zu wenig Geld).");
+                Debug.LogWarning("Platzieren nicht möglich (Zelle belegt, außerhalb, keine Straße angrenzend oder zu wenig Geld bzw. Material).");
         }
     }
 }

@@ -135,7 +135,7 @@ namespace EpochCity
                 return;
             }
 
-            bool canPlace = city.CanPlace(selected, hoverCell) && city.Money >= selected.buildCost;
+            bool canPlace = city.CanPlace(selected, hoverCell) && city.CanAfford(selected);
 
             if (ghost != null)
             {

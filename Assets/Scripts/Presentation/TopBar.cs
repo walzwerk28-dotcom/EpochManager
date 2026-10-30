@@ -33,7 +33,7 @@ namespace EpochCity
 
         public const float Height = 64f;
 
-        private TextMeshProUGUI epochText, dateText, residentsText, moneyText;
+        private TextMeshProUGUI epochText, dateText, residentsText, materialsText, moneyText;
         private readonly List<Image> speedImages = new List<Image>();
         private Image cityImage, researchImage, menuImage, hintImage;
         private RectTransform menu;
@@ -98,6 +98,15 @@ namespace EpochCity
             moneyText.text = $"{Mathf.FloorToInt(city.Money)} {currency}  " +
                              $"<size=75%><color={UiTheme.Hex(balanceColor)}>{balance:+0;-0;±0}/Monat</color></size>";
 
+            // Baumaterial im Lager, wie die Baustoffe in der Leiste bei Anno
+            var materials = new List<string>();
+            foreach (var entry in city.Stock.All)
+                if (entry.Key != null && entry.Key.isBuildingMaterial)
+                    materials.Add($"{Mathf.FloorToInt(entry.Value)} <color={UiTheme.Hex(theme.textMuted)}>" +
+                                  $"{entry.Key.displayName}</color>");
+            materialsText.text = string.Join("  ·  ", materials);
+            materialsText.gameObject.SetActive(materials.Count > 0);
+
             int residents = population != null ? population.TotalResidents : 0;
             residentsText.text = $"{residents}<size=75%><color={UiTheme.Hex(theme.textMuted)}>/{city.HousingCapacity}</color></size>";
 
@@ -147,8 +156,20 @@ namespace EpochCity
             var residentsIcon = Icon(i => i.residents);
             if (residentsIcon != null) UiFactory.AddIcon(bar, residentsIcon, 24f, theme.textMuted);
             residentsText = Text(bar, "Residents", theme.bodySize + 2f, theme.text, 80f);
-            moneyText = Text(bar, "Money", theme.bodySize + 4f, theme.text, 290f);
+
+            // Geld und darunter klein das Baumaterial; nebeneinander reicht die Breite der Leiste nicht
+            var purse = new GameObject("Purse", typeof(RectTransform));
+            purse.transform.SetParent(bar, false);
+            UiFactory.AddColumn(purse, 0, 0f);
+            purse.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleRight;
+            purse.AddComponent<LayoutElement>().preferredWidth = 290f;
+            moneyText = Text(purse.transform, "Money", theme.bodySize + 4f, theme.text, 290f);
             moneyText.alignment = TextAlignmentOptions.MidlineRight;
+            materialsText = Text(purse.transform, "Materials", theme.smallSize, theme.text, 290f);
+            materialsText.alignment = TextAlignmentOptions.MidlineRight;
+            materialsText.raycastTarget = true; // für den Tooltip
+            Tooltip.Attach(materialsText.gameObject, () => "<b>Baumaterial</b>\nVorrat im Lager; Gebäude und manche " +
+                                                           "Straßen kosten neben Geld auch Material");
 
             if (cityWindow != null)
             {

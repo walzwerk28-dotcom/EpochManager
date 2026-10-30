@@ -15,5 +15,8 @@ namespace EpochCity
 
         [Tooltip("Wenn aktiv, zählt diese Ressource als Geld: Ausgaben landen in der Stadtkasse, Kosten werden von ihr abgezogen.")]
         public bool isCurrency;
+
+        [Tooltip("Baumaterial: steht in der oberen Leiste neben dem Geld, wie die Baustoffe bei Anno.")]
+        public bool isBuildingMaterial;
     }
 }
