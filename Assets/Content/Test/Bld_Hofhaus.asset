@@ -21,6 +21,7 @@ MonoBehaviour:
   populationTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   requiredTechnology: {fileID: 0}
   buildCost: 0
+  materialCosts: []
   upkeepPerMonth: 0
   baseCapacity: 24
   baseFunctions: []

@@ -305,7 +305,7 @@ namespace EpochCity
             // Industrie
             Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 100f, "Felder liefern 50 % mehr Weizen.");
             var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 100f,
-                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr.");
+                "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr; Zimmereien und Steinbrüche liefern 25 % mehr.");
             var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 220f,
                 "Felder liefern weitere 30 % mehr Weizen.", irrigation, crafts);
             // Wissenschaft und Infrastruktur
@@ -390,6 +390,33 @@ namespace EpochCity
             faith.coverageByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.3f);
             farmers.needs = new[] { food, water, marketNeed, faith };
 
+            // ---------------------------------------------------------------- Holz und Stein
+            // Holzfäller → Stämme → Zimmerei → Bretter, Steinbruch → Stein; Bretter und Stein sind Baumaterial.
+            // Die drei Betriebe kosten nur Geld, damit eine Stadt ohne Vorrat immer anfangen kann.
+
+            var logs = Resource("Res_Staemme", "Stämme", antike, false);
+            var boards = Resource("Res_Bretter", "Bretter", antike, true);
+            var stone = Resource("Res_Stein", "Stein", antike, true);
+
+            var woodcutter = ProductionBuilding("Bld_Holzfaeller", "Holzfäller", antike, 60f, 1f,
+                "Bäume fällen", null, 0f, logs, 1f, 5f, new Color(0.45f, 0.35f, 0.2f));
+            var carpentry = ProductionBuilding("Bld_Zimmerei", "Zimmerei", antike, 100f, 2f,
+                "Bretter sägen", logs, 1f, boards, 1f, 5f, new Color(0.7f, 0.55f, 0.35f));
+            var quarry = ProductionBuilding("Bld_Steinbruch", "Steinbruch", antike, 100f, 2f,
+                "Stein brechen", null, 0f, stone, 1f, 8f, new Color(0.6f, 0.6f, 0.6f));
+            carpentry.layers = quarry.layers = new[] { Boost(crafts, 1.25f) };
+
+            // Baukosten in Material zusätzlich zum Geld (Trampelpfad, Zonen und Zonengebäude bleiben ohne)
+            field.materialCosts = Cost((boards, 2f));
+            storage.materialCosts = Cost((boards, 6f));
+            market.materialCosts = Cost((boards, 4f), (stone, 2f));
+            library.materialCosts = Cost((boards, 4f), (stone, 6f));
+            temple.materialCosts = Cost((boards, 6f), (stone, 10f));
+            well.materialCosts = Cost((stone, 4f));
+            mill.materialCosts = Cost((boards, 6f), (stone, 4f));
+            paved.materialCostsPerCell = Cost((stone, 0.5f));
+            path.materialCostsPerCell = new ResourceAmount[0];
+
             // Mittelalter: 3 der 4 Schlüsseltechnologien (je Pfad eine), eine Bibliothek und 300 Einwohner
             mittelalter.keyTechnologies = new[] { minting, philosophy, plough, waterworks };
             mittelalter.requiredKeyTechnologies = 3;
@@ -402,7 +429,8 @@ namespace EpochCity
                 field, market, library, mill, path, paved, storage, temple, well, residential, commercial,
                 house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
-                food, marketNeed, water, faith, farmers
+                food, marketNeed, water, faith, farmers,
+                logs, boards, stone, woodcutter, carpentry, quarry
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
@@ -433,6 +461,59 @@ namespace EpochCity
             tech.description = description;
             EditorUtility.SetDirty(tech);
             return tech;
+        }
+
+        private static ResourceDefinition Resource(string assetName, string displayName, EpochDefinition epoch,
+            bool buildingMaterial)
+        {
+            var res = GetOrCreate<ResourceDefinition>(assetName);
+            res.displayName = displayName;
+            res.introducedInEpoch = epoch;
+            res.isCurrency = false;
+            res.isBuildingMaterial = buildingMaterial;
+            return res;
+        }
+
+        /// <summary>
+        /// Einzeln gesetzter Produktionsbetrieb (2 × 2) mit einer Funktion: Eingang (oder keiner) → Ausgang je Zyklus.
+        /// </summary>
+        private static BuildingDefinition ProductionBuilding(string assetName, string displayName, EpochDefinition epoch,
+            float cost, float upkeep, string label, ResourceDefinition input, float inputAmount,
+            ResourceDefinition output, float outputAmount, float cycleSeconds, Color placeholderColor)
+        {
+            var def = GetOrCreate<BuildingDefinition>(assetName);
+            def.displayName = displayName;
+            def.epoch = epoch;
+            def.category = BuildingCategory.Production;
+            def.size = new Vector2Int(2, 2);
+            def.buildCost = cost;
+            def.upkeepPerMonth = upkeep;
+            def.baseCapacity = 0;
+            def.materialCosts = new ResourceAmount[0];
+            def.baseFunctions = new[]
+            {
+                new BuildingFunction
+                {
+                    label = label,
+                    inputs = input != null
+                        ? new[] { new ResourceAmount { resource = input, amount = inputAmount } }
+                        : new ResourceAmount[0],
+                    outputs = new[] { new ResourceAmount { resource = output, amount = outputAmount } },
+                    cycleSeconds = cycleSeconds
+                }
+            };
+            def.layers = new BuildingLayer[0];
+            def.prefab = KeepModel(def.prefab,
+                () => CreatePrefab("Prefab_" + assetName.Substring(4), def.size, 1.5f, placeholderColor));
+            return def;
+        }
+
+        private static ResourceAmount[] Cost(params (ResourceDefinition resource, float amount)[] items)
+        {
+            var result = new ResourceAmount[items.Length];
+            for (int i = 0; i < items.Length; i++)
+                result[i] = new ResourceAmount { resource = items[i].resource, amount = items[i].amount };
+            return result;
         }
 
         /// <summary>Schicht, die die Ausgaben aller Funktionen vervielfacht.</summary>

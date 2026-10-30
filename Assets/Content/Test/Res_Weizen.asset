@@ -16,3 +16,4 @@ MonoBehaviour:
   introducedInEpoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   icon: {fileID: 0}
   isCurrency: 0
+  isBuildingMaterial: 0

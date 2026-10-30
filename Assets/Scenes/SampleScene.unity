@@ -582,6 +582,11 @@ MonoBehaviour:
   currentEpoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   startTechnologies: []
   startMoney: 50000
+  startStock:
+  - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
+    amount: 20
+  - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
+    amount: 10
   debugBuilding: {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
   debugCell: {x: 0, y: 0}
 --- !u!4 &440537053
@@ -682,6 +687,9 @@ MonoBehaviour:
   cam: {fileID: 330585545}
   hotbar:
   - {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
+  - {fileID: 11400000, guid: 972329bce9a46bf48969b65af4bd1add, type: 2}
+  - {fileID: 11400000, guid: 3ab191100e4e440448315d3500a3fa18, type: 2}
+  - {fileID: 11400000, guid: 47b0b42f5c133e24b8a03f8a41388bb4, type: 2}
   - {fileID: 11400000, guid: 17dc914a28d30dc4dbfdea7b189c31bd, type: 2}
   - {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
   - {fileID: 11400000, guid: 2862c34a54bc6a54eaf19a1d72aaef60, type: 2}

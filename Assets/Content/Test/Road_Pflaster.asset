@@ -18,5 +18,8 @@ MonoBehaviour:
   prefab: {fileID: 6193341560328065235, guid: 445e40639b41a7b48bc7266f49fe9eb3, type: 3}
   visualWidth: 1.5
   costPerCell: 15
+  materialCostsPerCell:
+  - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
+    amount: 0.5
   upkeepPerCellPerMonth: 0.25
   quality: 1.6

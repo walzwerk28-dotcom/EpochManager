@@ -49,7 +49,8 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen" })
                 grounds[n] = paving;
-            foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle" })
+            foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
+                         "Holzfaeller", "Zimmerei", "Steinbruch" })
                 grounds[n] = earth;
 
             // Antike: Kalkstein und Terrakotta-Dächer
@@ -64,6 +65,9 @@ namespace EpochCity
             Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
             Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
             Assign("Bld_Feld", Make("Feld", 2, original, Field));
+            Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
+            Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
+            Assign("Bld_Steinbruch", Make("Steinbruch", 2, antique, Quarry));
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
             Assign("Bld_Stadthaus", Make("Stadthaus", 2, antique,
@@ -500,6 +504,76 @@ namespace EpochCity
                     b.Put(NK + "crops_wheatStageB", new Vector3(x, 0f, z), t % 2 == 0 ? 0f : 180f);
                 }
             }
+        }
+
+        /// <summary>Holzfäller: Holzhütte hinten links, davor Stammstapel und Baumstümpfe, hinten rechts ein Baum.</summary>
+        private static void Woodcutter(Builder b)
+        {
+            NatureColors(b);
+            var hut = b.At(-1f, 1f);
+            Walls(hut, 2, 2, 0, (i, j, dir) =>
+                dir == Vector2Int.down && i == 0 ? "wall-wood-door" :
+                dir == Vector2Int.down ? "wall-wood-window-small" : "wall-wood");
+            GableRoof(hut, 2, 2, 1, "roof");
+
+            b.Put(NK + "tree_oak", new Vector3(1.3f, 0f, 1.3f), 30f, 1.6f);
+            b.Put(NK + "log_stackLarge", new Vector3(1.1f, 0f, -0.6f), 90f);
+            b.Put(NK + "log_stack", new Vector3(-0.4f, 0f, -1.2f), 0f);
+            b.Put(NK + "stump_roundDetailed", new Vector3(-1.6f, 0f, -1.4f), 0f);
+            b.Put(NK + "stump_old", new Vector3(0.9f, 0f, -1.6f), 60f);
+            b.Put(NK + "log", new Vector3(-1.5f, 0f, -0.5f), 75f);
+        }
+
+        /// <summary>Zimmerei: offener Schuppen auf Holzpfosten mit Rückwand, darunter ein Stamm, ringsum Stämme und Bretterstapel.</summary>
+        private static void Carpentry(Builder b)
+        {
+            const int w = 2, d = 2;
+            NatureColors(b);
+            var shed = b.At(-0.6f, 0.8f);
+            for (int x = 0; x <= w; x++)
+                for (int z = 0; z <= d; z += d)
+                    shed.Put(FT + "pillar-wood", new Vector3(x - w * 0.5f, 0f, z - d * 0.5f), 0f);
+            Walls(shed, w, d, 0, (i, j, dir) => dir == Vector2Int.up ? "wall-wood" : null);
+            GableRoof(shed, w, d, 1, "roof");
+            shed.Put(NK + "log_large", Vector3.zero, 90f);
+
+            // Bretterstapel aus halben Bohlen
+            for (int k = 0; k < 5; k++)
+            {
+                b.Put(FT + "planks-half", new Vector3(-1.2f, k * 0.07f, -1.4f), 0f, 0.8f);
+                b.Put(FT + "planks-half", new Vector3(0.2f, k * 0.07f, -1.4f), 0f, 0.8f);
+            }
+            b.Put(NK + "log_stack", new Vector3(1.5f, 0f, 1.0f), 90f);
+            b.Put(NK + "log_stackLarge", new Vector3(1.4f, 0f, -0.6f), 0f);
+            b.Put(FT + "cart", new Vector3(1.6f, 0f, -1.7f), 100f, 0.8f);
+        }
+
+        /// <summary>Steinbruch: Felswand hinten, davor Bruchsteine, behauene Blöcke und ein Karren.</summary>
+        private static void Quarry(Builder b)
+        {
+            NatureColors(b);
+            // Nature-Kit-Teile mit „stone“ sind graue Felsen; „rock“ sind Erdhügel mit Gras
+            b.Put(NK + "stone_largeA", new Vector3(-1.2f, 0f, 1.2f), 0f, 2f);
+            b.Put(NK + "stone_tallB", new Vector3(0.2f, 0f, 1.4f), 40f, 1.8f);
+            b.Put(NK + "stone_largeC", new Vector3(1.4f, 0f, 1.1f), 200f, 1.8f);
+            b.Put(NK + "stone_smallA", new Vector3(-1.4f, 0f, -0.2f), 0f, 1.6f);
+            b.Put(NK + "stone_smallB", new Vector3(0.3f, 0f, 0.1f), 30f, 1.6f);
+            b.Put(NK + "stone_smallFlatA", new Vector3(1.3f, 0f, -0.5f), 0f, 1.6f);
+            b.Put(FT + "rock-wide", new Vector3(-0.3f, 0f, -0.9f), 15f, 0.8f);
+            b.Put(FT + "rock-small", new Vector3(-1.4f, 0f, -1.5f), 0f, 0.8f);
+            b.Put(FT + "cart", new Vector3(1.2f, 0f, -1.6f), 80f, 0.8f);
+        }
+
+        /// <summary>
+        /// Eigene Farben für Holz, Laub und Stein aus dem Nature Kit; dessen Materialfarben wirken im Spiel blass
+        /// oder türkis.
+        /// </summary>
+        private static void NatureColors(Builder b)
+        {
+            b.Overrides["woodBark"] = Solid("Rinde", new Color(0.45f, 0.30f, 0.18f));
+            b.Overrides["woodInner"] = Solid("Holz", new Color(0.82f, 0.66f, 0.44f));
+            b.Overrides["leafsGreen"] = Solid("Laub", new Color(0.33f, 0.52f, 0.22f));
+            b.Overrides["stone"] = Solid("Stein", new Color(0.62f, 0.60f, 0.56f));
         }
 
         /// <summary>Mühle: zweistöckiger Steinturm mit Windmühlenflügeln an der Vorderseite.</summary>
