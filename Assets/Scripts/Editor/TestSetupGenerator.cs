@@ -51,6 +51,7 @@ namespace EpochCity
             research.displayName = "Forschung";
             research.introducedInEpoch = antike;
             research.isCurrency = false;
+            research.unlimitedStorage = true; // Forschungspool ohne Lagergrenze
 
             var writing = GetOrCreate<TechnologyDefinition>("Tech_Schrift");
             writing.displayName = "Schrift";
@@ -184,7 +185,7 @@ namespace EpochCity
             storage.size = new Vector2Int(2, 2);
             storage.buildCost = 120f;
             storage.upkeepPerMonth = 2f;
-            storage.baseCapacity = 0;
+            storage.baseCapacity = 50; // Lagerplatz je Ware (Grundlagerplatz 30 steht am CityController)
             storage.baseFunctions = new BuildingFunction[0];
             storage.layers = new BuildingLayer[0];
             storage.catchmentRange = 20f;
@@ -293,7 +294,7 @@ namespace EpochCity
             var barter = Tech("Tech_Tauschhandel", "Tauschhandel", antike, TechPath.Trade, 80f,
                 "Läden und Tabernen erlösen 25 % mehr.");
             var warehousing = Tech("Tech_Lagerwesen", "Lagerwesen", antike, TechPath.Trade, 100f,
-                "Lager versorgen 10 Straßenfelder weiter.");
+                "Lager versorgen 10 Straßenfelder weiter und fassen 50 % mehr.");
             Tech(minting, "Münzprägung", antike, TechPath.Trade, 200f,
                 "Märkte, Kontore und Handelshäuser erlösen 25 % mehr.", writing);
             // Kultur
@@ -318,7 +319,10 @@ namespace EpochCity
 
             // Wirkungen als Schichten auf den Gebäuden (das Aussehen bleibt)
             shop.layers = taberna.layers = new[] { Boost(barter, 1.25f) };
-            storage.layers = new[] { new BuildingLayer { requiredTechnology = warehousing, outputMultiplier = 1f, extraCatchment = 10f } };
+            storage.layers = new[]
+            {
+                new BuildingLayer { requiredTechnology = warehousing, outputMultiplier = 1f, extraCatchment = 10f, capacityMultiplier = 1.5f }
+            };
             market.layers = office.layers = tradeHouse.layers = new[] { Boost(minting, 1.25f) };
             library.layers = new[] { Boost(writing, 1.5f), Boost(mathematics, 1.25f) };
             field.layers = new[] { Boost(irrigation, 1.5f), Boost(plough, 1.3f) };

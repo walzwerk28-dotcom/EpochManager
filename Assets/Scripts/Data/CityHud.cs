@@ -412,9 +412,12 @@ namespace EpochCity
                     : $"{function.label}: {inputs} → {outputs} je {function.cycleSeconds:0.#} s");
             }
             int capacity = def.GetCapacity(city.UnlockedTechnologies);
-            if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
             if (def.category == BuildingCategory.Storage)
+            {
+                if (capacity > 0) sb.AppendLine($"Lagerplatz +{capacity} je Ware (jetzt {city.StorageCapacity})");
                 sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
+            }
+            else if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
             if (def.requiredDeposit != null)
                 sb.AppendLine(def.depositRange > 0
                     ? $"Braucht {def.requiredDeposit.displayName} im Umkreis {def.depositRange} " +

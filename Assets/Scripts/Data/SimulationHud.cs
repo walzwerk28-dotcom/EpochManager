@@ -85,12 +85,19 @@ namespace EpochCity
             else builder.AppendLine($"Wohnplätze {city.HousingCapacity}");
 
             builder.AppendLine();
-            builder.AppendLine($"<color={UiTheme.Hex(theme.heading)}>Vorrat</color>");
+            int capacity = city.StorageCapacity;
+            builder.AppendLine($"<color={UiTheme.Hex(theme.heading)}>Vorrat</color> " +
+                               $"<size=80%><color={muted}>Lagerplatz {capacity} je Ware</color></size>");
             bool any = false;
             foreach (var entry in city.Stock.All)
             {
                 if (entry.Key == null || entry.Value < 0.05f) continue;
-                builder.AppendLine($"{entry.Key.displayName} {entry.Value:0.#}");
+                if (!CityController.IsLimited(entry.Key))
+                    builder.AppendLine($"{entry.Key.displayName} {entry.Value:0.#}");
+                else if (entry.Value >= capacity) // voll: Betriebe dieser Ware warten
+                    builder.AppendLine($"<color={danger}>{entry.Key.displayName} {entry.Value:0.#} / {capacity} voll</color>");
+                else
+                    builder.AppendLine($"{entry.Key.displayName} {entry.Value:0.#} <color={muted}>/ {capacity}</color>");
                 any = true;
             }
             if (!any) builder.AppendLine($"<color={muted}>leer</color>");

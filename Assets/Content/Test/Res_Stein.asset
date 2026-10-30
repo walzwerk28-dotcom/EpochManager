@@ -17,3 +17,4 @@ MonoBehaviour:
   icon: {fileID: 0}
   isCurrency: 0
   isBuildingMaterial: 1
+  unlimitedStorage: 0

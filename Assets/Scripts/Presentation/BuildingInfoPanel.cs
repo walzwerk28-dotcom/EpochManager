@@ -175,7 +175,12 @@ namespace EpochCity
                 float multiplier = city.GetMultiplier(b);
                 if (multiplier > 1f) sb.AppendLine($"Technologie-Bonus ×{multiplier:0.##}");
                 if (def.category == BuildingCategory.Storage)
+                {
+                    sb.AppendLine($"Lagerplatz +{def.GetCapacity(city.UnlockedTechnologies)} je Ware" +
+                                  (b.IsPaused ? " (stillgelegt, zählt nicht)" : "") +
+                                  $"  ·  gesamt {city.StorageCapacity}");
                     sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
+                }
                 if (def.upkeepPerMonth > 0f)
                 {
                     float upkeep = economy != null ? economy.GetUpkeep(b) : def.upkeepPerMonth;

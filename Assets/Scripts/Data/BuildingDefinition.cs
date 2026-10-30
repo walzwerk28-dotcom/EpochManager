@@ -40,6 +40,7 @@ namespace EpochCity
         public float upkeepPerMonth = 1f;
 
         [Header("Grundfunktion & Kapazität")]
+        [Tooltip("Wohnhäuser: Wohnplätze. Lager (Kategorie Storage): Lagerplatz je Ware.")]
         public int baseCapacity;
         public BuildingFunction[] baseFunctions;
 

@@ -21,6 +21,8 @@ namespace EpochCity
         public float startMoney = 1000f;
         [Tooltip("Startvorrat im Lager, z. B. Baumaterial für die ersten Gebäude")]
         public ResourceAmount[] startStock;
+        [Tooltip("Lagerplatz je Ware ohne Lager; jedes Lager (nicht stillgelegt) erhöht ihn um seine Kapazität")]
+        [Min(0)] public int baseStorageCapacity = 30;
         [Tooltip("Rohstoff-Vorkommen beim Spielstart (leer = keine)")]
         public MapDefinition map;
 
@@ -201,6 +203,30 @@ namespace EpochCity
                 return sum;
             }
         }
+
+        /// <summary>
+        /// Lagerplatz je Ware (wie in Anno): Grundlagerplatz plus Kapazität aller Lager, die nicht stillgelegt sind,
+        /// inklusive Technologie-Schichten. Gilt für jede Ware gleich.
+        /// </summary>
+        public int StorageCapacity
+        {
+            get
+            {
+                int sum = baseStorageCapacity;
+                foreach (var b in Buildings)
+                    if (b.Definition.category == BuildingCategory.Storage && !b.IsPaused)
+                        sum += b.Definition.GetCapacity(UnlockedTechnologies);
+                return sum;
+            }
+        }
+
+        /// <summary>Hat diese Ware eine Obergrenze im Lager? Geld und Waren mit unlimitedStorage nicht.</summary>
+        public static bool IsLimited(ResourceDefinition resource) =>
+            resource != null && !resource.isCurrency && !resource.unlimitedStorage;
+
+        /// <summary>Passt diese Menge noch ins Lager? Unbegrenzte Waren immer.</summary>
+        public bool HasRoom(ResourceDefinition resource, float amount) =>
+            !IsLimited(resource) || Stock.Get(resource) + amount <= StorageCapacity + 0.001f;
 
         private BuildingInstance Place(BuildingDefinition def, Vector2Int origin) =>
             Place(def, origin, currentEpoch, GetFacingAngle(def, origin), refresh: true);

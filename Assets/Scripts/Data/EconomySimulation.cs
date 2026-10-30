@@ -7,7 +7,8 @@ namespace EpochCity
     /// aktiven Funktionen ab (Grundfunktionen plus durch Technologien freigeschaltete).
     /// Reine Zahlen, keine Optik. Einmal pro Spielmonat wird der Unterhalt abgezogen.
     /// Leere Kasse: Gebäude mit Unterhalt arbeiten langsamer (unpaidEfficiency); stillgelegte Gebäude arbeiten
-    /// nicht und zahlen nur einen Teil ihres Unterhalts (pausedUpkeepFactor).
+    /// nicht und zahlen nur einen Teil ihres Unterhalts (pausedUpkeepFactor). Ist für die Ausgabe eines Zyklus kein
+    /// Platz im Lager (CityController.StorageCapacity), wartet der Betrieb mit „Lager voll“.
     /// </summary>
     public class EconomySimulation : MonoBehaviour
     {
@@ -101,15 +102,15 @@ namespace EpochCity
 
                     if (progress >= function.cycleSeconds)
                     {
-                        if (CanAfford(function.inputs, out string missing))
+                        if (!CanAfford(function.inputs, out string missing))
+                            building.Status = "wartet: " + missing;
+                        else if (!HasRoom(function.outputs, multiplier, out string full))
+                            building.Status = "Lager voll: " + full; // wartet, ohne Eingänge zu verbrauchen
+                        else
                         {
                             Consume(function.inputs);
                             Produce(function.outputs, multiplier);
                             progress -= function.cycleSeconds;
-                        }
-                        else
-                        {
-                            building.Status = "wartet: " + missing;
                         }
                     }
                     building.Progress[function] = progress;
@@ -119,6 +120,20 @@ namespace EpochCity
 
         /// <summary>Anbindung × Anteil des nötigen Vorkommens, beides berechnet von CityController.RefreshConnections.</summary>
         private float GetEfficiency(BuildingInstance building) => building.Connection * building.DepositFactor;
+
+        /// <summary>Passt die ganze Ausgabe eines Zyklus noch ins Lager (StorageCapacity je Ware)?</summary>
+        private bool HasRoom(ResourceAmount[] outputs, float multiplier, out string full)
+        {
+            full = null;
+            if (outputs == null) return true;
+            foreach (var output in outputs)
+            {
+                if (output.resource == null || city.HasRoom(output.resource, output.amount * multiplier)) continue;
+                full = output.resource.displayName;
+                return false;
+            }
+            return true;
+        }
 
         private bool CanAfford(ResourceAmount[] inputs, out string missing)
         {

@@ -7,7 +7,7 @@ namespace EpochCity
 {
     /// <summary>
     /// Kurze Meldungen oben rechts unter der TopBar (neben dem mittigen Forschungsfenster), die nach einigen
-    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel,
+    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel, volle Waren,
     /// leere und wieder ausgeglichene Stadtkasse.
     /// Andere Darstellungen können über Show eigene Meldungen zeigen.
     /// </summary>
@@ -31,7 +31,8 @@ namespace EpochCity
         private readonly List<(CanvasGroup group, float shownAt)> visible = new List<(CanvasGroup, float)>();
         private bool couldAdvance;
         private bool wasInDebt;
-        private float epochTimer;
+        private readonly HashSet<ResourceDefinition> fullResources = new HashSet<ResourceDefinition>();
+        private float checkTimer;
 
         private void Awake()
         {
@@ -120,15 +121,19 @@ namespace EpochCity
 
         private void Update()
         {
-            // Epochenwechsel möglich: nur beim Übergang melden, zweimal pro Sekunde prüfen
-            epochTimer -= Time.unscaledDeltaTime;
-            if (progression != null && epochTimer <= 0f)
+            // Epochenwechsel möglich und volle Waren: nur beim Übergang melden, zweimal pro Sekunde prüfen
+            checkTimer -= Time.unscaledDeltaTime;
+            if (checkTimer <= 0f)
             {
-                epochTimer = 0.5f;
-                bool can = progression.CanAdvance;
-                if (can && !couldAdvance && progression.NextEpoch != null)
-                    Show($"Epochenwechsel zu {progression.NextEpoch.displayName} möglich", theme.heading, Icon(i => i.epoch));
-                couldAdvance = can;
+                checkTimer = 0.5f;
+                if (progression != null)
+                {
+                    bool can = progression.CanAdvance;
+                    if (can && !couldAdvance && progression.NextEpoch != null)
+                        Show($"Epochenwechsel zu {progression.NextEpoch.displayName} möglich", theme.heading, Icon(i => i.epoch));
+                    couldAdvance = can;
+                }
+                if (city != null) CheckFullStorage();
             }
 
             // Kasse unter 0 bzw. wieder ausgeglichen: nur beim Übergang melden
@@ -148,6 +153,21 @@ namespace EpochCity
                 float age = Time.unscaledTime - visible[i].shownAt;
                 if (age >= duration + fadeTime) Remove(i);
                 else visible[i].group.alpha = age <= duration ? 1f : 1f - (age - duration) / fadeTime;
+            }
+        }
+
+        /// <summary>Meldet einmal, wenn eine Ware ihren Lagerplatz erreicht; erneut erst, nachdem sie darunter war.</summary>
+        private void CheckFullStorage()
+        {
+            int capacity = city.StorageCapacity;
+            foreach (var entry in city.Stock.All)
+            {
+                if (!CityController.IsLimited(entry.Key)) continue;
+                bool full = entry.Value >= capacity;
+                if (full && fullResources.Add(entry.Key))
+                    Show($"Lager voll: {entry.Key.displayName} ({capacity}) – mehr Lager bauen", theme.danger,
+                        Icon(i => i.warning));
+                else if (!full) fullResources.Remove(entry.Key);
             }
         }
 

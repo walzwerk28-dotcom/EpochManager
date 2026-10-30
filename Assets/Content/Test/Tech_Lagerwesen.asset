@@ -17,4 +17,4 @@ MonoBehaviour:
   path: 0
   researchCost: 100
   prerequisites: []
-  description: "Lager versorgen 10 Stra\xDFenfelder weiter."
+  description: "Lager versorgen 10 Stra\xDFenfelder weiter und fassen 50 % mehr."

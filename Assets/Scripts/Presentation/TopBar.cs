@@ -104,10 +104,17 @@ namespace EpochCity
 
             // Baumaterial im Lager, wie die Baustoffe in der Leiste bei Anno
             var materials = new List<string>();
+            int capacity = city.StorageCapacity;
+            string muted = UiTheme.Hex(theme.textMuted);
             foreach (var entry in city.Stock.All)
                 if (entry.Key != null && entry.Key.isBuildingMaterial)
-                    materials.Add($"{Mathf.FloorToInt(entry.Value)} <color={UiTheme.Hex(theme.textMuted)}>" +
-                                  $"{entry.Key.displayName}</color>");
+                {
+                    // „14/80 Bretter“; volle Ware in Rot
+                    string amount = entry.Value >= capacity
+                        ? $"<color={UiTheme.Hex(theme.danger)}>{Mathf.FloorToInt(entry.Value)}</color>"
+                        : $"{Mathf.FloorToInt(entry.Value)}";
+                    materials.Add($"{amount}<color={muted}>/{capacity} {entry.Key.displayName}</color>");
+                }
             materialsText.text = string.Join("  ·  ", materials);
             materialsText.gameObject.SetActive(materials.Count > 0);
 
@@ -172,8 +179,9 @@ namespace EpochCity
             materialsText = Text(purse.transform, "Materials", theme.smallSize, theme.text, 290f);
             materialsText.alignment = TextAlignmentOptions.MidlineRight;
             materialsText.raycastTarget = true; // für den Tooltip
-            Tooltip.Attach(materialsText.gameObject, () => "<b>Baumaterial</b>\nVorrat im Lager; Gebäude und manche " +
-                                                           "Straßen kosten neben Geld auch Material");
+            Tooltip.Attach(materialsText.gameObject, () => "<b>Baumaterial</b>\nVorrat / Lagerplatz je Ware; Gebäude " +
+                                                           "und manche Straßen kosten neben Geld auch Material. " +
+                                                           "Mehr Lagerplatz bringen Lager.");
 
             if (cityWindow != null)
             {

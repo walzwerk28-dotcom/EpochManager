@@ -18,5 +18,8 @@ namespace EpochCity
 
         [Tooltip("Baumaterial: steht in der oberen Leiste neben dem Geld, wie die Baustoffe bei Anno.")]
         public bool isBuildingMaterial;
+
+        [Tooltip("Ohne Obergrenze im Lager (z. B. Forschung). Geld ist immer unbegrenzt.")]
+        public bool unlimitedStorage;
     }
 }

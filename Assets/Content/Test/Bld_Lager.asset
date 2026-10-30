@@ -28,14 +28,14 @@ MonoBehaviour:
   - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
     amount: 6
   upkeepPerMonth: 2
-  baseCapacity: 0
+  baseCapacity: 50
   baseFunctions: []
   layers:
   - requiredTechnology: {fileID: 11400000, guid: 87da410d05f61d84783ed1c4afbe71e1, type: 2}
     outputMultiplier: 1
     additionalFunctions: []
     extraCapacity: 0
-    capacityMultiplier: 1
+    capacityMultiplier: 1.5
     extraCatchment: 10
   catchmentRange: 20
   efficiencyByDistance:
