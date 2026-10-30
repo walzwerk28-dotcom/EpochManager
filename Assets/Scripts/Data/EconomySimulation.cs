@@ -8,7 +8,9 @@ namespace EpochCity
     /// Reine Zahlen, keine Optik. Einmal pro Spielmonat wird der Unterhalt abgezogen.
     /// Leere Kasse: Gebäude mit Unterhalt arbeiten langsamer (unpaidEfficiency); stillgelegte Gebäude arbeiten
     /// nicht und zahlen nur einen Teil ihres Unterhalts (pausedUpkeepFactor). Ist für die Ausgabe eines Zyklus kein
-    /// Platz im Lager (CityController.StorageCapacity), wartet der Betrieb mit „Lager voll“.
+    /// Platz im Lager (CityController.StorageCapacity), wartet der Betrieb mit „Lager voll“. Arbeitskräfte: Gebäude mit
+    /// Arbeitsplätzen (workerTier, workers) teilen sich die Einwohner ihrer Stufe; reichen sie nicht, arbeiten alle
+    /// anteilig langsamer (Effizienz = Anbindung × Vorkommen × Arbeitskräfte).
     /// </summary>
     public class EconomySimulation : MonoBehaviour
     {
@@ -23,6 +25,33 @@ namespace EpochCity
         [Tooltip("Anteil des Unterhalts, den ein stillgelegtes Gebäude weiter zahlt")]
         [Range(0f, 1f)] public float pausedUpkeepFactor = 0.25f;
 
+        // ---------------------------------------------------------------- Arbeitskräfte
+
+        /// <summary>Arbeitskräfte einer Stufe: alle Einwohner der Wohnhäuser dieser Stufe (gemeinsamer Pool wie in Anno).</summary>
+        public int GetAvailableWorkers(PopulationTierDefinition tier)
+        {
+            int sum = 0;
+            foreach (var b in city.Buildings)
+                if (b.Definition.populationTier == tier) sum += b.Residents;
+            return sum;
+        }
+
+        /// <summary>Arbeitsplätze einer Stufe in allen Gebäuden, die nicht stillgelegt sind.</summary>
+        public int GetRequiredWorkers(PopulationTierDefinition tier)
+        {
+            int sum = 0;
+            foreach (var b in city.Buildings)
+                if (b.Definition.workerTier == tier && !b.IsPaused) sum += b.Definition.workers;
+            return sum;
+        }
+
+        /// <summary>Besetzter Anteil der Arbeitsplätze einer Stufe; reichen die Arbeitskräfte nicht, für alle gleich.</summary>
+        public float GetWorkforceFactor(PopulationTierDefinition tier)
+        {
+            int required = GetRequiredWorkers(tier);
+            return required <= 0 ? 1f : Mathf.Clamp01(GetAvailableWorkers(tier) / (float)required);
+        }
+
         /// <summary>Unterhalt pro Monat, den dieses Gebäude gerade kostet (stillgelegt nur ein Teil).</summary>
         public float GetUpkeep(BuildingInstance building) =>
             building.Definition.upkeepPerMonth * (building.IsPaused ? pausedUpkeepFactor : 1f);
@@ -30,6 +59,8 @@ namespace EpochCity
         public float LastMonthIncome { get; private set; }
         public float LastMonthUpkeep { get; private set; }
 
+        private readonly System.Collections.Generic.Dictionary<PopulationTierDefinition, float> workforce =
+            new System.Collections.Generic.Dictionary<PopulationTierDefinition, float>();
         private float accumulator;
         private float incomeThisMonth;
 
@@ -66,6 +97,16 @@ namespace EpochCity
         private void Step(float dt)
         {
             bool unpaid = city.Money < 0f;
+
+            // Arbeitskräfte je Stufe einmal pro Schritt
+            workforce.Clear();
+            foreach (var building in city.Buildings)
+            {
+                var tier = building.Definition.workerTier;
+                if (tier != null && building.Definition.workers > 0 && !workforce.ContainsKey(tier))
+                    workforce[tier] = GetWorkforceFactor(tier);
+            }
+
             foreach (var building in city.Buildings)
             {
                 var functions = building.Definition.GetActiveFunctions(city.UnlockedTechnologies);
@@ -75,13 +116,19 @@ namespace EpochCity
                     continue;
                 }
 
-                float efficiency = GetEfficiency(building);
+                var workerTier = building.Definition.workerTier;
+                building.WorkforceFactor = workerTier != null && workforce.TryGetValue(workerTier, out float wf) ? wf : 1f;
+
+                float efficiency = GetEfficiency(building) * building.WorkforceFactor;
                 float multiplier = city.GetMultiplier(building);
                 bool upkeepUnpaid = unpaid && building.Definition.upkeepPerMonth > 0f;
                 if (upkeepUnpaid) efficiency *= unpaidEfficiency;
 
+                string workforceIssue = building.WorkforceFactor < 1f
+                    ? $"zu wenig {workerTier.GetName(city.currentEpoch)}" : null;
                 string issue = string.Join(", ", System.Array.FindAll(
-                    new[] { building.ConnectionIssue, building.DepositIssue, upkeepUnpaid ? "Unterhalt nicht bezahlt" : null },
+                    new[] { building.ConnectionIssue, building.DepositIssue, workforceIssue,
+                            upkeepUnpaid ? "Unterhalt nicht bezahlt" : null },
                     s => !string.IsNullOrEmpty(s)));
                 if (functions.Count == 0) building.Status = "";
                 else if (efficiency <= 0f) building.Status = issue;

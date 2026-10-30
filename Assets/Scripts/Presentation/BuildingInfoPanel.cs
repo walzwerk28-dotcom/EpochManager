@@ -120,6 +120,19 @@ namespace EpochCity
                 $"{b.Connection * 100f:0} %"));
             Line(theme.textMuted, () => b.ConnectionIssue);
 
+            // Arbeitskräfte: besetzter Anteil der Arbeitsplätze (für alle Betriebe einer Stufe gleich)
+            if (def.workerTier != null && def.workers > 0 && economy != null)
+            {
+                var workforce = UiFactory.CreateBar(content, "Arbeitskräfte", theme);
+                updaters.Add(() =>
+                {
+                    float f = b.IsPaused ? 0f : economy.GetWorkforceFactor(def.workerTier);
+                    workforce.Set(f, UiFactory.QualityColor(f, theme),
+                        $"{Mathf.RoundToInt(def.workers * f)} / {def.workers}");
+                });
+                Line(theme.textMuted, () => def.workerTier.GetName(city.currentEpoch));
+            }
+
             // Rohstoff-Vorkommen im Umkreis (Holzfäller, Steinbruch): gezählte Felder von den nötigen
             if (def.requiredDeposit != null)
             {

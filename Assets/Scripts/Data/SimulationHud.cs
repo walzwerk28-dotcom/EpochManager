@@ -81,6 +81,20 @@ namespace EpochCity
             {
                 builder.AppendLine($"Einwohner {population.TotalResidents} / {city.HousingCapacity}");
                 builder.AppendLine($"Zufriedenheit {population.AverageSatisfaction * 100f:0} %");
+
+                // Arbeitskräfte je Stufe: verfügbar / benötigt, bei Mangel mit Anteil in Rot
+                if (economy != null && population.tiers != null)
+                    foreach (var tier in population.tiers)
+                    {
+                        if (tier == null) continue;
+                        int need = economy.GetRequiredWorkers(tier);
+                        if (need == 0) continue;
+                        int have = economy.GetAvailableWorkers(tier);
+                        string line = $"Arbeitskräfte {tier.GetName(city.currentEpoch)}: {have} / {need} benötigt";
+                        builder.AppendLine(have < need
+                            ? $"<color={danger}>{line} – Betriebe bei {economy.GetWorkforceFactor(tier) * 100f:0} %</color>"
+                            : line);
+                    }
             }
             else builder.AppendLine($"Wohnplätze {city.HousingCapacity}");
 

@@ -8,7 +8,8 @@ namespace EpochCity
     /// Bevölkerung, abstrakt pro Wohnhaus und einmal pro Spielmonat gerechnet:
     /// Waren werden aus dem Lager verbraucht, Dienste über ihre Reichweite im Straßennetz geprüft.
     /// Aus der gewichteten Erfüllung der Bedürfnisse ergibt sich die Zufriedenheit; die Einwohner bewegen
-    /// sich in Schritten auf Kapazität × Zufriedenheit zu (Zuzug und Wegzug). Danach zahlen sie Steuern
+    /// sich in Schritten auf Kapazität × Zufriedenheit zu (Zuzug und Wegzug), an einer Straße aber mindestens auf
+    /// Kapazität × minOccupancy. Danach zahlen sie Steuern
     /// nach dem Satz ihrer Stufe; der Satz senkt die Zufriedenheit über die Steuerkurve der Stufe.
     /// </summary>
     public class PopulationSimulation : MonoBehaviour
@@ -19,6 +20,9 @@ namespace EpochCity
         [Range(0.01f, 1f)] public float maxChangePerMonth = 0.25f;
         [Tooltip("Ab dieser Erfüllung gilt ein Bedürfnis nicht mehr als fehlend")]
         [Range(0f, 1f)] public float missingThreshold = 0.5f;
+        [Tooltip("Häuser an einer Straße füllen sich immer mindestens zu diesem Anteil, auch ohne erfüllte Bedürfnisse " +
+                 "(wie neue Häuser in Anno); sonst gäbe es ohne Arbeitskräfte keine Nahrung und ohne Nahrung keine Einwohner")]
+        [Range(0f, 1f)] public float minOccupancy = 0.25f;
         [Tooltip("Alle Bevölkerungsstufen (für Steuerregler und Anzeige)")]
         public PopulationTierDefinition[] tiers;
 
@@ -179,7 +183,8 @@ namespace EpochCity
             house.MissingNeeds = missing.ToString();
 
             int capacity = house.Definition.GetCapacity(city.UnlockedTechnologies);
-            int target = Mathf.RoundToInt(capacity * house.Satisfaction);
+            float share = city.Grid.TouchesRoad(house) ? Mathf.Max(house.Satisfaction, minOccupancy) : house.Satisfaction;
+            int target = Mathf.RoundToInt(capacity * share);
             int step = Mathf.Max(1, Mathf.CeilToInt(capacity * maxChangePerMonth));
             house.Residents = Mathf.Clamp(
                 house.Residents + Mathf.Clamp(target - house.Residents, -step, step), 0, capacity);

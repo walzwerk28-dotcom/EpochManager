@@ -24,6 +24,12 @@ namespace EpochCity
         [Tooltip("Erst baubar, wenn diese Technologie erforscht ist (leer = ab der Epoche)")]
         public TechnologyDefinition requiredTechnology;
 
+        [Header("Arbeitskräfte")]
+        [Tooltip("Stufe der Arbeitskräfte, die dieses Gebäude braucht (leer = keine)")]
+        public PopulationTierDefinition workerTier;
+        [Tooltip("Arbeitsplätze; fehlen Arbeitskräfte dieser Stufe, arbeitet das Gebäude anteilig langsamer")]
+        [Min(0)] public int workers;
+
         [Header("Rohstoff-Vorkommen (z. B. Holzfäller, Steinbruch)")]
         [Tooltip("Nur baubar mit diesem Vorkommen im Umkreis; die Menge bestimmt die Effizienz (leer = keins nötig)")]
         public DepositDefinition requiredDeposit;

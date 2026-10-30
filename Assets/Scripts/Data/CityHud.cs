@@ -418,6 +418,8 @@ namespace EpochCity
                 sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
             }
             else if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
+            if (def.workerTier != null && def.workers > 0)
+                sb.AppendLine($"Arbeitsplätze {def.workers} {def.workerTier.GetName(city.currentEpoch)}");
             if (def.requiredDeposit != null)
                 sb.AppendLine(def.depositRange > 0
                     ? $"Braucht {def.requiredDeposit.displayName} im Umkreis {def.depositRange} " +

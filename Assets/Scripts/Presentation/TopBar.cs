@@ -33,7 +33,7 @@ namespace EpochCity
 
         public const float Height = 64f;
 
-        private TextMeshProUGUI epochText, dateText, residentsText, materialsText, moneyText;
+        private TextMeshProUGUI epochText, dateText, residentsText, workersText, materialsText, moneyText;
         private readonly List<Image> speedImages = new List<Image>();
         private Image cityImage, researchImage, menuImage, hintImage;
         private RectTransform menu;
@@ -121,6 +121,20 @@ namespace EpochCity
             int residents = population != null ? population.TotalResidents : 0;
             residentsText.text = $"{residents}<size=75%><color={UiTheme.Hex(theme.textMuted)}>/{city.HousingCapacity}</color></size>";
 
+            // Arbeitsplätze aller Stufen: besetzt / benötigt, rot bei Mangel
+            int required = 0, filled = 0;
+            if (economy != null && population != null && population.tiers != null)
+                foreach (var tier in population.tiers)
+                {
+                    if (tier == null) continue;
+                    int need = economy.GetRequiredWorkers(tier);
+                    required += need;
+                    filled += Mathf.Min(need, economy.GetAvailableWorkers(tier));
+                }
+            string workColor = filled < required ? UiTheme.Hex(theme.danger) : UiTheme.Hex(theme.text);
+            workersText.text = $"<color={workColor}>{filled}</color><color={muted}>/{required} Arbeit</color>";
+            workersText.gameObject.SetActive(required > 0);
+
             if (demand != null)
                 foreach (var bar in demandBars)
                 {
@@ -166,7 +180,16 @@ namespace EpochCity
             // Rechts: Einwohner, Geld, Fenster, Menü, Hilfe
             var residentsIcon = Icon(i => i.residents);
             if (residentsIcon != null) UiFactory.AddIcon(bar, residentsIcon, 24f, theme.textMuted);
-            residentsText = Text(bar, "Residents", theme.bodySize + 2f, theme.text, 80f);
+            // Einwohner und darunter klein die Arbeitskräfte (besetzt / Arbeitsplätze)
+            var people = new GameObject("People", typeof(RectTransform));
+            people.transform.SetParent(bar, false);
+            UiFactory.AddColumn(people, 0, 0f);
+            people.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            people.AddComponent<LayoutElement>().preferredWidth = 96f;
+            residentsText = Text(people.transform, "Residents", theme.bodySize + 2f, theme.text, 96f);
+            workersText = Text(people.transform, "Workers", theme.smallSize, theme.text, 96f);
+            workersText.raycastTarget = true; // für den Tooltip
+            Tooltip.Attach(workersText.gameObject, WorkersTooltip);
 
             // Geld und darunter klein das Baumaterial; nebeneinander reicht die Breite der Leiste nicht
             var purse = new GameObject("Purse", typeof(RectTransform));
@@ -217,6 +240,19 @@ namespace EpochCity
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.gameObject.AddComponent<LayoutElement>().preferredWidth = width;
             return t;
+        }
+
+        /// <summary>Arbeitskräfte je Stufe: verfügbar, benötigt, besetzter Anteil.</summary>
+        private string WorkersTooltip()
+        {
+            var sb = new System.Text.StringBuilder("<b>Arbeitskräfte</b>\nBesetzte Arbeitsplätze / Arbeitsplätze; " +
+                                                   "fehlen Arbeitskräfte, arbeiten Betriebe langsamer.");
+            if (economy == null || population == null || population.tiers == null) return sb.ToString();
+            foreach (var tier in population.tiers)
+                if (tier != null)
+                    sb.Append($"\n{tier.GetName(city.currentEpoch)}: {economy.GetAvailableWorkers(tier)} verfügbar, " +
+                              $"{economy.GetRequiredWorkers(tier)} benötigt");
+            return sb.ToString();
         }
 
         /// <summary>Symbol aus dem Farbschema oder null, wenn keine Symbole eingerichtet sind.</summary>

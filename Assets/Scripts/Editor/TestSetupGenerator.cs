@@ -410,6 +410,17 @@ namespace EpochCity
                 "Stein brechen", null, 0f, stone, 1f, 8f, new Color(0.6f, 0.6f, 0.6f));
             carpentry.layers = quarry.layers = new[] { Boost(crafts, 1.25f) };
 
+            // Arbeitsplätze für Bauern (Stufe 1); Dienste ohne Produktion (Tempel, Brunnen) brauchen vorerst keine
+            foreach (var (def, workers) in new[]
+                     {
+                         (field, 4), (woodcutter, 3), (carpentry, 3), (quarry, 4), (storage, 2), (market, 2),
+                         (library, 3), (mill, 4)
+                     })
+            {
+                def.workerTier = farmers;
+                def.workers = workers;
+            }
+
             // Rohstoff-Vorkommen: Wald wird beim Bauen gerodet, auf Stein stehen nur Steinbrüche (Straßen dürfen darüber)
             var forest = GetOrCreate<DepositDefinition>("Dep_Wald");
             forest.displayName = "Wald";

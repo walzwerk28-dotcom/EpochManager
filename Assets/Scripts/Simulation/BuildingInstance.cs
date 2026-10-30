@@ -35,6 +35,9 @@ namespace EpochCity
         /// <summary>Grund für einen DepositFactor unter 1, z. B. „wenig Wald“.</summary>
         public string DepositIssue { get; set; } = "";
 
+        /// <summary>Besetzter Anteil der Arbeitsplätze (0–1, 1 ohne Bedarf); berechnet von EconomySimulation.</summary>
+        public float WorkforceFactor { get; set; } = 1f;
+
         /// <summary>Nur Wohngebäude: aktuelle Einwohner.</summary>
         public int Residents { get; set; }
 
