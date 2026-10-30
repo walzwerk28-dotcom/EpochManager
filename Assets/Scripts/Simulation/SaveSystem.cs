@@ -170,6 +170,8 @@ namespace EpochCity
                 }
             foreach (var c in grid.ZonedCells)
                 data.zones.Add(new CellEntry(c, ContentRegistry.IdOf(grid.GetZone(c))));
+            foreach (var c in grid.DepositCells)
+                data.deposits.Add(new CellEntry(c, ContentRegistry.IdOf(grid.GetDeposit(c))));
 
             foreach (var b in city.Buildings)
             {
@@ -207,6 +209,16 @@ namespace EpochCity
             city.RestoreState(data.money, epoch, techs);
             foreach (var entry in data.stock)
                 if (Resolve<ResourceDefinition>(entry.id, out var resource)) city.Stock.Add(resource, entry.amount);
+
+            // Vorkommen vor Straßen und Gebäuden; Stände vor Version 2 behalten die beim Start erzeugte Karte
+            // (Straßen und Gebäude roden darunter den Wald)
+            if (data.version >= 2)
+            {
+                var deposits = new List<(Vector2Int, DepositDefinition)>();
+                foreach (var entry in data.deposits)
+                    if (Resolve<DepositDefinition>(entry.id, out var deposit)) deposits.Add((entry.Cell, deposit));
+                city.RestoreDeposits(deposits);
+            }
 
             var roads = new List<(Vector2Int, RoadDefinition)>();
             foreach (var entry in data.roads)

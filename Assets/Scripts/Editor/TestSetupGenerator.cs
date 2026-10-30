@@ -406,6 +406,42 @@ namespace EpochCity
                 "Stein brechen", null, 0f, stone, 1f, 8f, new Color(0.6f, 0.6f, 0.6f));
             carpentry.layers = quarry.layers = new[] { Boost(crafts, 1.25f) };
 
+            // Rohstoff-Vorkommen: Wald wird beim Bauen gerodet, auf Stein stehen nur Steinbrüche (Straßen dürfen darüber)
+            var forest = GetOrCreate<DepositDefinition>("Dep_Wald");
+            forest.displayName = "Wald";
+            forest.color = new Color(0.22f, 0.42f, 0.18f);
+            forest.clearedByBuilding = true;
+            forest.blocksBuilding = false;
+            forest.tilePrefab = CreatePrefab("Prefab_Vorkommen_Wald", Vector2Int.one, 0.015f, forest.color, 0.96f);
+
+            var stoneDeposit = GetOrCreate<DepositDefinition>("Dep_Stein");
+            stoneDeposit.displayName = "Steinvorkommen";
+            stoneDeposit.color = new Color(0.55f, 0.54f, 0.50f);
+            stoneDeposit.clearedByBuilding = false;
+            stoneDeposit.blocksBuilding = true;
+            stoneDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Stein", Vector2Int.one, 0.015f, stoneDeposit.color, 0.96f);
+
+            // Holzfäller: Wald im Umkreis 3, ab 16 Feldern 100 %; Steinbruch: 2 seiner 4 Felder auf Stein
+            woodcutter.requiredDeposit = forest;
+            woodcutter.depositRange = 3;
+            woodcutter.depositCellsForFull = 16;
+            quarry.requiredDeposit = stoneDeposit;
+            quarry.depositRange = 0;
+            quarry.depositCellsForFull = 2;
+
+            var mapDef = GetOrCreate<MapDefinition>("Map_Standard");
+            mapDef.seed = 0;
+            mapDef.border = 2;
+            mapDef.startAreaRadius = 4f;
+            mapDef.patches = new[]
+            {
+                // Stein zuerst: kleine Flecken, die der Wald danach auslässt
+                new DepositPatches { deposit = stoneDeposit, minCount = 3, maxCount = 4, minCells = 4, maxCells = 8,
+                    firstPatchDistance = new Vector2(6f, 12f) },
+                new DepositPatches { deposit = forest, minCount = 6, maxCount = 8, minCells = 15, maxCells = 40,
+                    firstPatchDistance = new Vector2(8f, 14f) }
+            };
+
             // Baukosten in Material zusätzlich zum Geld (Trampelpfad, Zonen und Zonengebäude bleiben ohne)
             field.materialCosts = Cost((boards, 2f));
             storage.materialCosts = Cost((boards, 6f));
@@ -430,7 +466,7 @@ namespace EpochCity
                 house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
                 food, marketNeed, water, faith, farmers,
-                logs, boards, stone, woodcutter, carpentry, quarry
+                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann

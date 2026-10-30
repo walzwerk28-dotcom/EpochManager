@@ -12,8 +12,11 @@ namespace EpochCity
     [Serializable]
     public class SaveGame
     {
-        /// <summary>Formatversion; bei inkompatiblen Änderungen erhöhen und alte Stände umwandeln.</summary>
-        public const int CurrentVersion = 1;
+        /// <summary>
+        /// Formatversion; bei inkompatiblen Änderungen erhöhen und alte Stände umwandeln.
+        /// 2: Rohstoff-Vorkommen (deposits); ältere Stände behalten die beim Start erzeugte Karte.
+        /// </summary>
+        public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
         public string savedAt;
@@ -42,6 +45,7 @@ namespace EpochCity
         [Header("Karte")]
         public List<CellEntry> roads = new List<CellEntry>();
         public List<CellEntry> zones = new List<CellEntry>();
+        public List<CellEntry> deposits = new List<CellEntry>();
         public List<BuildingEntry> buildings = new List<BuildingEntry>();
 
         [Header("Darstellung")]

@@ -14,6 +14,8 @@ namespace EpochCity
         private readonly RoadDefinition[,] roads;
         private readonly ZoneDefinition[,] zones;
         private readonly HashSet<Vector2Int> zonedCells = new HashSet<Vector2Int>();
+        private readonly DepositDefinition[,] deposits;
+        private readonly HashSet<Vector2Int> depositCells = new HashSet<Vector2Int>();
 
         private static readonly Vector2Int[] Neighbours =
             { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
@@ -26,6 +28,7 @@ namespace EpochCity
             cells = new BuildingInstance[width, height];
             roads = new RoadDefinition[width, height];
             zones = new ZoneDefinition[width, height];
+            deposits = new DepositDefinition[width, height];
         }
 
         public bool InBounds(Vector2Int c) => c.x >= 0 && c.y >= 0 && c.x < Width && c.y < Height;
@@ -149,8 +152,12 @@ namespace EpochCity
         /// <summary>Alle Felder mit Zone (auch bebaute), damit nicht das ganze Raster durchsucht werden muss.</summary>
         public IReadOnlyCollection<Vector2Int> ZonedCells => zonedCells;
 
-        /// <summary>Auf diesem Feld darf eine Zone angelegt werden (im Raster, frei von Gebäude und Straße).</summary>
-        public bool CanZone(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null && roads[c.x, c.y] == null;
+        /// <summary>
+        /// Auf diesem Feld darf eine Zone angelegt werden (im Raster, frei von Gebäude und Straße, kein
+        /// Vorkommen, das Bauen verhindert).
+        /// </summary>
+        public bool CanZone(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null && roads[c.x, c.y] == null &&
+                                             !(deposits[c.x, c.y] != null && deposits[c.x, c.y].blocksBuilding);
 
         /// <summary>Setzt oder entfernt (null) die Zone eines Felds.</summary>
         public void SetZone(Vector2Int c, ZoneDefinition zone)
@@ -159,6 +166,32 @@ namespace EpochCity
             zones[c.x, c.y] = zone;
             if (zone != null) zonedCells.Add(c);
             else zonedCells.Remove(c);
+        }
+
+        // ---------------------------------------------------------------- Rohstoff-Vorkommen
+
+        public DepositDefinition GetDeposit(Vector2Int c) => InBounds(c) ? deposits[c.x, c.y] : null;
+
+        /// <summary>Alle Felder mit Vorkommen (auch bebaute).</summary>
+        public IReadOnlyCollection<Vector2Int> DepositCells => depositCells;
+
+        /// <summary>Setzt oder entfernt (null) das Vorkommen eines Felds.</summary>
+        public void SetDeposit(Vector2Int c, DepositDefinition deposit)
+        {
+            if (!InBounds(c)) return;
+            deposits[c.x, c.y] = deposit;
+            if (deposit != null) depositCells.Add(c);
+            else depositCells.Remove(c);
+        }
+
+        /// <summary>Felder mit diesem Vorkommen in der Grundfläche und im Umkreis range darum (Quadrat).</summary>
+        public int CountDeposit(DepositDefinition deposit, Vector2Int origin, Vector2Int size, int range)
+        {
+            int count = 0;
+            for (int x = origin.x - range; x < origin.x + size.x + range; x++)
+                for (int y = origin.y - range; y < origin.y + size.y + range; y++)
+                    if (GetDeposit(new Vector2Int(x, y)) == deposit) count++;
+            return count;
         }
 
         /// <summary>Alle Felder im Rechteck zwischen zwei Ecken (beide eingeschlossen).</summary>

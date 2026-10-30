@@ -133,6 +133,15 @@ namespace EpochCity
             {
                 string lack = city.GetMissingCost(selected.buildCost, selected.materialCosts);
                 if (lack != null) return $"{selected.displayName}  |  fehlt: {lack}";
+
+                // Vorkommen im Umkreis, z. B. „Wald im Umkreis: 9 / 16 → 56 %“
+                if (selected.requiredDeposit != null)
+                {
+                    float factor = city.GetDepositFactor(selected, cell, selected.size, out int count);
+                    return $"{selected.displayName}  |  {selected.requiredDeposit.displayName} im Umkreis: " +
+                           $"{count} / {selected.depositCellsForFull} → {factor * 100f:0} %" +
+                           (count == 0 ? "  |  hier nicht baubar" : "");
+                }
             }
 
             var building = city.Grid.GetAt(cell);
@@ -155,7 +164,11 @@ namespace EpochCity
             if (road != null) return road.displayName;
 
             var zone = city.Grid.GetZone(cell);
-            return zone != null ? $"{zone.displayName} (frei)" : "";
+            var deposit = city.Grid.GetDeposit(cell);
+            var parts = new List<string>();
+            if (deposit != null) parts.Add(deposit.displayName);
+            if (zone != null) parts.Add($"{zone.displayName} (frei)");
+            return string.Join("  |  ", parts);
         }
 
         // ---------------------------------------------------------------- Aufbau
@@ -402,6 +415,11 @@ namespace EpochCity
             if (capacity > 0) sb.AppendLine($"Wohnplätze {capacity}");
             if (def.category == BuildingCategory.Storage)
                 sb.AppendLine($"Einzugsweite {def.GetCatchmentRange(city.UnlockedTechnologies):0} Straßenfelder");
+            if (def.requiredDeposit != null)
+                sb.AppendLine(def.depositRange > 0
+                    ? $"Braucht {def.requiredDeposit.displayName} im Umkreis {def.depositRange} " +
+                      $"({def.depositCellsForFull} Felder für 100 %)"
+                    : $"Muss auf {def.requiredDeposit.displayName} stehen ({def.depositCellsForFull} Felder für 100 %)");
             if (city.IsAvailable(def)) sb.Append(MissingLine(def.buildCost, def.materialCosts));
             sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ?? Muted("Braucht ein angrenzendes Straßenfeld"));
             return sb.ToString().TrimEnd();

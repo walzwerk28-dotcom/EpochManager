@@ -587,6 +587,7 @@ MonoBehaviour:
     amount: 20
   - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
     amount: 10
+  map: {fileID: 11400000, guid: 1583c8aa391a066428e3a815cdcb8301, type: 2}
   debugBuilding: {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
   debugCell: {x: 0, y: 0}
 --- !u!4 &440537053
@@ -1078,6 +1079,7 @@ GameObject:
   - component: {fileID: 1732010463}
   - component: {fileID: 1732010462}
   - component: {fileID: 1732010464}
+  - component: {fileID: 1732010465}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -1204,6 +1206,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneTileVisibility
   city: {fileID: 440537052}
   placer: {fileID: 1216388725}
+--- !u!114 &1732010465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732010457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cca3218776701d4f8da31339d9a97f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.DepositTiles
+  city: {fileID: 440537052}
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

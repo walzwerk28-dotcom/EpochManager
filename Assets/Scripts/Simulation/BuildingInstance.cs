@@ -29,6 +29,12 @@ namespace EpochCity
         /// <summary>Grund für fehlende oder schwache Anbindung, z. B. "keine Straße".</summary>
         public string ConnectionIssue { get; set; } = "";
 
+        /// <summary>Anteil des nötigen Rohstoff-Vorkommens im Umkreis (0–1, 1 ohne Bedarf); berechnet von CityController.RefreshConnections.</summary>
+        public float DepositFactor { get; set; } = 1f;
+
+        /// <summary>Grund für einen DepositFactor unter 1, z. B. „wenig Wald“.</summary>
+        public string DepositIssue { get; set; } = "";
+
         /// <summary>Nur Wohngebäude: aktuelle Einwohner.</summary>
         public int Residents { get; set; }
 

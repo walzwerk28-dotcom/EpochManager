@@ -20,6 +20,9 @@ MonoBehaviour:
   zone: {fileID: 0}
   populationTier: {fileID: 0}
   requiredTechnology: {fileID: 0}
+  requiredDeposit: {fileID: 11400000, guid: 5c377163e04dd3b42a4eeb7dc66f143b, type: 2}
+  depositRange: 0
+  depositCellsForFull: 2
   buildCost: 100
   materialCosts: []
   upkeepPerMonth: 2

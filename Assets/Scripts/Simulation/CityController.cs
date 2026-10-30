@@ -21,6 +21,8 @@ namespace EpochCity
         public float startMoney = 1000f;
         [Tooltip("Startvorrat im Lager, z. B. Baumaterial für die ersten Gebäude")]
         public ResourceAmount[] startStock;
+        [Tooltip("Rohstoff-Vorkommen beim Spielstart (leer = keine)")]
+        public MapDefinition map;
 
         [Header("Debug (Rechtsklick auf die Komponente -> Debug: Platzieren)")]
         public BuildingDefinition debugBuilding;
@@ -39,6 +41,7 @@ namespace EpochCity
         private void Awake()
         {
             Grid = new GridMap(gridWidth, gridHeight, cellSize);
+            if (map != null) MapSeed = MapGenerator.Generate(Grid, map);
             Money = startMoney;
             if (startStock != null)
                 foreach (var a in startStock)
@@ -74,10 +77,13 @@ namespace EpochCity
 
         /// <summary>
         /// Lässt sich das Gebäude hier bauen? Freie Fläche, Epoche erreicht und mindestens ein angrenzendes
-        /// Straßenfeld – jedes Gebäude braucht beim Bau einen Straßenanschluss. Geld und Material prüft CanAfford.
+        /// Straßenfeld – jedes Gebäude braucht beim Bau einen Straßenanschluss. Dazu: kein Vorkommen darunter, das
+        /// Bauen verhindert, und das nötige Vorkommen mindestens einmal im Umkreis. Geld und Material prüft CanAfford.
         /// </summary>
         public bool CanPlace(BuildingDefinition def, Vector2Int origin) =>
-            IsAvailable(def) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size);
+            IsAvailable(def) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size) &&
+            DepositAllows(def, origin, def.size) &&
+            (def.requiredDeposit == null || Grid.CountDeposit(def.requiredDeposit, origin, def.size, def.depositRange) > 0);
 
         public bool TryPlace(BuildingDefinition def, Vector2Int origin, out BuildingInstance placed)
         {
@@ -160,7 +166,8 @@ namespace EpochCity
         {
             if (def == null || def.zone == null || !IsAvailable(def)) return false;
             var footprint = def.GetFootprint(facing);
-            if (!Grid.CanPlace(footprint, origin) || !Grid.SideHasRoad(origin, footprint, FrontSide(facing))) return false;
+            if (!Grid.CanPlace(footprint, origin) || !Grid.SideHasRoad(origin, footprint, FrontSide(facing)) ||
+                !DepositAllows(def, origin, footprint)) return false;
             for (int x = 0; x < footprint.x; x++)
                 for (int y = 0; y < footprint.y; y++)
                     if (Grid.GetZone(new Vector2Int(origin.x + x, origin.y + y)) != def.zone) return false;
@@ -210,6 +217,7 @@ namespace EpochCity
                     for (int y = 0; y < footprint.y; y++)
                         ClearZone(new Vector2Int(origin.x + x, origin.y + y));
 
+            ClearDeposits(GridMap.RectCells(origin, origin + footprint - Vector2Int.one));
             Grid.Place(placed);
             Buildings.Add(placed);
 
@@ -401,6 +409,7 @@ namespace EpochCity
         private void AddRoad(Vector2Int c, RoadDefinition road)
         {
             ClearZone(c); // Straßen verdrängen Zonen
+            ClearDeposits(new[] { c }); // und roden Wald
             Grid.SetRoad(c, road);
             RoadUpkeepPerMonth += road.upkeepPerCellPerMonth;
             if (road.prefab != null)
@@ -487,7 +496,68 @@ namespace EpochCity
         public void RefreshConnections()
         {
             Connections.Recalculate(Grid, Buildings, UnlockedTechnologies);
+            foreach (var b in Buildings)
+            {
+                b.DepositFactor = GetDepositFactor(b.Definition, b.Origin, b.Footprint, out _);
+                var deposit = b.Definition.requiredDeposit;
+                b.DepositIssue = deposit == null || b.DepositFactor >= 1f ? ""
+                    : b.DepositFactor <= 0f ? $"kein {deposit.displayName}" : $"wenig {deposit.displayName}";
+            }
             ConnectionsChanged?.Invoke();
+        }
+
+        // ---------------------------------------------------------------- Rohstoff-Vorkommen
+
+        /// <summary>Startwert, mit dem die Karte erzeugt wurde (0 ohne MapDefinition).</summary>
+        public int MapSeed { get; private set; }
+
+        /// <summary>Wird ausgelöst, nachdem Vorkommen gesetzt oder (z. B. durch Roden) entfernt wurden.</summary>
+        public event Action DepositsChanged;
+
+        /// <summary>
+        /// Anteil des nötigen Vorkommens: Felder mit Vorkommen in Grundfläche und Umkreis / depositCellsForFull,
+        /// höchstens 1. Gebäude ohne Bedarf haben 1.
+        /// </summary>
+        public float GetDepositFactor(BuildingDefinition def, Vector2Int origin, Vector2Int footprint, out int count)
+        {
+            count = 0;
+            if (def == null || def.requiredDeposit == null) return 1f;
+            count = Grid.CountDeposit(def.requiredDeposit, origin, footprint, def.depositRange);
+            return Mathf.Clamp01(count / (float)Mathf.Max(1, def.depositCellsForFull));
+        }
+
+        /// <summary>Kein Feld der Grundfläche trägt ein Vorkommen, das Bauen verhindert – außer dem, das das Gebäude braucht.</summary>
+        private bool DepositAllows(BuildingDefinition def, Vector2Int origin, Vector2Int footprint)
+        {
+            for (int x = 0; x < footprint.x; x++)
+                for (int y = 0; y < footprint.y; y++)
+                {
+                    var deposit = Grid.GetDeposit(new Vector2Int(origin.x + x, origin.y + y));
+                    if (deposit != null && deposit.blocksBuilding && deposit != def.requiredDeposit) return false;
+                }
+            return true;
+        }
+
+        /// <summary>Entfernt Vorkommen, die durch Bauen verschwinden (Wald roden).</summary>
+        private void ClearDeposits(IEnumerable<Vector2Int> cells)
+        {
+            bool changed = false;
+            foreach (var c in cells)
+            {
+                var deposit = Grid.GetDeposit(c);
+                if (deposit == null || !deposit.clearedByBuilding) continue;
+                Grid.SetDeposit(c, null);
+                changed = true;
+            }
+            if (changed) DepositsChanged?.Invoke();
+        }
+
+        /// <summary>Vorkommen aus einem Spielstand: ersetzt alle vorhandenen.</summary>
+        public void RestoreDeposits(IEnumerable<(Vector2Int cell, DepositDefinition deposit)> deposits)
+        {
+            foreach (var c in new List<Vector2Int>(Grid.DepositCells)) Grid.SetDeposit(c, null);
+            foreach (var (c, deposit) in deposits) Grid.SetDeposit(c, deposit);
+            DepositsChanged?.Invoke();
         }
 
         /// <summary>Wird ausgelöst, sobald eine Technologie neu freigeschaltet ist.</summary>

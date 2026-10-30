@@ -24,6 +24,14 @@ namespace EpochCity
         [Tooltip("Erst baubar, wenn diese Technologie erforscht ist (leer = ab der Epoche)")]
         public TechnologyDefinition requiredTechnology;
 
+        [Header("Rohstoff-Vorkommen (z. B. Holzfäller, Steinbruch)")]
+        [Tooltip("Nur baubar mit diesem Vorkommen im Umkreis; die Menge bestimmt die Effizienz (leer = keins nötig)")]
+        public DepositDefinition requiredDeposit;
+        [Tooltip("Umkreis um die Grundfläche in Feldern (0 = nur die Grundfläche selbst)")]
+        [Min(0)] public int depositRange;
+        [Tooltip("Ab so vielen Feldern mit Vorkommen arbeitet das Gebäude zu 100 %, darunter anteilig")]
+        [Min(1)] public int depositCellsForFull = 1;
+
         [Header("Kosten")]
         public float buildCost = 100f;
         [Tooltip("Baumaterial aus dem Lager zusätzlich zum Geld (Zonengebäude wachsen trotzdem kostenlos)")]

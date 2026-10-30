@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe5817bfeb047bf458a63bbf1c7415bd, type: 3}
+  m_Name: Map_Standard
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.MapDefinition
+  seed: 0
+  border: 2
+  startAreaRadius: 4
+  patches:
+  - deposit: {fileID: 11400000, guid: 5c377163e04dd3b42a4eeb7dc66f143b, type: 2}
+    minCount: 3
+    maxCount: 4
+    minCells: 4
+    maxCells: 8
+    firstPatchDistance: {x: 6, y: 12}
+  - deposit: {fileID: 11400000, guid: 48410fa5374d534488dc49c89adbf7d0, type: 2}
+    minCount: 6
+    maxCount: 8
+    minCells: 15
+    maxCells: 40
+    firstPatchDistance: {x: 8, y: 14}
