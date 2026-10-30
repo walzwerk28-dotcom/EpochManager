@@ -47,7 +47,8 @@ namespace EpochCity
             grounds.Clear();
             foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
                 grounds[n] = gravel;
-            foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen" })
+            foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
+                         "Schreibschule" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
                          "Holzfaeller", "Zimmerei", "Steinbruch" })
@@ -64,6 +65,7 @@ namespace EpochCity
             Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
             Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
             Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
+            Assign("Bld_Schreibschule", Make("Schreibschule", 2, antique, School));
             Assign("Bld_Feld", Make("Feld", 2, original, Field));
             Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
             Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
@@ -459,6 +461,23 @@ namespace EpochCity
             for (int k = 0; k <= w; k++)
                 b.Put(FT + "pillar-stone", Cell(0, 0, w, d) + new Vector3(k - 0.5f, 0f, -0.5f), 0f);
             GableRoof(b, w, d, 1, "roof");
+        }
+
+        /// <summary>
+        /// Schreibschule 2 × 2: kleiner Steinbau hinten mit Tür und Fenstern, davor ein Hof mit zwei Bänken unter
+        /// freiem Himmel (Unterricht im Freien) und einer Laterne.
+        /// </summary>
+        private static void School(Builder b)
+        {
+            const int w = 2, d = 2;
+            var hall = b.At(0f, 0.8f);
+            Walls(hall, w, d, 0, (i, j, dir) =>
+                dir == Vector2Int.down ? (i == 0 ? "wall-door" : "wall-window-stone") :
+                dir == Vector2Int.up ? "wall" : "wall-window-stone");
+            GableRoof(hall, w, d, 1, "roof");
+            b.Put(FT + "stall-bench", new Vector3(-0.8f, 0f, -1.4f), 0f);
+            b.Put(FT + "stall-bench", new Vector3(0.8f, 0f, -1.4f), 0f);
+            b.Put(FT + "lantern", new Vector3(1.7f, 0f, -0.6f), 0f);
         }
 
         /// <summary>Brunnen 1 × 1: runder Brunnen mit klarem Wasser.</summary>

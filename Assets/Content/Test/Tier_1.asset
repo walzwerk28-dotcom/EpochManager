@@ -24,6 +24,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 27d1e5c3428e24a4fa8478177594e90d, type: 2}
   - {fileID: 11400000, guid: 64f75f0d09407bb47a149e6ed6e9462c, type: 2}
   - {fileID: 11400000, guid: 8e78558306768a649b300295d15a670d, type: 2}
+  nextTier: {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}
+  upgradeSatisfaction: 0.75
+  upgradeMonths: 3
+  upgradeRequires:
+  - {fileID: 11400000, guid: 87c01c65676f4b54ab0753abaf3a09ec, type: 2}
+  downgradeSatisfaction: 0.4
+  downgradeMonths: 3
   taxPerResidentPerMonth: 1
   satisfactionByTaxRate:
     serializedVersion: 2

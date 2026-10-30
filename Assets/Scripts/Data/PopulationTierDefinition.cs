@@ -23,6 +23,21 @@ namespace EpochCity
         public EpochName[] namesByEpoch;
         public NeedDefinition[] needs;
 
+        [Header("Aufstieg (pro Haus, Modell bleibt)")]
+        [Tooltip("Stufe, in die ein Haus aufsteigen kann (leer = höchste Stufe)")]
+        public PopulationTierDefinition nextTier;
+        [Tooltip("Zufriedenheit, ab der ein Haus auf den Aufstieg zuarbeitet")]
+        [Range(0f, 1f)] public float upgradeSatisfaction = 0.75f;
+        [Tooltip("So viele Monate in Folge müssen die Bedingungen erfüllt sein")]
+        [Min(1)] public int upgradeMonths = 3;
+        [Tooltip("Zusätzlich nötig für den Aufstieg, z. B. Bildung (Schule in Reichweite)")]
+        public NeedDefinition[] upgradeRequires;
+
+        [Header("Abstieg (zurück in die Stufe darunter)")]
+        [Tooltip("Unter dieser Zufriedenheit arbeitet ein Haus dieser Stufe auf den Abstieg zu")]
+        [Range(0f, 1f)] public float downgradeSatisfaction = 0.4f;
+        [Min(1)] public int downgradeMonths = 3;
+
         [Header("Steuern")]
         [Min(0f)] public float taxPerResidentPerMonth = 1f;
         [Tooltip("Faktor auf die Zufriedenheit je Steuersatz: x = Satz (1 = 100 %), y = Faktor. " +

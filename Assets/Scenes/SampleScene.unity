@@ -587,6 +587,7 @@ MonoBehaviour:
     amount: 20
   - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
     amount: 10
+  baseStorageCapacity: 30
   map: {fileID: 11400000, guid: 1583c8aa391a066428e3a815cdcb8301, type: 2}
   debugBuilding: {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
   debugCell: {x: 0, y: 0}
@@ -697,6 +698,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 911b3c535dfd3894180a58eee9d20787, type: 2}
   - {fileID: 11400000, guid: a7e0f07efedf69542a3b9942fb6c0646, type: 2}
   - {fileID: 11400000, guid: e209751f86a92d4458274ab83a522a2b, type: 2}
+  - {fileID: 11400000, guid: 229afdcbf2f5dc848a6fed0eb044946e, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
   roads:
   - {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
@@ -889,8 +891,10 @@ MonoBehaviour:
   clock: {fileID: 2124652275}
   maxChangePerMonth: 0.25
   missingThreshold: 0.5
+  minOccupancy: 0.25
   tiers:
   - {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
+  - {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}
 --- !u!114 &1598712642
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1169,6 +1173,7 @@ MonoBehaviour:
   city: {fileID: 440537052}
   saveSystem: {fileID: 1598712642}
   progression: {fileID: 1598712639}
+  population: {fileID: 1598712641}
   duration: 3.5
   fadeTime: 0.6
   maxVisible: 4

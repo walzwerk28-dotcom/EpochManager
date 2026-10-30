@@ -475,6 +475,59 @@ namespace EpochCity
             paved.materialCostsPerCell = Cost((stone, 0.5f));
             path.materialCostsPerCell = new ResourceAmount[0];
 
+            // ---------------------------------------------------------------- Stufe 2: Handwerker
+            // Häuser steigen auf, wenn die Bauern zufrieden sind und eine Schule in Reichweite liegt (GDD: Bildung
+            // hebt in die nächste Stufe). Modell und Grundfläche bleiben, nur Bedürfnisse und Steuern ändern sich.
+
+            var school = GetOrCreate<BuildingDefinition>("Bld_Schreibschule");
+            school.displayName = "Schreibschule";
+            school.epoch = antike;
+            school.requiredTechnology = writing;
+            school.category = BuildingCategory.Service;
+            school.size = new Vector2Int(2, 2);
+            school.buildCost = 150f;
+            school.materialCosts = Cost((boards, 4f), (stone, 4f));
+            school.upkeepPerMonth = 3f;
+            school.baseCapacity = 0;
+            school.baseFunctions = new BuildingFunction[0];
+            school.layers = new BuildingLayer[0];
+            school.workerTier = farmers;
+            school.workers = 2;
+            school.prefab = KeepModel(school.prefab, () => CreatePrefab("Prefab_Schreibschule", school.size, 2f, new Color(0.8f, 0.75f, 0.6f)));
+
+            var education = GetOrCreate<NeedDefinition>("Need_Bildung");
+            education.displayName = "Bildung";
+            education.epoch = antike;
+            education.requiredTechnology = writing;
+            education.pyramidLevel = 4;
+            education.weight = 1f;
+            education.kind = NeedKind.Service;
+            education.resource = null;
+            education.providers = new[] { school };
+            education.range = 15f;
+            education.coverageByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
+
+            var artisans = GetOrCreate<PopulationTierDefinition>("Tier_2");
+            artisans.tier = 2;
+            artisans.displayName = "Handwerker";
+            artisans.namesByEpoch = new[]
+            {
+                new EpochName { epoch = antike, name = "Handwerker" },
+                new EpochName { epoch = mittelalter, name = "Bürger" }
+            };
+            artisans.needs = new[] { food, water, marketNeed, faith }; // Öl folgt mit der Ölpresse
+            artisans.taxPerResidentPerMonth = 2f;
+            artisans.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
+            artisans.nextTier = null;
+            artisans.upgradeRequires = new NeedDefinition[0];
+            artisans.downgradeSatisfaction = 0.4f;
+            artisans.downgradeMonths = 3;
+
+            farmers.nextTier = artisans;
+            farmers.upgradeSatisfaction = 0.75f;
+            farmers.upgradeMonths = 3;
+            farmers.upgradeRequires = new[] { education };
+
             // Mittelalter: 3 der 4 Schlüsseltechnologien (je Pfad eine), eine Bibliothek und 300 Einwohner
             mittelalter.keyTechnologies = new[] { minting, philosophy, plough, waterworks };
             mittelalter.requiredKeyTechnologies = 3;
@@ -488,7 +541,8 @@ namespace EpochCity
                 house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
                 food, marketNeed, water, faith, farmers,
-                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef
+                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
+                school, education, artisans
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann

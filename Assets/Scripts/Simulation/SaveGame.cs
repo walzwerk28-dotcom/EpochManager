@@ -95,6 +95,9 @@ namespace EpochCity
         public bool isProtected;
         public bool isPaused;
         public int residents;
+        [Tooltip("Aktuelle Bevölkerungsstufe (leer in älteren Spielständen = Stufe aus den Gebäudedaten)")]
+        public string tier;
+        public int tierMonths;
         public float satisfaction;
         public string missingNeeds;
         [Tooltip("Fortschritt je aktiver Funktion, in der Reihenfolge von GetActiveFunctions")]

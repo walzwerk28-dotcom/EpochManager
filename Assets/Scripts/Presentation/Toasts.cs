@@ -7,7 +7,7 @@ namespace EpochCity
 {
     /// <summary>
     /// Kurze Meldungen oben rechts unter der TopBar (neben dem mittigen Forschungsfenster), die nach einigen
-    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel, volle Waren,
+    /// Sekunden ausblenden (wie die Hinweise in Anno). Quellen: Speichern und Laden, erforschte Technologien, ein möglicher und ein vollzogener Epochenwechsel, volle Waren, Auf- und Abstieg von Häusern,
     /// leere und wieder ausgeglichene Stadtkasse.
     /// Andere Darstellungen können über Show eigene Meldungen zeigen.
     /// </summary>
@@ -16,6 +16,8 @@ namespace EpochCity
         [SerializeField] private CityController city;
         [SerializeField] private SaveSystem saveSystem;
         [SerializeField] private EpochProgression progression;
+        [Tooltip("Für Meldungen zu Auf- und Abstieg von Häusern")]
+        [SerializeField] private PopulationSimulation population;
 
         [Tooltip("Sekunden, die eine Meldung voll sichtbar bleibt")]
         [Min(0.5f)] public float duration = 3.5f;
@@ -58,6 +60,7 @@ namespace EpochCity
         private void OnEnable()
         {
             if (saveSystem != null) saveSystem.Reported += OnSaveReported;
+            if (population != null) population.TiersChanged += OnTiersChanged;
             if (city != null)
             {
                 city.TechnologyUnlocked += OnTechnologyUnlocked;
@@ -68,6 +71,7 @@ namespace EpochCity
         private void OnDisable()
         {
             if (saveSystem != null) saveSystem.Reported -= OnSaveReported;
+            if (population != null) population.TiersChanged -= OnTiersChanged;
             if (city != null)
             {
                 city.TechnologyUnlocked -= OnTechnologyUnlocked;
@@ -82,6 +86,17 @@ namespace EpochCity
             Show($"Erforscht: {tech.displayName}", theme.positive, Icon(i => i.research));
 
         private Sprite Icon(System.Func<UiIcons, Sprite> pick) => theme.icons != null ? pick(theme.icons) : null;
+
+        /// <summary>Eine Meldung pro Monat: wie viele Häuser auf- bzw. abgestiegen sind.</summary>
+        private void OnTiersChanged(int upgrades, int downgrades)
+        {
+            if (upgrades > 0)
+                Show(upgrades == 1 ? "Ein Haus ist aufgestiegen" : $"{upgrades} Häuser sind aufgestiegen",
+                    theme.positive, Icon(i => i.residents));
+            if (downgrades > 0)
+                Show(downgrades == 1 ? "Ein Haus ist abgestiegen (unzufrieden)" : $"{downgrades} Häuser sind abgestiegen (unzufrieden)",
+                    theme.danger, Icon(i => i.warning));
+        }
 
         private void OnEpochChanged(EpochDefinition epoch)
         {

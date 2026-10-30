@@ -41,6 +41,18 @@ namespace EpochCity
         /// <summary>Nur Wohngebäude: aktuelle Einwohner.</summary>
         public int Residents { get; set; }
 
+        /// <summary>
+        /// Aktuelle Bevölkerungsstufe der Bewohner (nur Wohnhäuser; Start = BuildingDefinition.populationTier).
+        /// Steigt ein Haus auf, ändern sich Bedürfnisse und Steuern, Modell und Grundfläche bleiben.
+        /// </summary>
+        public PopulationTierDefinition Tier { get; set; }
+
+        /// <summary>Monate in Folge mit erfüllten Aufstiegsbedingungen (positiv) bzw. Abstiegsbedingungen (negativ).</summary>
+        public int TierMonths { get; set; }
+
+        /// <summary>Warum das Haus gerade nicht auf den Aufstieg zuarbeitet, z. B. „braucht Bildung“ (leer = es arbeitet darauf zu).</summary>
+        public string UpgradeIssue { get; set; } = "";
+
         /// <summary>Nur Wohngebäude: Zufriedenheit von 0 bis 1, einmal pro Spielmonat berechnet.</summary>
         public float Satisfaction { get; set; }
 
@@ -59,6 +71,7 @@ namespace EpochCity
             Origin = origin;
             BuiltInEpoch = builtIn;
             Facing = facing;
+            Tier = definition.populationTier;
         }
     }
 }

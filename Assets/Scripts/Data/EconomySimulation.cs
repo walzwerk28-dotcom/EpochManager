@@ -32,7 +32,7 @@ namespace EpochCity
         {
             int sum = 0;
             foreach (var b in city.Buildings)
-                if (b.Definition.populationTier == tier) sum += b.Residents;
+                if (b.Tier == tier) sum += b.Residents;
             return sum;
         }
 

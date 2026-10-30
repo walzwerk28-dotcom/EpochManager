@@ -80,6 +80,14 @@ namespace EpochCity
             if (population != null)
             {
                 builder.AppendLine($"Einwohner {population.TotalResidents} / {city.HousingCapacity}");
+                // Einwohner je Stufe, sobald es mehr als eine gibt
+                if (population.tiers != null && population.tiers.Length > 1)
+                {
+                    var parts = new List<string>();
+                    foreach (var tier in population.tiers)
+                        if (tier != null) parts.Add($"{tier.GetName(city.currentEpoch)} {population.CountResidents(tier)}");
+                    builder.AppendLine($"<color={muted}>{string.Join(" · ", parts)}</color>");
+                }
                 builder.AppendLine($"Zufriedenheit {population.AverageSatisfaction * 100f:0} %");
 
                 // Arbeitskräfte je Stufe: verfügbar / benötigt, bei Mangel mit Anteil in Rot
@@ -90,7 +98,7 @@ namespace EpochCity
                         int need = economy.GetRequiredWorkers(tier);
                         if (need == 0) continue;
                         int have = economy.GetAvailableWorkers(tier);
-                        string line = $"Arbeitskräfte {tier.GetName(city.currentEpoch)}: {have} / {need} benötigt";
+                        string line = $"Arbeitskräfte {tier.GetName(city.currentEpoch)}: {have} da, {need} benötigt";
                         builder.AppendLine(have < need
                             ? $"<color={danger}>{line} – Betriebe bei {economy.GetWorkforceFactor(tier) * 100f:0} %</color>"
                             : line);
@@ -115,12 +123,18 @@ namespace EpochCity
                 any = true;
             }
             if (!any) builder.AppendLine($"<color={muted}>leer</color>");
+            // Überschrift für die Steuerregler darunter (die Zeilen nennen nur Stufe und Satz, sonst brechen sie um)
+            if (taxTiers.Count > 0)
+            {
+                builder.AppendLine();
+                builder.AppendLine($"<color={UiTheme.Hex(theme.heading)}>Steuern</color>");
+            }
 
             infoText.text = builder.ToString().TrimEnd();
 
             for (int i = 0; i < taxTiers.Count; i++)
                 taxLabels[i].text =
-                    $"Steuer {taxTiers[i].GetName(city.currentEpoch)}: {population.GetTaxRate(taxTiers[i]) * 100f:0} %";
+                    $"{taxTiers[i].GetName(city.currentEpoch)} {population.GetTaxRate(taxTiers[i]) * 100f:0} %";
         }
 
         private void Build()

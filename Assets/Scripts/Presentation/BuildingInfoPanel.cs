@@ -153,12 +153,13 @@ namespace EpochCity
                     int capacity = def.GetCapacity(city.UnlockedTechnologies);
                     residents.Set(capacity > 0 ? (float)b.Residents / capacity : 0f, theme.accent,
                         $"{b.Residents} / {capacity}");
-                    residents.Label.text = def.populationTier.GetName(city.currentEpoch);
+                    residents.Label.text = b.Tier.GetName(city.currentEpoch);
                 });
                 var satisfaction = UiFactory.CreateBar(content, "Zufriedenheit", theme);
                 updaters.Add(() => satisfaction.Set(b.Satisfaction, UiFactory.QualityColor(b.Satisfaction, theme),
                     $"{b.Satisfaction * 100f:0} %"));
                 Line(theme.danger, () => string.IsNullOrEmpty(b.MissingNeeds) ? "" : $"Fehlt: {b.MissingNeeds}");
+                Line(theme.textMuted, () => TierLine(b));
             }
 
             foreach (var function in def.GetActiveFunctions(city.UnlockedTechnologies))
@@ -201,6 +202,25 @@ namespace EpochCity
                 }
                 return sb.ToString().TrimEnd();
             });
+        }
+
+        /// <summary>
+        /// Stand von Aufstieg bzw. Abstieg: „Aufstieg (Handwerker): 2 / 3 Monate“, „Abstieg droht: 1 / 3 Monate“
+        /// oder der Grund, warum das Haus nicht aufsteigt (z. B. „braucht Bildung“).
+        /// </summary>
+        private string TierLine(BuildingInstance b)
+        {
+            var tier = b.Tier;
+            if (tier == null) return "";
+            if (b.TierMonths < 0)
+                return $"Abstieg droht: {-b.TierMonths} / {tier.downgradeMonths} Monate (Zufriedenheit unter " +
+                       $"{tier.downgradeSatisfaction * 100f:0} %)";
+            if (tier.nextTier == null) return "";
+            string next = tier.nextTier.GetName(city.currentEpoch);
+            if (b.TierMonths > 0) return $"Aufstieg ({next}): {b.TierMonths} / {tier.upgradeMonths} Monate";
+            return string.IsNullOrEmpty(b.UpgradeIssue)
+                ? $"Aufstieg ({next}): ab Zufriedenheit {tier.upgradeSatisfaction * 100f:0} % für {tier.upgradeMonths} Monate"
+                : $"Aufstieg ({next}): {b.UpgradeIssue}";
         }
 
         /// <summary>Textzeile, die sich bei jeder Aktualisierung neu füllt und bei leerem Text verschwindet.</summary>

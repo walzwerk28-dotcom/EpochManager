@@ -184,6 +184,8 @@ namespace EpochCity
                     isProtected = b.IsProtected,
                     isPaused = b.IsPaused,
                     residents = b.Residents,
+                    tier = ContentRegistry.IdOf(b.Tier),
+                    tierMonths = b.TierMonths,
                     satisfaction = b.Satisfaction,
                     missingNeeds = b.MissingNeeds,
                     facing = b.Facing,
@@ -248,6 +250,9 @@ namespace EpochCity
                 b.IsProtected = entry.isProtected;
                 b.IsPaused = entry.isPaused; // Anbindung (stillgelegte Lager) folgt mit RefreshConnections
                 b.Residents = entry.residents;
+                if (!string.IsNullOrEmpty(entry.tier) && Resolve<PopulationTierDefinition>(entry.tier, out var tier))
+                    b.Tier = tier;
+                b.TierMonths = entry.tierMonths;
                 b.Satisfaction = entry.satisfaction;
                 b.MissingNeeds = entry.missingNeeds ?? "";
                 var functions = def.GetActiveFunctions(city.UnlockedTechnologies);

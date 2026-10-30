@@ -87,13 +87,23 @@ namespace EpochCity
             foreach (var house in houses)
             {
                 UpdateHouse(house);
-                var tier = house.Definition.populationTier;
+                var tier = house.Tier;
                 int capacity = house.Definition.GetCapacity(city.UnlockedTechnologies);
                 residents += house.Residents;
                 totalCapacity += capacity;
                 weightedSatisfaction += house.Satisfaction * capacity;
                 taxes += house.Residents * tier.taxPerResidentPerMonth * GetTaxRate(tier);
             }
+
+            // Aufstieg und Abstieg wirken ab dem nächsten Monat (Steuern zahlt noch die alte Stufe)
+            int upgrades = 0, downgrades = 0;
+            foreach (var house in houses)
+            {
+                int change = UpdateTier(house);
+                if (change > 0) upgrades++;
+                else if (change < 0) downgrades++;
+            }
+            if (upgrades > 0 || downgrades > 0) TiersChanged?.Invoke(upgrades, downgrades);
 
             // Steuern zahlen die Einwohner nach Zu- und Wegzug dieses Monats
             city.AddMoney(taxes);
@@ -177,7 +187,7 @@ namespace EpochCity
             }
 
             // Bedürfnisse ergeben die Grundzufriedenheit, der Steuersatz drückt sie über eine weiche Kurve
-            var tier = house.Definition.populationTier;
+            var tier = house.Tier;
             float needs = weightSum > 0f ? fulfilled / weightSum : 1f;
             house.Satisfaction = needs * tier.TaxFactor(GetTaxRate(tier));
             house.MissingNeeds = missing.ToString();
@@ -190,11 +200,86 @@ namespace EpochCity
                 house.Residents + Mathf.Clamp(target - house.Residents, -step, step), 0, capacity);
         }
 
+        // ---------------------------------------------------------------- Aufstieg
+
+        /// <summary>Nach einem Monat mit Auf- bzw. Abstiegen: Anzahl der Häuser (für Meldungen).</summary>
+        public event System.Action<int, int> TiersChanged;
+
+        /// <summary>
+        /// Zählt Monate mit erfüllten Aufstiegsbedingungen (Zufriedenheit ab upgradeSatisfaction und alle
+        /// upgradeRequires erfüllt) bzw. Abstiegsbedingungen (Zufriedenheit unter downgradeSatisfaction) und wechselt
+        /// nach genug Monaten in Folge die Stufe. Einwohner und Modell bleiben. Gibt +1, −1 oder 0 zurück.
+        /// </summary>
+        private int UpdateTier(BuildingInstance house)
+        {
+            var tier = house.Tier;
+            var lower = GetLowerTier(tier);
+
+            if (lower != null && house.Satisfaction < tier.downgradeSatisfaction)
+            {
+                house.TierMonths = Mathf.Min(house.TierMonths, 0) - 1;
+                house.UpgradeIssue = "Zufriedenheit zu niedrig";
+                if (-house.TierMonths < tier.downgradeMonths) return 0;
+                house.Tier = lower;
+                house.TierMonths = 0;
+                return -1;
+            }
+
+            house.UpgradeIssue = GetUpgradeIssue(house);
+            if (house.UpgradeIssue.Length > 0)
+            {
+                house.TierMonths = 0;
+                return 0;
+            }
+            house.TierMonths = Mathf.Max(house.TierMonths, 0) + 1;
+            if (house.TierMonths < tier.upgradeMonths) return 0;
+            house.Tier = tier.nextTier;
+            house.TierMonths = 0;
+            house.UpgradeIssue = GetUpgradeIssue(house);
+            return 1;
+        }
+
+        /// <summary>Warum das Haus nicht aufsteigt (leer = Bedingungen erfüllt).</summary>
+        private string GetUpgradeIssue(BuildingInstance house)
+        {
+            var tier = house.Tier;
+            if (tier.nextTier == null) return "höchste Stufe";
+            if (house.Satisfaction < tier.upgradeSatisfaction)
+                return $"Zufriedenheit unter {tier.upgradeSatisfaction * 100f:0} %";
+            if (tier.upgradeRequires != null)
+                foreach (var need in tier.upgradeRequires)
+                {
+                    if (need == null) continue;
+                    float f = need.kind == NeedKind.Service ? GetServiceCoverage(need, house)
+                        : (goodsRatio.TryGetValue(need, out float ratio) ? ratio : 0f) * house.Connection;
+                    if (f < missingThreshold) return $"braucht {need.displayName}";
+                }
+            return "";
+        }
+
+        /// <summary>Stufe, deren nächste Stufe diese ist (aus tiers), sonst null.</summary>
+        public PopulationTierDefinition GetLowerTier(PopulationTierDefinition tier)
+        {
+            if (tiers == null || tier == null) return null;
+            foreach (var t in tiers)
+                if (t != null && t.nextTier == tier) return t;
+            return null;
+        }
+
+        /// <summary>Einwohner einer Stufe (Summe der Häuser), z. B. für Anzeigen.</summary>
+        public int CountResidents(PopulationTierDefinition tier)
+        {
+            int sum = 0;
+            foreach (var b in city.Buildings)
+                if (b.Tier == tier && b.Definition.populationTier != null) sum += b.Residents;
+            return sum;
+        }
+
         /// <summary>Bedürfnisse der Stufe, deren Epoche erreicht und deren Technologie erforscht ist.</summary>
         private List<NeedDefinition> GetActiveNeeds(BuildingInstance house)
         {
             activeNeeds.Clear();
-            var tier = house.Definition.populationTier;
+            var tier = house.Tier;
             if (tier.needs == null) return activeNeeds;
             foreach (var need in tier.needs)
                 if (need != null && city.IsEpochReached(need.epoch) && city.IsUnlocked(need.requiredTechnology))
