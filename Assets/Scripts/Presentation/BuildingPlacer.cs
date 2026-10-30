@@ -54,6 +54,9 @@ namespace EpochCity
         // Vorschau beim Ziehen: ein Platzhalter pro Feld, wiederverwendet
         private readonly CellGhostPool roadGhosts = new CellGhostPool();
         private readonly CellGhostPool zoneGhosts = new CellGhostPool();
+        // Umkreis von Betrieben, die ein Vorkommen brauchen: zählende Felder grün, der Rest blass
+        private readonly CellGhostPool depositGhosts = new CellGhostPool();
+        private readonly List<Vector2Int> depositCells = new List<Vector2Int>();
         private bool dragging;
         private Vector2Int dragStart;
 
@@ -74,6 +77,7 @@ namespace EpochCity
             hasHover = TryGetHoverCell(mouse, out hoverCell);
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
+            if (demolishMode || roadMode || zoneMode) depositGhosts.Hide();
             if (demolishMode)
                 HandleDemolish(mouse, overUi);
             else if (roadMode)
@@ -132,9 +136,11 @@ namespace EpochCity
             if (selected == null || !hasHover)
             {
                 if (ghost != null) ghost.SetActive(false);
+                depositGhosts.Hide();
                 return;
             }
 
+            ShowDepositRange();
             bool canPlace = city.CanPlace(selected, hoverCell) && city.CanAfford(selected);
 
             if (ghost != null)
@@ -147,6 +153,43 @@ namespace EpochCity
 
             if (!overUi && mouse.leftButton.wasPressedThisFrame && canPlace)
                 city.TryPlace(selected, hoverCell, out _);
+        }
+
+        /// <summary>
+        /// Zeigt bei Betrieben mit Vorkommen (Holzfäller, Steinbruch) den Umkreis um die Grundfläche: Felder mit dem
+        /// nötigen Vorkommen grün, die übrigen blass. Form ist die Bodenkachel des Vorkommens.
+        /// </summary>
+        private void ShowDepositRange()
+        {
+            var deposit = selected.requiredDeposit;
+            if (deposit == null || deposit.tilePrefab == null)
+            {
+                depositGhosts.Hide();
+                return;
+            }
+            int range = selected.depositRange;
+            depositCells.Clear();
+            for (int x = hoverCell.x - range; x < hoverCell.x + selected.size.x + range; x++)
+                for (int y = hoverCell.y - range; y < hoverCell.y + selected.size.y + range; y++)
+                {
+                    var c = new Vector2Int(x, y);
+                    if (city.Grid.InBounds(c)) depositCells.Add(c);
+                }
+            depositGhosts.Show(city, deposit.tilePrefab, depositCells, c => city.Grid.GetDeposit(c) == deposit,
+                GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
+        }
+
+        /// <summary>Anzahl der grün gezeigten Felder im Umkreis (für Tests).</summary>
+        public int DepositPreviewCount
+        {
+            get
+            {
+                if (selected == null || selected.requiredDeposit == null) return 0;
+                int n = 0;
+                foreach (var c in depositCells)
+                    if (city.Grid.GetDeposit(c) == selected.requiredDeposit) n++;
+                return n;
+            }
         }
 
         private void HandleRoad(Mouse mouse, bool overUi)

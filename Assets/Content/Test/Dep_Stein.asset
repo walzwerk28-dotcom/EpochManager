@@ -15,5 +15,11 @@ MonoBehaviour:
   displayName: Steinvorkommen
   color: {r: 0.55, g: 0.54, b: 0.5, a: 1}
   tilePrefab: {fileID: 4868619878843412240, guid: c123c5cf7b5f8ed42b545e76d0b53c78, type: 3}
+  decorPrefabs:
+  - {fileID: 5467439333365267450, guid: a316085ec5c63d44eb63edbde5012794, type: 3}
+  - {fileID: 794728701182963984, guid: d22996f388777d445bbc6105d043d9ae, type: 3}
+  - {fileID: 6262915222107468084, guid: 0b4355a9b06239a4c966347b2f7e69b6, type: 3}
+  decorPerCell: {x: 1, y: 2}
+  decorScale: {x: 0.8, y: 1.2}
   clearedByBuilding: 0
   blocksBuilding: 1

@@ -15,5 +15,12 @@ MonoBehaviour:
   displayName: Wald
   color: {r: 0.22, g: 0.42, b: 0.18, a: 1}
   tilePrefab: {fileID: 2117699414966403576, guid: cc8ab5161d3e0684dbbd4173df5749de, type: 3}
+  decorPrefabs:
+  - {fileID: 8365692569918954403, guid: ba22f9b95a0f6274ca10a9f740aa560e, type: 3}
+  - {fileID: 5488466265938004310, guid: a02e97cf8cab032428209f6a97d3c716, type: 3}
+  - {fileID: 8820878340556552035, guid: 58a486d27568d244abd14a224cdf184b, type: 3}
+  - {fileID: 5962855636904893549, guid: 9f2acf276d2a43447bbbb9b76b219ee2, type: 3}
+  decorPerCell: {x: 2, y: 3}
+  decorScale: {x: 0.8, y: 1.2}
   clearedByBuilding: 1
   blocksBuilding: 0

@@ -12,8 +12,16 @@ namespace EpochCity
         public string displayName;
         [Tooltip("Farbe für Anzeigen (Kachel, später Overlay)")]
         public Color color = Color.green;
-        [Tooltip("Flache Kachel für genau ein Rasterfeld; vorläufige Darstellung, bis Bäume und Felsen kommen")]
+        [Tooltip("Flache Bodenkachel für genau ein Rasterfeld (z. B. Waldboden), unter der Deko")]
         public GameObject tilePrefab;
+
+        [Header("Deko (Bäume, Felsen)")]
+        [Tooltip("Modelle, aus denen je Feld zufällig gewählt wird")]
+        public GameObject[] decorPrefabs;
+        [Tooltip("Anzahl je Feld (von, bis einschließlich)")]
+        public Vector2Int decorPerCell = new Vector2Int(2, 3);
+        [Tooltip("Zufällige Größe (Faktor von, bis)")]
+        public Vector2 decorScale = new Vector2(0.85f, 1.15f);
 
         [Tooltip("Gebäude, Straßen und gewachsene Zonengebäude entfernen das Vorkommen endgültig (z. B. Wald roden)")]
         public bool clearedByBuilding;

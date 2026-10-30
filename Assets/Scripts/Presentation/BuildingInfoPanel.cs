@@ -9,7 +9,8 @@ namespace EpochCity
 {
     /// <summary>
     /// Infofenster links unten zum ausgewählten Gebäude (Linksklick außerhalb der Baumodi, wie in Anno): Kopf mit
-    /// Kategoriesymbol, Kategorie und Bau-Epoche, dann Balken für Anbindung, bei Wohnhäusern Belegung und
+    /// Kategoriesymbol, Kategorie und Bau-Epoche, dann Balken für Anbindung, bei Betrieben mit Rohstoff-Vorkommen
+    /// dessen Anteil im Umkreis, bei Wohnhäusern Belegung und
     /// Zufriedenheit samt fehlenden Bedürfnissen, bei Produktion den Fortschritt je Funktion mit Ein- und Ausgaben
     /// (inklusive Technologie-Multiplikator), darunter Unterhalt und Besonderheiten. Unten Denkmalschutz an/aus und
     /// Abreißen. Der Inhalt wird beim Wechsel des Gebäudes neu aufgebaut und danach nur noch aktualisiert.
@@ -110,6 +111,18 @@ namespace EpochCity
             updaters.Add(() => connection.Set(b.Connection, UiFactory.QualityColor(b.Connection, theme),
                 $"{b.Connection * 100f:0} %"));
             Line(theme.textMuted, () => b.ConnectionIssue);
+
+            // Rohstoff-Vorkommen im Umkreis (Holzfäller, Steinbruch): gezählte Felder von den nötigen
+            if (def.requiredDeposit != null)
+            {
+                var deposit = UiFactory.CreateBar(content, def.requiredDeposit.displayName, theme);
+                updaters.Add(() =>
+                {
+                    city.GetDepositFactor(def, b.Origin, b.Footprint, out int count);
+                    deposit.Set(b.DepositFactor, UiFactory.QualityColor(b.DepositFactor, theme),
+                        $"{count} / {def.depositCellsForFull}");
+                });
+            }
 
             if (def.populationTier != null)
             {

@@ -96,6 +96,17 @@ namespace EpochCity
                 b => Row(b, "wall-wood", 4, 0f, (3, "roof-high", false), (2, "roof", true))));
             Assign("Bld_Muehle", Make("Muehle", 2, original, Mill));
 
+            // Deko der Rohstoff-Vorkommen: einzelne Bäume und Felsen in natürlicher Größe (nicht auf ein Feld skaliert)
+            AssignDecor("Dep_Wald",
+                MakeDecor("Baum_Eiche", NK + "tree_oak", 1.8f),
+                MakeDecor("Baum_Laub", NK + "tree_default", 1.8f),
+                MakeDecor("Baum_Kiefer", NK + "tree_pineRoundB", 1.8f, defaultMatAs: "leafsDark"),
+                MakeDecor("Baum_Kiefer_Hoch", NK + "tree_pineTallA", 1.6f));
+            AssignDecor("Dep_Stein",
+                MakeDecor("Fels_Gross", NK + "stone_largeA", 1.8f),
+                MakeDecor("Fels_Hoch", NK + "stone_tallB", 1.6f),
+                MakeDecor("Fels_Breit", NK + "stone_largeC", 1.6f));
+
             AssetDatabase.SaveAssets();
             ReimportPrefabs(Out);
             Debug.Log("Gebäude-Modelle erzeugt.");
@@ -573,6 +584,8 @@ namespace EpochCity
             b.Overrides["woodBark"] = Solid("Rinde", new Color(0.45f, 0.30f, 0.18f));
             b.Overrides["woodInner"] = Solid("Holz", new Color(0.82f, 0.66f, 0.44f));
             b.Overrides["leafsGreen"] = Solid("Laub", new Color(0.33f, 0.52f, 0.22f));
+            b.Overrides["leafsDark"] = Solid("Nadeln", new Color(0.20f, 0.38f, 0.22f));
+            b.Overrides["woodBarkDark"] = Solid("RindeDunkel", new Color(0.33f, 0.22f, 0.14f));
             b.Overrides["stone"] = Solid("Stein", new Color(0.62f, 0.60f, 0.56f));
         }
 
@@ -789,6 +802,50 @@ namespace EpochCity
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{Out}/{name}.prefab");
             Object.DestroyImmediate(root);
             return prefab;
+        }
+
+        /// <summary>
+        /// Ein Nature-Kit-Teil als Deko-Prefab (Baum, Fels): in eigener Farbe, um scale vergrößert, Unterkante auf 0
+        /// und mittig, zu einem Mesh verschmolzen; ohne Bodenplatte.
+        /// </summary>
+        private static GameObject MakeDecor(string name, string part, float scale, string defaultMatAs = null)
+        {
+            var temp = new GameObject("temp");
+            var b = new Builder(temp.transform, null);
+            NatureColors(b);
+            // Manche Teile tragen einen Teil ihrer Fläche als „_defaultMat“ (weiß); er bekommt dann diese Farbe
+            if (defaultMatAs != null) b.Overrides["_defaultMat"] = b.Overrides[defaultMatAs];
+            b.Put(part, Vector3.zero, 0f);
+
+            var bounds = GetBounds(temp);
+            var offset = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z) * scale;
+            var mesh = Combine(temp, scale, offset, out var materials);
+            mesh.name = $"Deko_{name}";
+            mesh = SaveMeshAsset(mesh, $"{Out}/Meshes/Deko_{name}.asset");
+            Object.DestroyImmediate(temp);
+
+            var root = new GameObject($"Deko_{name}", typeof(MeshFilter), typeof(MeshRenderer));
+            root.GetComponent<MeshFilter>().sharedMesh = mesh;
+            root.GetComponent<MeshRenderer>().sharedMaterials = materials;
+            var size = mesh.bounds.size;
+            Debug.Log($"Deko {name}: {size.x:0.00} × {size.y:0.00} × {size.z:0.00} m, {mesh.vertexCount} Vertices");
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{Out}/Deko_{name}.prefab");
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        /// <summary>Trägt die Deko-Modelle in ein Vorkommen des Testaufbaus ein.</summary>
+        private static void AssignDecor(string deposit, params GameObject[] prefabs)
+        {
+            var def = AssetDatabase.LoadAssetAtPath<DepositDefinition>($"{Defs}/{deposit}.asset");
+            if (def == null)
+            {
+                Debug.LogWarning($"Vorkommen fehlt: {deposit} (erst „Testaufbau erzeugen“ ausführen)");
+                return;
+            }
+            def.decorPrefabs = prefabs;
+            EditorUtility.SetDirty(def);
         }
 
         /// <summary>

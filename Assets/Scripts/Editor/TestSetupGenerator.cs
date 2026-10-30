@@ -412,14 +412,21 @@ namespace EpochCity
             forest.color = new Color(0.22f, 0.42f, 0.18f);
             forest.clearedByBuilding = true;
             forest.blocksBuilding = false;
-            forest.tilePrefab = CreatePrefab("Prefab_Vorkommen_Wald", Vector2Int.one, 0.015f, forest.color, 0.96f);
+            // Dezent dunklerer Waldboden unter den Bäumen; die Bäume trägt „Gebäude-Modelle erzeugen“ ein
+            forest.tilePrefab = CreatePrefab("Prefab_Vorkommen_Wald", Vector2Int.one, 0.015f,
+                new Color(0.30f, 0.38f, 0.19f), 1f);
+            forest.decorPerCell = new Vector2Int(2, 3);
+            forest.decorScale = new Vector2(0.8f, 1.2f);
 
             var stoneDeposit = GetOrCreate<DepositDefinition>("Dep_Stein");
             stoneDeposit.displayName = "Steinvorkommen";
             stoneDeposit.color = new Color(0.55f, 0.54f, 0.50f);
             stoneDeposit.clearedByBuilding = false;
             stoneDeposit.blocksBuilding = true;
-            stoneDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Stein", Vector2Int.one, 0.015f, stoneDeposit.color, 0.96f);
+            stoneDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Stein", Vector2Int.one, 0.015f,
+                new Color(0.50f, 0.48f, 0.42f), 1f);
+            stoneDeposit.decorPerCell = new Vector2Int(1, 2);
+            stoneDeposit.decorScale = new Vector2(0.8f, 1.2f);
 
             // Holzfäller: Wald im Umkreis 3, ab 16 Feldern 100 %; Steinbruch: 2 seiner 4 Felder auf Stein
             woodcutter.requiredDeposit = forest;
