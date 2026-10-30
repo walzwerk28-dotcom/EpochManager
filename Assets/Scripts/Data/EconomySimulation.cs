@@ -144,10 +144,12 @@ namespace EpochCity
                 {
                     if (function == null) continue;
 
+                    // Der Überschuss über die Zyklusdauer geht in den nächsten Zyklus über; nur ein wartender
+                    // Betrieb bleibt bei voller Dauer stehen, damit sich kein Vorrat an Zyklen aufstaut
                     building.Progress.TryGetValue(function, out float progress);
-                    progress = Mathf.Min(progress + dt * efficiency, function.cycleSeconds);
+                    progress += dt * efficiency;
 
-                    if (progress >= function.cycleSeconds)
+                    while (progress >= function.cycleSeconds)
                     {
                         if (!CanAfford(function.inputs, out string missing))
                             building.Status = "wartet: " + missing;
@@ -158,7 +160,10 @@ namespace EpochCity
                             Consume(function.inputs);
                             Produce(function.outputs, multiplier);
                             progress -= function.cycleSeconds;
+                            continue;
                         }
+                        progress = function.cycleSeconds;
+                        break;
                     }
                     building.Progress[function] = progress;
                 }
