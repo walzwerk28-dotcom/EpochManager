@@ -551,14 +551,23 @@ namespace EpochCity
             var school = GetOrCreate<BuildingDefinition>("Bld_Schreibschule");
             school.displayName = "Schreibschule";
             school.epoch = antike;
-            school.requiredTechnology = writing;
+            school.requiredTechnology = null; // ab Start: erste Forschung für die Schrift
             school.category = BuildingCategory.Service;
             school.size = new Vector2Int(2, 2);
             school.buildCost = 150f;
             school.materialCosts = Cost((boards, 4f), (stone, 4f));
             school.upkeepPerMonth = 3f;
             school.baseCapacity = 0;
-            school.baseFunctions = new BuildingFunction[0];
+            school.baseFunctions = new[]
+            {
+                new BuildingFunction
+                {
+                    label = "Schreiben lehren",
+                    inputs = new[] { new ResourceAmount { resource = coins, amount = 1f } },
+                    outputs = new[] { new ResourceAmount { resource = research, amount = 0.5f } },
+                    cycleSeconds = 5f
+                }
+            };
             school.layers = new BuildingLayer[0];
             school.workerTier = farmers;
             school.workers = 2;
@@ -746,8 +755,8 @@ namespace EpochCity
                 def.menuTier = artisans;
             foreach (var def in new[] { vineyard, winePress, academy })
                 def.menuTier = scholars;
-            // Ketten einer Stufe erst mit deren Wohnzone baubar; die Bibliothek bleibt frei (sie erforscht die Schrift)
-            foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery })
+            // Ketten einer Stufe erst mit deren Wohnzone baubar; die erste Forschung für die Schrift liefert die Schreibschule
+            foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
                 def.requiredTechnology = writing;
             foreach (var def in new[] { vineyard, winePress })
                 def.requiredTechnology = philosophy;

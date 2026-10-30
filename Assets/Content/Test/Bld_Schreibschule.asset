@@ -19,7 +19,7 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
-  requiredTechnology: {fileID: 11400000, guid: 56d7774ca24c51a4292139d4c82c52fe, type: 2}
+  requiredTechnology: {fileID: 0}
   menuTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   workerTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
   workers: 2
@@ -34,7 +34,15 @@ MonoBehaviour:
     amount: 4
   upkeepPerMonth: 3
   baseCapacity: 0
-  baseFunctions: []
+  baseFunctions:
+  - label: Schreiben lehren
+    inputs:
+    - resource: {fileID: 11400000, guid: aa82ce7491460e24f9dcb1aeec26e2ec, type: 2}
+      amount: 1
+    outputs:
+    - resource: {fileID: 11400000, guid: e87d03efb365c7047952fd91a09e4917, type: 2}
+      amount: 0.5
+    cycleSeconds: 5
   layers: []
   catchmentRange: 20
   efficiencyByDistance:
