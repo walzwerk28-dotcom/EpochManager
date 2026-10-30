@@ -40,6 +40,13 @@ namespace EpochCity
         [Min(0)] public int depositRange;
         [Tooltip("Ab so vielen Feldern mit Vorkommen arbeitet das Gebäude zu 100 %, darunter anteilig")]
         [Min(1)] public int depositCellsForFull = 1;
+        [Tooltip("Verbraucht das Vorkommen: alle cyclesPerFelling Zyklen wird ein ausgewachsenes Feld im Umkreis " +
+                 "gefällt; es wächst nach DepositDefinition.regrowMonths nach")]
+        public bool fellsDeposit;
+        [Min(1)] public int cyclesPerFelling = 4;
+        [Tooltip("Pflanzt dieses Vorkommen (Förster): jeder Zyklus setzt ein junges Feld auf ein freies Feld im Umkreis " +
+                 "depositRange; junge Felder dort wachsen in DepositDefinition.regrowMonthsTended Monaten nach")]
+        public DepositDefinition plantsDeposit;
 
         [Header("Kosten")]
         public float buildCost = 100f;

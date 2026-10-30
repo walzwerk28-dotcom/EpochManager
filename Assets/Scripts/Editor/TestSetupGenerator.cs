@@ -520,6 +520,23 @@ namespace EpochCity
             quarry.depositRange = 0;
             quarry.depositCellsForFull = 2;
 
+            // Holzfäller fällen alle 4 Stämme ein Waldfeld; es wächst in 8 Monaten nach, beim Förster in 4
+            woodcutter.fellsDeposit = true;
+            woodcutter.cyclesPerFelling = 4;
+            forest.regrowMonths = 8;
+            forest.regrowMonthsTended = 4;
+            stoneDeposit.regrowMonths = 0;
+
+            // Förster: pflanzt alle 15 s ein Waldfeld im Umkreis 3, bevorzugt neben vorhandenem Wald
+            var forester = ProductionBuilding("Bld_Foerster", "Förster", antike, 60f, 1f,
+                "Bäume pflanzen", null, 0f, null, 0f, 15f, new Color(0.3f, 0.5f, 0.25f));
+            forester.baseFunctions[0].outputs = new ResourceAmount[0];
+            forester.materialCosts = Cost((boards, 2f));
+            forester.plantsDeposit = forest;
+            forester.depositRange = 3;
+            forester.workerTier = farmers;
+            forester.workers = 2;
+
             var mapDef = GetOrCreate<MapDefinition>("Map_Standard");
             mapDef.seed = 0;
             mapDef.border = 2;
@@ -749,7 +766,7 @@ namespace EpochCity
             scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed, wineNeed };
 
             // Reiter der Bauleiste (wie in Anno): die Stufe, deren Kette ein Gebäude dient, nicht die seiner Arbeiter
-            foreach (var def in new[] { field, woodcutter, carpentry, quarry, storage, market, school, well, temple, mill })
+            foreach (var def in new[] { field, woodcutter, forester, carpentry, quarry, storage, market, school, well, temple, mill })
                 def.menuTier = farmers;
             foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
                 def.menuTier = artisans;
@@ -779,7 +796,7 @@ namespace EpochCity
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
-                grapes, wine, vineyard, winePress, wineNeed
+                grapes, wine, vineyard, winePress, wineNeed, forester
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann

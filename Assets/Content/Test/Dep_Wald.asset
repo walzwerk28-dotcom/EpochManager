@@ -24,3 +24,5 @@ MonoBehaviour:
   decorScale: {x: 0.8, y: 1.2}
   clearedByBuilding: 1
   blocksBuilding: 0
+  regrowMonths: 8
+  regrowMonthsTended: 4

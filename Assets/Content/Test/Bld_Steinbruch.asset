@@ -26,6 +26,9 @@ MonoBehaviour:
   requiredDeposit: {fileID: 11400000, guid: 5c377163e04dd3b42a4eeb7dc66f143b, type: 2}
   depositRange: 0
   depositCellsForFull: 2
+  fellsDeposit: 0
+  cyclesPerFelling: 4
+  plantsDeposit: {fileID: 0}
   buildCost: 100
   materialCosts: []
   upkeepPerMonth: 2

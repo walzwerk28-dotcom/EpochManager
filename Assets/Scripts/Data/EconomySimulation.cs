@@ -10,7 +10,8 @@ namespace EpochCity
     /// nicht und zahlen nur einen Teil ihres Unterhalts (pausedUpkeepFactor). Ist für die Ausgabe eines Zyklus kein
     /// Platz im Lager (CityController.StorageCapacity), wartet der Betrieb mit „Lager voll“. Arbeitskräfte: Gebäude mit
     /// Arbeitsplätzen (workerTier, workers) teilen sich die Einwohner ihrer Stufe; reichen sie nicht, arbeiten alle
-    /// anteilig langsamer (Effizienz = Anbindung × Vorkommen × Arbeitskräfte).
+    /// anteilig langsamer (Effizienz = Anbindung × Vorkommen × Arbeitskräfte). Holzfäller fällen alle cyclesPerFelling
+    /// Zyklen ein Waldfeld (CityController.FellDeposit), Förster pflanzen je Zyklus eines (PlantDeposit).
     /// </summary>
     public class EconomySimulation : MonoBehaviour
     {
@@ -155,11 +156,14 @@ namespace EpochCity
                             building.Status = "wartet: " + missing;
                         else if (!HasRoom(function.outputs, multiplier, out string full))
                             building.Status = "Lager voll: " + full; // wartet, ohne Eingänge zu verbrauchen
+                        else if (building.Definition.plantsDeposit != null && !city.PlantDeposit(building))
+                            building.Status = "wartet: kein Platz zum Pflanzen";
                         else
                         {
                             Consume(function.inputs);
                             Produce(function.outputs, multiplier);
                             progress -= function.cycleSeconds;
+                            Fell(building);
                             continue;
                         }
                         progress = function.cycleSeconds;
@@ -168,6 +172,17 @@ namespace EpochCity
                     building.Progress[function] = progress;
                 }
             }
+        }
+
+        /// <summary>Holzfäller: nach cyclesPerFelling Zyklen ein Feld des Vorkommens fällen (es wächst nach).</summary>
+        private void Fell(BuildingInstance building)
+        {
+            var def = building.Definition;
+            if (!def.fellsDeposit) return;
+            building.CyclesSinceFelling++;
+            if (building.CyclesSinceFelling < def.cyclesPerFelling) return;
+            building.CyclesSinceFelling = 0;
+            city.FellDeposit(building);
         }
 
         /// <summary>Anbindung × Anteil des nötigen Vorkommens, beides berechnet von CityController.RefreshConnections.</summary>

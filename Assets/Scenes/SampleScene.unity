@@ -690,6 +690,7 @@ MonoBehaviour:
   hotbar:
   - {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
   - {fileID: 11400000, guid: 972329bce9a46bf48969b65af4bd1add, type: 2}
+  - {fileID: 11400000, guid: 066d121d90d288948b30c42d1adef6b5, type: 2}
   - {fileID: 11400000, guid: 3ab191100e4e440448315d3500a3fa18, type: 2}
   - {fileID: 11400000, guid: 47b0b42f5c133e24b8a03f8a41388bb4, type: 2}
   - {fileID: 11400000, guid: 94e90c7edfa5fe34ca9f04e8af694541, type: 2}
@@ -764,6 +765,7 @@ GameObject:
   - component: {fileID: 1598712641}
   - component: {fileID: 1598712642}
   - component: {fileID: 1598712643}
+  - component: {fileID: 1598712644}
   m_Layer: 0
   m_Name: Simulation
   m_TagString: Untagged
@@ -952,6 +954,20 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4ba6d175a3d351e45aad229dc4ceb83f, type: 2}
   - {fileID: 11400000, guid: bb6812786610a864684b6d25ec3594f6, type: 2}
   refreshSeconds: 0.5
+--- !u!114 &1598712644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1598712634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8af0285aa0ff4845befe2841ea0a570, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ForestSimulation
+  city: {fileID: 440537052}
+  clock: {fileID: 2124652275}
 --- !u!1 &1627082945
 GameObject:
   m_ObjectHideFlags: 0

@@ -27,5 +27,11 @@ namespace EpochCity
         public bool clearedByBuilding;
         [Tooltip("Hier stehen nur Gebäude, die dieses Vorkommen brauchen, und keine Zonen; Straßen dürfen darüber")]
         public bool blocksBuilding;
+
+        [Header("Nachwachsen (Wald)")]
+        [Tooltip("Monate, bis ein gefälltes oder gepflanztes Feld wieder zählt (0 = wächst nicht nach)")]
+        [Min(0)] public int regrowMonths;
+        [Tooltip("Monate bis dahin im Umkreis eines Gebäudes, das dieses Vorkommen pflanzt (Förster)")]
+        [Min(1)] public int regrowMonthsTended = 4;
     }
 }

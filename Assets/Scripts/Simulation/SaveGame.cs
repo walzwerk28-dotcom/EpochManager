@@ -15,8 +15,9 @@ namespace EpochCity
         /// <summary>
         /// Formatversion; bei inkompatiblen Änderungen erhöhen und alte Stände umwandeln.
         /// 2: Rohstoff-Vorkommen (deposits); ältere Stände behalten die beim Start erzeugte Karte.
+        /// 3: junge Felder (youngDeposits, gefällter oder gepflanzter Wald); ältere Stände sind ganz ausgewachsen.
         /// </summary>
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int version = CurrentVersion;
         public string savedAt;
@@ -46,6 +47,7 @@ namespace EpochCity
         public List<CellEntry> roads = new List<CellEntry>();
         public List<CellEntry> zones = new List<CellEntry>();
         public List<CellEntry> deposits = new List<CellEntry>();
+        public List<YoungEntry> youngDeposits = new List<YoungEntry>();
         public List<BuildingEntry> buildings = new List<BuildingEntry>();
 
         [Header("Darstellung")]
@@ -80,6 +82,24 @@ namespace EpochCity
             x = cell.x;
             y = cell.y;
             this.id = id;
+        }
+
+        public Vector2Int Cell => new Vector2Int(x, y);
+    }
+
+    /// <summary>Ein junges Feld mit Vorkommen (gefällt oder gepflanzt) und seinem Alter in Monaten.</summary>
+    [Serializable]
+    public struct YoungEntry
+    {
+        public int x;
+        public int y;
+        public int months;
+
+        public YoungEntry(Vector2Int cell, int months)
+        {
+            x = cell.x;
+            y = cell.y;
+            this.months = months;
         }
 
         public Vector2Int Cell => new Vector2Int(x, y);

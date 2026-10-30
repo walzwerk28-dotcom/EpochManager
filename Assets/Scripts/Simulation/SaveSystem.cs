@@ -172,6 +172,8 @@ namespace EpochCity
                 data.zones.Add(new CellEntry(c, ContentRegistry.IdOf(grid.GetZone(c))));
             foreach (var c in grid.DepositCells)
                 data.deposits.Add(new CellEntry(c, ContentRegistry.IdOf(grid.GetDeposit(c))));
+            foreach (var entry in grid.YoungDeposits)
+                data.youngDeposits.Add(new YoungEntry(entry.Key, entry.Value));
 
             foreach (var b in city.Buildings)
             {
@@ -221,6 +223,10 @@ namespace EpochCity
                 foreach (var entry in data.deposits)
                     if (Resolve<DepositDefinition>(entry.id, out var deposit)) deposits.Add((entry.Cell, deposit));
                 city.RestoreDeposits(deposits);
+                // Jungwald ab Version 3; ältere Stände laden mit ganz ausgewachsenem Wald
+                var young = new List<(Vector2Int, int)>();
+                foreach (var entry in data.youngDeposits) young.Add((entry.Cell, entry.months));
+                city.RestoreYoungDeposits(young);
             }
 
             var roads = new List<(Vector2Int, RoadDefinition)>();

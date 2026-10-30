@@ -85,7 +85,7 @@ namespace EpochCity
         public bool CanPlace(BuildingDefinition def, Vector2Int origin) =>
             IsAvailable(def) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size) &&
             DepositAllows(def, origin, def.size) &&
-            (def.requiredDeposit == null || Grid.CountDeposit(def.requiredDeposit, origin, def.size, def.depositRange) > 0);
+            (def.requiredDeposit == null || Grid.CountDeposit(def.requiredDeposit, origin, def.size, def.depositRange, true) > 0);
 
         public bool TryPlace(BuildingDefinition def, Vector2Int origin, out BuildingInstance placed)
         {
@@ -541,6 +541,13 @@ namespace EpochCity
         public void RefreshConnections()
         {
             Connections.Recalculate(Grid, Buildings, UnlockedTechnologies);
+            RefreshDepositFactors();
+            ConnectionsChanged?.Invoke();
+        }
+
+        /// <summary>Anteil des Vorkommens je Gebäude neu berechnen (nach Roden, Fällen, Pflanzen, Nachwachsen).</summary>
+        private void RefreshDepositFactors()
+        {
             foreach (var b in Buildings)
             {
                 b.DepositFactor = GetDepositFactor(b.Definition, b.Origin, b.Footprint, out _);
@@ -548,7 +555,6 @@ namespace EpochCity
                 b.DepositIssue = deposit == null || b.DepositFactor >= 1f ? ""
                     : b.DepositFactor <= 0f ? $"kein {deposit.displayName}" : $"wenig {deposit.displayName}";
             }
-            ConnectionsChanged?.Invoke();
         }
 
         // ---------------------------------------------------------------- Rohstoff-Vorkommen
@@ -597,12 +603,109 @@ namespace EpochCity
             if (changed) DepositsChanged?.Invoke();
         }
 
-        /// <summary>Vorkommen aus einem Spielstand: ersetzt alle vorhandenen.</summary>
+        /// <summary>Vorkommen aus einem Spielstand: ersetzt alle vorhandenen (alle ausgewachsen).</summary>
         public void RestoreDeposits(IEnumerable<(Vector2Int cell, DepositDefinition deposit)> deposits)
         {
             foreach (var c in new List<Vector2Int>(Grid.DepositCells)) Grid.SetDeposit(c, null);
             foreach (var (c, deposit) in deposits) Grid.SetDeposit(c, deposit);
             DepositsChanged?.Invoke();
+        }
+
+        /// <summary>Junge Felder aus einem Spielstand (nach RestoreDeposits).</summary>
+        public void RestoreYoungDeposits(IEnumerable<(Vector2Int cell, int age)> young)
+        {
+            foreach (var (c, age) in young) Grid.SetYoung(c, age);
+            OnDepositsAltered();
+        }
+
+        /// <summary>Nach Fällen, Pflanzen oder Nachwachsen: Anteile der Betriebe neu berechnen und melden.</summary>
+        public void OnDepositsAltered()
+        {
+            RefreshDepositFactors();
+            DepositsChanged?.Invoke();
+        }
+
+        /// <summary>Felder der Grundfläche und im Umkreis range darum, soweit im Raster.</summary>
+        private IEnumerable<Vector2Int> RangeCells(BuildingInstance building, int range)
+        {
+            for (int x = building.Origin.x - range; x < building.Origin.x + building.Footprint.x + range; x++)
+                for (int y = building.Origin.y - range; y < building.Origin.y + building.Footprint.y + range; y++)
+                {
+                    var c = new Vector2Int(x, y);
+                    if (Grid.InBounds(c)) yield return c;
+                }
+        }
+
+        private static float DistanceSq(BuildingInstance building, Vector2Int c) =>
+            ((Vector2)c + Vector2.one * 0.5f - ((Vector2)building.Origin + (Vector2)building.Footprint * 0.5f)).sqrMagnitude;
+
+        /// <summary>
+        /// Fällt das ausgewachsene Feld des nötigen Vorkommens, das am weitesten vom Gebäude entfernt liegt (der Wald
+        /// schrumpft von außen). Es wird jung und wächst nach; ohne Nachwachsen verschwindet es. False = keins da.
+        /// </summary>
+        public bool FellDeposit(BuildingInstance building)
+        {
+            var deposit = building.Definition.requiredDeposit;
+            if (deposit == null) return false;
+            Vector2Int best = default;
+            float bestDistance = -1f;
+            foreach (var c in RangeCells(building, building.Definition.depositRange))
+            {
+                if (Grid.GetDeposit(c) != deposit || Grid.IsYoung(c)) continue;
+                float d = DistanceSq(building, c);
+                if (d > bestDistance) { bestDistance = d; best = c; }
+            }
+            if (bestDistance < 0f) return false;
+            if (deposit.regrowMonths > 0) Grid.SetYoung(best, 0);
+            else Grid.SetDeposit(best, null);
+            OnDepositsAltered();
+            return true;
+        }
+
+        private static readonly Vector2Int[] Sides = { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
+
+        /// <summary>
+        /// Pflanzt ein junges Feld (BuildingDefinition.plantsDeposit) auf ein freies Feld im Umkreis: ohne Gebäude,
+        /// Straße, Zone und Vorkommen; bevorzugt neben vorhandenem Vorkommen, dann nah am Gebäude. False = kein Platz.
+        /// </summary>
+        public bool PlantDeposit(BuildingInstance building)
+        {
+            var deposit = building.Definition.plantsDeposit;
+            if (deposit == null) return false;
+            Vector2Int best = default;
+            bool found = false, bestNext = false;
+            float bestDistance = 0f;
+            foreach (var c in RangeCells(building, building.Definition.depositRange))
+            {
+                if (Grid.GetAt(c) != null || Grid.HasRoad(c) || Grid.GetZone(c) != null || Grid.GetDeposit(c) != null) continue;
+                bool next = false;
+                foreach (var side in Sides) next |= Grid.GetDeposit(c + side) == deposit;
+                float d = DistanceSq(building, c);
+                if (found && (bestNext && !next || bestNext == next && d >= bestDistance)) continue;
+                best = c;
+                found = true;
+                bestNext = next;
+                bestDistance = d;
+            }
+            if (!found) return false;
+            Grid.SetDeposit(best, deposit);
+            Grid.SetYoung(best, 0);
+            OnDepositsAltered();
+            return true;
+        }
+
+        /// <summary>Liegt das Feld im Umkreis eines Gebäudes, das dieses Vorkommen pflanzt und nicht stillgelegt ist?</summary>
+        public bool IsTended(Vector2Int c, DepositDefinition deposit)
+        {
+            foreach (var b in Buildings)
+            {
+                var def = b.Definition;
+                if (def.plantsDeposit != deposit || b.IsPaused) continue;
+                if (c.x >= b.Origin.x - def.depositRange && c.x < b.Origin.x + b.Footprint.x + def.depositRange &&
+                    c.y >= b.Origin.y - def.depositRange && c.y < b.Origin.y + b.Footprint.y + def.depositRange)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>Wird ausgelöst, sobald eine Technologie neu freigeschaltet ist.</summary>

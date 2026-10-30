@@ -38,6 +38,9 @@ namespace EpochCity
         /// <summary>Besetzter Anteil der Arbeitsplätze (0–1, 1 ohne Bedarf); berechnet von EconomySimulation.</summary>
         public float WorkforceFactor { get; set; } = 1f;
 
+        /// <summary>Zyklen seit dem letzten Fällen (BuildingDefinition.cyclesPerFelling); nicht im Spielstand.</summary>
+        public int CyclesSinceFelling { get; set; }
+
         /// <summary>Nur Wohngebäude: aktuelle Einwohner.</summary>
         public int Residents { get; set; }
 

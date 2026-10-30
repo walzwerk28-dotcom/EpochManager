@@ -26,6 +26,9 @@ MonoBehaviour:
   requiredDeposit: {fileID: 0}
   depositRange: 0
   depositCellsForFull: 1
+  fellsDeposit: 0
+  cyclesPerFelling: 4
+  plantsDeposit: {fileID: 0}
   buildCost: 80
   materialCosts: []
   upkeepPerMonth: 1

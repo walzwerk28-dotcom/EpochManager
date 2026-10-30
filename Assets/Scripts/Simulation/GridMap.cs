@@ -175,24 +175,52 @@ namespace EpochCity
         /// <summary>Alle Felder mit Vorkommen (auch bebaute).</summary>
         public IReadOnlyCollection<Vector2Int> DepositCells => depositCells;
 
-        /// <summary>Setzt oder entfernt (null) das Vorkommen eines Felds.</summary>
+        /// <summary>Setzt oder entfernt (null) das Vorkommen eines Felds; das Feld gilt danach als ausgewachsen.</summary>
         public void SetDeposit(Vector2Int c, DepositDefinition deposit)
         {
             if (!InBounds(c)) return;
             deposits[c.x, c.y] = deposit;
             if (deposit != null) depositCells.Add(c);
             else depositCells.Remove(c);
+            youngDeposits.Remove(c);
         }
 
-        /// <summary>Felder mit diesem Vorkommen in der Grundfläche und im Umkreis range darum (Quadrat).</summary>
-        public int CountDeposit(DepositDefinition deposit, Vector2Int origin, Vector2Int size, int range)
+        // Junge Felder (gefällt oder gepflanzt) mit ihrem Alter in Monaten; sie zählen erst ausgewachsen
+        private readonly Dictionary<Vector2Int, int> youngDeposits = new Dictionary<Vector2Int, int>();
+
+        /// <summary>Junge Felder mit ihrem Alter in Monaten.</summary>
+        public IReadOnlyDictionary<Vector2Int, int> YoungDeposits => youngDeposits;
+
+        public bool IsYoung(Vector2Int c) => youngDeposits.ContainsKey(c);
+
+        /// <summary>Macht ein Feld mit Vorkommen jung (Alter in Monaten) oder mit age &lt; 0 wieder ausgewachsen.</summary>
+        public void SetYoung(Vector2Int c, int age)
+        {
+            if (GetDeposit(c) == null) return;
+            if (age < 0) youngDeposits.Remove(c);
+            else youngDeposits[c] = age;
+        }
+
+        /// <summary>
+        /// Felder mit diesem Vorkommen in der Grundfläche und im Umkreis range darum (Quadrat);
+        /// junge Felder zählen nur mit includeYoung.
+        /// </summary>
+        public int CountDeposit(DepositDefinition deposit, Vector2Int origin, Vector2Int size, int range,
+            bool includeYoung = false)
         {
             int count = 0;
             for (int x = origin.x - range; x < origin.x + size.x + range; x++)
                 for (int y = origin.y - range; y < origin.y + size.y + range; y++)
-                    if (GetDeposit(new Vector2Int(x, y)) == deposit) count++;
+                {
+                    var c = new Vector2Int(x, y);
+                    if (GetDeposit(c) == deposit && (includeYoung || !youngDeposits.ContainsKey(c))) count++;
+                }
             return count;
         }
+
+        /// <summary>Junge Felder dieses Vorkommens in der Grundfläche und im Umkreis range darum.</summary>
+        public int CountYoung(DepositDefinition deposit, Vector2Int origin, Vector2Int size, int range) =>
+            CountDeposit(deposit, origin, size, range, true) - CountDeposit(deposit, origin, size, range);
 
         /// <summary>Alle Felder im Rechteck zwischen zwei Ecken (beide eingeschlossen).</summary>
         public static List<Vector2Int> RectCells(Vector2Int a, Vector2Int b)
