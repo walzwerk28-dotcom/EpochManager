@@ -661,7 +661,7 @@ namespace EpochCity
                 new EpochName { epoch = antike, name = "Gelehrte" },
                 new EpochName { epoch = mittelalter, name = "Gelehrte und Kaufleute" }
             };
-            scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed }; // Wein folgt mit Teil B
+            scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed }; // Wein siehe unten
             scholars.taxPerResidentPerMonth = 4f;
             scholars.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             scholars.nextTier = null;
@@ -712,6 +712,33 @@ namespace EpochCity
             artisans.upgradeRequires = new[] { higherEducation };
             topResidential.requiredTechnology = philosophy;
 
+            // Wein für Gelehrte: Weinberg (Bauern) → Trauben → Kelterei (Handwerker) → Wein
+            var grapes = Resource("Res_Trauben", "Trauben", antike, false);
+            var wine = Resource("Res_Wein", "Wein", antike, false);
+            var vineyard = ProductionBuilding("Bld_Weinberg", "Weinberg", antike, 100f, 2f,
+                "Trauben lesen", null, 0f, grapes, 3f, 5f, new Color(0.45f, 0.3f, 0.5f));
+            vineyard.materialCosts = Cost((boards, 2f));
+            vineyard.workerTier = farmers;
+            vineyard.workers = 4;
+            var winePress = ProductionBuilding("Bld_Kelterei", "Kelterei", antike, 150f, 3f,
+                "Keltern", grapes, 3f, wine, 2f, 5f, new Color(0.55f, 0.2f, 0.3f));
+            winePress.materialCosts = Cost((boards, 4f), (stone, 2f));
+            winePress.workerTier = artisans;
+            winePress.workers = 3;
+            winePress.layers = new[] { Boost(crafts, 1.25f) };
+
+            var wineNeed = GetOrCreate<NeedDefinition>("Need_Wein");
+            wineNeed.displayName = "Wein";
+            wineNeed.epoch = antike;
+            wineNeed.requiredTechnology = null;
+            wineNeed.pyramidLevel = 4;
+            wineNeed.weight = 1f;
+            wineNeed.kind = NeedKind.Goods;
+            wineNeed.resource = wine;
+            wineNeed.amountPerResidentPerMonth = 0.2f;
+            wineNeed.providers = new BuildingDefinition[0];
+            scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed, wineNeed };
+
             // Mittelalter: 3 der 4 Schlüsseltechnologien (je Pfad eine), eine Bibliothek und 300 Einwohner
             mittelalter.keyTechnologies = new[] { minting, philosophy, plough, waterworks };
             mittelalter.requiredKeyTechnologies = 3;
@@ -729,7 +756,8 @@ namespace EpochCity
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
-                topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation
+                topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
+                grapes, wine, vineyard, winePress, wineNeed
             };
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann

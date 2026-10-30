@@ -49,10 +49,10 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
-                         "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus" })
+                         "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei" })
+                         "Holzfaeller", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
                 grounds[n] = earth;
 
             // Antike: Kalkstein und Terrakotta-Dächer
@@ -75,6 +75,8 @@ namespace EpochCity
             Assign("Bld_Oelpresse", Make("Oelpresse", 2, antique, OilPress));
             Assign("Bld_Lehmgrube", Make("Lehmgrube", 2, antique, ClayPit));
             Assign("Bld_Toepferei", Make("Toepferei", 2, antique, Pottery));
+            Assign("Bld_Weinberg", Make("Weinberg", 2, antique, Vineyard));
+            Assign("Bld_Kelterei", Make("Kelterei", 2, antique, WinePress));
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
             Assign("Bld_Stadthaus", Make("Stadthaus", 2, antique,
@@ -888,6 +890,35 @@ namespace EpochCity
                 dir == Vector2Int.up ? "wall" : "wall-window-small");
             b.Put(FT + "wheel", new Vector3(-0.6f, 0f, -1.3f), 90f, 1.6f);
             b.Put(NK + "log_stack", new Vector3(1.3f, 0f, -1.3f), 90f, 0.8f);
+        }
+
+        /// <summary>Weinberg: vier Rebzeilen parallel zur Straße (Hecken mit Pfosten an den Enden), vorn Karren und Bank.</summary>
+        private static void Vineyard(Builder b)
+        {
+            NatureColors(b);
+            for (int row = 0; row < 4; row++)
+            {
+                float z = -0.6f + row * 0.7f;
+                for (int k = 0; k < 4; k++)
+                    b.Put(FT + "hedge", new Vector3(-1.35f + k * 0.9f, 0f, z), 90f, 0.85f);
+                b.Put(FT + "pillar-wood", new Vector3(-1.8f, 0f, z), 0f, 0.35f);
+                b.Put(FT + "pillar-wood", new Vector3(1.8f, 0f, z), 0f, 0.35f);
+            }
+            b.Put(FT + "cart", new Vector3(-0.8f, 0f, -1.65f), 0f, 0.8f);
+            b.Put(FT + "stall-bench", new Vector3(1f, 0f, -1.65f), 0f, 0.8f);
+        }
+
+        /// <summary>Kelterei: Steinbau hinten, vorn Bottiche mit Wein (Baumstümpfe in dunklem Holz) und ein Rad der Presse.</summary>
+        private static void WinePress(Builder b)
+        {
+            Hall(b.At(0f, 0.8f), 2, 2, 1, "roof", (i, j, dir, level) =>
+                dir == Vector2Int.down ? (i == 1 ? "wall-door" : "wall-window-shutters") :
+                dir == Vector2Int.up ? "wall" : "wall-window-small");
+            b.Overrides["woodBark"] = Solid("Fassholz", new Color(0.42f, 0.26f, 0.16f));
+            b.Overrides["woodInner"] = Solid("Weinrot", new Color(0.45f, 0.12f, 0.18f));
+            for (int k = 0; k < 3; k++)
+                b.Put(NK + "stump_round", new Vector3(-1.4f + k * 0.6f, 0f, -1.35f), k * 40f, 1.4f);
+            b.Put(FT + "wheel", new Vector3(1.1f, 0f, -1.35f), 90f, 1.2f);
         }
 
         /// <summary>Lehmgrube: Erdhügel aus Lehm (Nature-Kit-Hügel ohne Gras), Bohlen am Rand, ein Karren.</summary>

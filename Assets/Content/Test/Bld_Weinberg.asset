@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 940d9108773fac84ab420d97f53a3ac3, type: 3}
+  m_Name: Bld_Weinberg
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingDefinition
+  displayName: Weinberg
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  category: 2
+  prefab: {fileID: 4130729634808143862, guid: 9948d7fc00b1c4745b4faaa7595e6a88, type: 3}
+  size: {x: 2, y: 2}
+  zone: {fileID: 0}
+  populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 0}
+  workerTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
+  workers: 4
+  requiredDeposit: {fileID: 0}
+  depositRange: 0
+  depositCellsForFull: 1
+  buildCost: 100
+  materialCosts:
+  - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
+    amount: 2
+  upkeepPerMonth: 2
+  baseCapacity: 0
+  baseFunctions:
+  - label: Trauben lesen
+    inputs: []
+    outputs:
+    - resource: {fileID: 11400000, guid: 5c6b92fa8bcc59841be447ce3baff183, type: 2}
+      amount: 3
+    cycleSeconds: 5
+  layers: []
+  catchmentRange: 20
+  efficiencyByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.75
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.25
+      inSlope: -0.75
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  minEfficiency: 0.25
