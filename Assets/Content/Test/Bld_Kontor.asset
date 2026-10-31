@@ -21,8 +21,8 @@ MonoBehaviour:
   populationTier: {fileID: 0}
   requiredTechnology: {fileID: 0}
   menuTier: {fileID: 0}
-  workerTier: {fileID: 0}
-  workers: 0
+  workerTier: {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}
+  workers: 4
   requiredDeposit: {fileID: 0}
   depositRange: 0
   depositCellsForFull: 1

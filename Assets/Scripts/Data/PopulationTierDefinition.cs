@@ -40,6 +40,8 @@ namespace EpochCity
 
         [Header("Steuern")]
         [Min(0f)] public float taxPerResidentPerMonth = 1f;
+        [Tooltip("Wie viel Gewerbe ein Einwohner dieser Stufe nachfragt (1 = so viel wie ZoneDefinition.residentsPerCell vorgibt)")]
+        [Min(0f)] public float commerceWeight = 1f;
         [Tooltip("Faktor auf die Zufriedenheit je Steuersatz: x = Satz (1 = 100 %), y = Faktor. " +
                  "Kleine Erhöhungen fallen kaum auf, bei hohen Sätzen kippt die Stimmung.")]
         public AnimationCurve satisfactionByTaxRate = new AnimationCurve(

@@ -949,6 +949,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ZoneDemand
   city: {fileID: 440537052}
   clock: {fileID: 2124652275}
+  economy: {fileID: 1598712635}
   zones:
   - {fileID: 11400000, guid: 28a2ce0d27624c34090098dce12209dc, type: 2}
   - {fileID: 11400000, guid: 7713a74dfec593a47851c01b45fe9539, type: 2}
@@ -958,6 +959,7 @@ MonoBehaviour:
   smoothingSeconds: 30
   pendingWeight: 0.7
   newHouseSatisfaction: 0.75
+  minWorkforce: 0.85
 --- !u!114 &1598712644
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -211,7 +211,7 @@ namespace EpochCity
 
             foreach (var def in zoneBuildings)
             {
-                if (def == null || def.zone != zone.BuildingZone || !city.IsAvailable(def)) continue;
+                if (def == null || def.zone != zone.BuildingZone || !city.IsAvailable(def) || !HasWorkers(def)) continue;
                 int order = def.epoch != null ? def.epoch.order : 0;
                 if (order > bestOrder)
                 {
@@ -221,6 +221,15 @@ namespace EpochCity
                 if (order == bestOrder) choices.Add(def);
             }
             return choices;
+        }
+
+        /// <summary>Gebäude mit Arbeitsplätzen (z. B. Gewerbe) wachsen erst, wenn ihre Arbeiterstufe in der Stadt wohnt.</summary>
+        private bool HasWorkers(BuildingDefinition def)
+        {
+            if (def.workerTier == null || def.workers <= 0) return true;
+            foreach (var b in city.Buildings)
+                if (b.Tier == def.workerTier && b.Residents > 0) return true;
+            return false;
         }
     }
 }

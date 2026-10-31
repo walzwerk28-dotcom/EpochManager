@@ -34,6 +34,7 @@ MonoBehaviour:
   downgradeSatisfaction: 0.4
   downgradeMonths: 3
   taxPerResidentPerMonth: 1.5
+  commerceWeight: 1.5
   satisfactionByTaxRate:
     serializedVersion: 2
     m_Curve:

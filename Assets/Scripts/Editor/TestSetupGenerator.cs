@@ -287,6 +287,7 @@ namespace EpochCity
             };
             farmers.needs = new[] { food, marketNeed };
             farmers.taxPerResidentPerMonth = 1f;
+            farmers.commerceWeight = 1f;
             farmers.satisfactionByTaxRate = new AnimationCurve(
                 new Keyframe(0f, 1f), new Keyframe(1f, 0.95f), new Keyframe(1.5f, 0.75f), new Keyframe(2f, 0.35f));
 
@@ -616,6 +617,19 @@ namespace EpochCity
             };
             // Bedürfnisse siehe unten (Bauern-Bedürfnisse plus Öl und Keramik)
             artisans.taxPerResidentPerMonth = 1.5f;
+            artisans.commerceWeight = 1.5f;
+
+            // Arbeitsplätze im Gewerbe (wie in Cities: Skylines): kleine Läden mit Bauern, große Häuser mit
+            // Handwerkern; Gebäude wachsen erst, wenn ihre Arbeiterstufe in der Stadt lebt (ZoneGrowth)
+            foreach (var (def, tier, count) in new[]
+                     {
+                         (shop, farmers, 1), (taberna, farmers, 2), (workshop, artisans, 3), (office, artisans, 4),
+                         (workyard, artisans, 5), (granaryYard, artisans, 5), (tradeHouse, artisans, 8)
+                     })
+            {
+                def.workerTier = tier;
+                def.workers = count;
+            }
             artisans.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             artisans.nextTier = null;
             artisans.upgradeRequires = new NeedDefinition[0];
@@ -693,6 +707,7 @@ namespace EpochCity
             };
             scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed }; // Wein siehe unten
             scholars.taxPerResidentPerMonth = 3f;
+            scholars.commerceWeight = 2.5f;
             scholars.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             scholars.nextTier = null;
             scholars.upgradeRequires = new NeedDefinition[0];

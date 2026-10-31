@@ -303,7 +303,12 @@ namespace EpochCity
             fill.offsetMin = fill.offsetMax = Vector2.zero;
 
             var value = Text(row.transform, "Value", theme.smallSize, theme.text, 42f);
-            Tooltip.Attach(group, () => $"<b>Nachfrage {zone.displayName}</b>\nWie schnell die Zone neu bebaut wird");
+            Tooltip.Attach(group, () =>
+            {
+                string issue = demand != null ? demand.GetIssue(zone) : null;
+                return $"<b>Nachfrage {zone.displayName}</b>\nWie schnell die Zone neu bebaut wird" +
+                       (issue != null ? $"\nGebremst: {issue}" : "");
+            });
             demandBars.Add(new DemandBar { Zone = zone, Group = group, Fill = fill, Value = value });
         }
 
