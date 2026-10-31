@@ -20,7 +20,7 @@ namespace EpochCity
 
         // Balancing nach dem Antike-Durchlauf (2026-10-31), auf die Grundwerte angewendet
         private const float UpkeepScale = 3f;          // Unterhalt einzeln gesetzter Gebäude
-        private const float CommerceIncomeScale = 0.5f; // Erlös der Gewerbegebäude
+        private const float CommerceIncomeScale = 0.25f; // Erlös der Gewerbegebäude
 
         [MenuItem("EpochCity/Testaufbau erzeugen")]
         public static void Generate()
@@ -364,30 +364,30 @@ namespace EpochCity
             // Vier Pfade mit Grund- und Aufbautechnologien (GDD Abschnitt 10); je Pfad eine Schlüsseltechnologie.
 
             // Handel
-            var barter = Tech("Tech_Tauschhandel", "Tauschhandel", antike, TechPath.Trade, 160f,
+            var barter = Tech("Tech_Tauschhandel", "Tauschhandel", antike, TechPath.Trade, 320f,
                 "Läden und Tabernen erlösen 25 % mehr.");
-            var warehousing = Tech("Tech_Lagerwesen", "Lagerwesen", antike, TechPath.Trade, 200f,
+            var warehousing = Tech("Tech_Lagerwesen", "Lagerwesen", antike, TechPath.Trade, 400f,
                 "Lager versorgen 10 Straßenfelder weiter und fassen 50 % mehr.");
-            Tech(minting, "Münzprägung", antike, TechPath.Trade, 400f,
+            Tech(minting, "Münzprägung", antike, TechPath.Trade, 800f,
                 "Märkte, Kontore und Handelshäuser erlösen 25 % mehr.", writing);
             // Kultur
-            Tech(writing, "Schrift", antike, TechPath.Culture, 100f, "Bibliotheken forschen 50 % schneller.");
-            var cults = Tech("Tech_Kulte", "Kulte", antike, TechPath.Culture, 240f,
+            Tech(writing, "Schrift", antike, TechPath.Culture, 60f, "Bibliotheken forschen 50 % schneller.");
+            var cults = Tech("Tech_Kulte", "Kulte", antike, TechPath.Culture, 480f,
                 "Tempel baubar. Die Bewohner verlangen danach Glauben.");
-            var philosophy = Tech("Tech_Philosophie", "Philosophie", antike, TechPath.Culture, 480f,
+            var philosophy = Tech("Tech_Philosophie", "Philosophie", antike, TechPath.Culture, 960f,
                 "Alle Wohnhäuser bieten 25 % mehr Wohnplätze.", writing, cults);
             // Industrie
-            Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 200f, "Felder liefern 50 % mehr Weizen.");
-            var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 200f,
+            Tech(irrigation, "Bewässerung", antike, TechPath.Industry, 400f, "Felder liefern 50 % mehr Weizen.");
+            var crafts = Tech("Tech_Handwerk", "Handwerk", antike, TechPath.Industry, 400f,
                 "Werkstätten, Werkhöfe und Speicherhöfe erlösen 25 % mehr; Zimmereien, Steinbrüche, Ölpressen und Töpfereien liefern 25 % mehr.");
-            var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 440f,
+            var plough = Tech("Tech_Pflug", "Pflug", antike, TechPath.Industry, 880f,
                 "Felder liefern weitere 30 % mehr Weizen.", irrigation, crafts);
             // Wissenschaft und Infrastruktur
-            var surveying = Tech("Tech_Vermessung", "Vermessung", antike, TechPath.Science, 240f,
+            var surveying = Tech("Tech_Vermessung", "Vermessung", antike, TechPath.Science, 480f,
                 "Pflasterstraße baubar: bessere Anbindung ans Lager.");
-            var mathematics = Tech("Tech_Mathematik", "Mathematik", antike, TechPath.Science, 360f,
+            var mathematics = Tech("Tech_Mathematik", "Mathematik", antike, TechPath.Science, 720f,
                 "Bibliotheken forschen weitere 25 % schneller.", writing, surveying);
-            var waterworks = Tech("Tech_Wasserbau", "Wasserbau", antike, TechPath.Science, 480f,
+            var waterworks = Tech("Tech_Wasserbau", "Wasserbau", antike, TechPath.Science, 960f,
                 "Brunnen baubar. Die Bewohner verlangen danach Wasser.", surveying);
 
             // Wirkungen als Schichten auf den Gebäuden (das Aussehen bleibt)
@@ -585,7 +585,7 @@ namespace EpochCity
                 {
                     label = "Schreiben lehren",
                     inputs = new[] { new ResourceAmount { resource = coins, amount = 1f } },
-                    outputs = new[] { new ResourceAmount { resource = research, amount = 1f } },
+                    outputs = new[] { new ResourceAmount { resource = research, amount = 0.5f } },
                     cycleSeconds = 5f
                 }
             };
@@ -615,7 +615,7 @@ namespace EpochCity
                 new EpochName { epoch = mittelalter, name = "Bürger" }
             };
             // Bedürfnisse siehe unten (Bauern-Bedürfnisse plus Öl und Keramik)
-            artisans.taxPerResidentPerMonth = 2f;
+            artisans.taxPerResidentPerMonth = 1.5f;
             artisans.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             artisans.nextTier = null;
             artisans.upgradeRequires = new NeedDefinition[0];
@@ -692,7 +692,7 @@ namespace EpochCity
                 new EpochName { epoch = mittelalter, name = "Gelehrte und Kaufleute" }
             };
             scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed }; // Wein siehe unten
-            scholars.taxPerResidentPerMonth = 4f;
+            scholars.taxPerResidentPerMonth = 3f;
             scholars.satisfactionByTaxRate = farmers.satisfactionByTaxRate;
             scholars.nextTier = null;
             scholars.upgradeRequires = new NeedDefinition[0];

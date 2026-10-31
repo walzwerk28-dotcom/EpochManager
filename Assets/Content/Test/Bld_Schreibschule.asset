@@ -44,7 +44,7 @@ MonoBehaviour:
       amount: 1
     outputs:
     - resource: {fileID: 11400000, guid: e87d03efb365c7047952fd91a09e4917, type: 2}
-      amount: 1
+      amount: 0.5
     cycleSeconds: 5
   layers: []
   catchmentRange: 20

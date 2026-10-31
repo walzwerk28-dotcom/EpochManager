@@ -150,9 +150,9 @@ namespace EpochCity
 
                 if (Count("Lager") == 0) { Build("Lager", Center); return; }
                 if (EnsureHousing()) return;
+                if (EnsureUpgrades()) return;
                 if (EnsureGoods()) return;
                 if (EnsureServices()) return;
-                if (EnsureUpgrades()) return;
                 if (EnsureResearchBuildings()) return;
                 if (EnsureStorage()) return;
                 if (EnsureForesters()) return;
@@ -173,27 +173,40 @@ namespace EpochCity
             private bool EnsureHousing()
             {
                 var tiers = population.tiers;
-                // Bauern: Nachfrage oder zu wenig Bauern für die Betriebe
-                bool farmersShort = economy.GetWorkforceFactor(tiers[0]) < 1f;
-                if ((Demand(placer.residentialZone) > 0.3f || farmersShort) && FreeZoneCells(placer.residentialZone) < 6)
+                // Zu wenig Arbeitskräfte: immer ein neuer Block
+                if (economy.GetWorkforceFactor(tiers[0]) < 1f && FreeZoneCells(placer.residentialZone) < 6)
                     return ZoneBlock(placer.residentialZone);
 
-                // Handwerker ab Schrift und 40 Bauern, Gelehrte ab Philosophie und 30 Handwerkern
-                var upper = placer.upperResidentialZone;
-                if (upper != null && city.IsUnlocked(upper.requiredTechnology) && population.CountResidents(tiers[0]) >= 40)
-                {
-                    bool needed = ZoneCells(upper) == 0 || (tiers.Length > 1 && economy.GetWorkforceFactor(tiers[1]) < 1f) ||
-                                  Demand(upper) > 0.3f;
-                    if (needed && FreeZoneCells(upper) < 6) return ZoneBlock(upper);
-                }
+                // Gelehrte ab Philosophie und 30 Handwerkern, Handwerker ab Schrift und 40 Bauern
                 var top = placer.topResidentialZone;
                 if (top != null && tiers.Length > 2 && city.IsUnlocked(top.requiredTechnology) &&
                     population.CountResidents(tiers[1]) >= 30)
                 {
-                    bool needed = ZoneCells(top) == 0 || economy.GetWorkforceFactor(tiers[2]) < 1f || Demand(top) > 0.3f;
+                    bool needed = ZoneCells(top) == 0 || economy.GetWorkforceFactor(tiers[2]) < 1f ||
+                                  Demand(top) > 0.3f && Supplied(top);
                     if (needed && FreeZoneCells(top) < 6) return ZoneBlock(top);
                 }
+                var upper = placer.upperResidentialZone;
+                if (upper != null && city.IsUnlocked(upper.requiredTechnology) && population.CountResidents(tiers[0]) >= 40)
+                {
+                    bool needed = ZoneCells(upper) == 0 || (tiers.Length > 1 && economy.GetWorkforceFactor(tiers[1]) < 1f) ||
+                                  Demand(upper) > 0.3f && Supplied(upper);
+                    if (needed && FreeZoneCells(upper) < 6) return ZoneBlock(upper);
+                }
+
+                // Bauern über den Bedarf hinaus nur, wenn die vorhandenen versorgt sind und nicht zu viele (Steuern)
+                bool surplusOk = economy.GetAvailableWorkers(tiers[0]) < economy.GetRequiredWorkers(tiers[0]) * 1.25f + 40;
+                if (Demand(placer.residentialZone) > 0.3f && surplusOk && Supplied(placer.residentialZone) &&
+                    FreeZoneCells(placer.residentialZone) < 6)
+                    return ZoneBlock(placer.residentialZone);
                 return false;
+            }
+
+            /// <summary>Wie ein Spieler erst erweitern, wenn mindestens 80 % der Häuser einer Zone nichts fehlt.</summary>
+            private bool Supplied(ZoneDefinition zone)
+            {
+                var houses = Houses().Where(h => city.Grid.GetZone(h.Origin) == zone && h.Residents > 0).ToList();
+                return houses.Count == 0 || houses.Count(h => string.IsNullOrEmpty(h.MissingNeeds)) >= houses.Count * 0.8f;
             }
 
             /// <summary>Waren: fehlt eine Ware (Lager knapp und Bedarf über der möglichen Produktion), ein Betrieb mehr.</summary>
@@ -258,8 +271,14 @@ namespace EpochCity
             {
                 var provider = need.providers.FirstOrDefault(p => p != null && city.IsAvailable(p));
                 if (provider == null || Recently(provider.displayName + need.displayName, 2)) return false;
-                var center = new Vector2Int(Mathf.RoundToInt((float)missing.Average(h => h.Origin.x)),
-                                            Mathf.RoundToInt((float)missing.Average(h => h.Origin.y)));
+                // Größte Gruppe unversorgter Häuser innerhalb der halben Reichweite; der Schnitt über alle
+                // läge oft zwischen zwei Vierteln an einer schon versorgten Stelle
+                float radius = need.range * 0.5f;
+                var group = missing
+                    .Select(seed => missing.Where(h => Vector2Int.Distance(h.Origin, seed.Origin) <= radius).ToList())
+                    .OrderByDescending(g => g.Count).First();
+                var center = new Vector2Int(Mathf.RoundToInt((float)group.Average(h => h.Origin.x)),
+                                            Mathf.RoundToInt((float)group.Average(h => h.Origin.y)));
                 MarkRecent(provider.displayName + need.displayName);
                 return Build(provider.displayName, center);
             }
@@ -516,8 +535,10 @@ namespace EpochCity
             private IEnumerable<BuildingInstance> Houses() => city.Buildings.Where(b => b.Definition.populationTier != null);
             private float Demand(ZoneDefinition zone) => zone != null && demand != null ? demand.GetDemand(zone) : 0f;
             private int ZoneCells(ZoneDefinition zone) => city.Grid.ZonedCells.Count(c => city.Grid.GetZone(c) == zone);
+            /// <summary>Freie Zonenfelder an einer Straße; Restfelder ohne Straße können nie bebaut werden.</summary>
             private int FreeZoneCells(ZoneDefinition zone) =>
-                city.Grid.ZonedCells.Count(c => city.Grid.GetZone(c) == zone && city.Grid.GetAt(c) == null);
+                city.Grid.ZonedCells.Count(c => city.Grid.GetZone(c) == zone && city.Grid.GetAt(c) == null &&
+                                                city.Grid.TouchesRoad(c, Vector2Int.one));
 
             /// <summary>Liegt die Grundfläche auf einer Linie des Straßenrasters? Dort bleibt Platz für spätere Blöcke.</summary>
             private bool OnRoadLine(Vector2Int origin, Vector2Int size)

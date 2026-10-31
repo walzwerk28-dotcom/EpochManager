@@ -33,7 +33,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: de13b889305ff8543b10b3ffe0315345, type: 2}
   downgradeSatisfaction: 0.4
   downgradeMonths: 3
-  taxPerResidentPerMonth: 2
+  taxPerResidentPerMonth: 1.5
   satisfactionByTaxRate:
     serializedVersion: 2
     m_Curve:

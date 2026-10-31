@@ -33,7 +33,7 @@ MonoBehaviour:
   upgradeRequires: []
   downgradeSatisfaction: 0.4
   downgradeMonths: 3
-  taxPerResidentPerMonth: 4
+  taxPerResidentPerMonth: 3
   satisfactionByTaxRate:
     serializedVersion: 2
     m_Curve:
