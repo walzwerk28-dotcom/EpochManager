@@ -1024,6 +1024,8 @@ namespace EpochCity
         private static void Walls(Builder b, bool[,] mask, float y, Func<int, int, Vector2Int, string> pick)
         {
             int w = mask.GetLength(0), d = mask.GetLength(1);
+            bool closed = true;
+            var outer = new List<Vector2Int>();
             for (int i = 0; i < w; i++)
                 for (int j = 0; j < d; j++)
                 {
@@ -1032,11 +1034,40 @@ namespace EpochCity
                     {
                         var n = new Vector2Int(i, j) + dir;
                         if (Filled(mask, n)) continue;
+                        if (!outer.Contains(new Vector2Int(i, j))) outer.Add(new Vector2Int(i, j));
                         string part = pick(i, j, dir);
-                        if (part == null) continue;
+                        if (part == null) { closed = false; continue; }
                         b.Put(FT + part, Cell(n.x, n.y, w, d) + Vector3.up * y, WallRot(dir));
                     }
                 }
+
+            // Dunkler Innenraum hinter Fenstern und Türen (die Bauteile sind innen hohl); nicht bei offenen Schuppen
+            if (closed)
+                foreach (var c in outer)
+                    b.PutBox(Cell(c.x, c.y, w, d) + Vector3.up * (y + InteriorHeight * 0.5f),
+                             new Vector3(InteriorSize, InteriorHeight, InteriorSize), InteriorMaterial());
+        }
+
+        /// <summary>Innenraum je Zelle und Stockwerk, knapp hinter der Innenseite der Wände (an der Zellkante).</summary>
+        private const float InteriorSize = 0.98f, InteriorHeight = 0.98f;
+        private static readonly Color InteriorColor = new Color(0.16f, 0.11f, 0.08f);
+
+        private static Material interiorMaterial;
+
+        private static Material InteriorMaterial()
+        {
+            if (interiorMaterial != null) return interiorMaterial;
+            string path = $"{Out}/Mat_Innenraum.mat";
+            interiorMaterial = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (interiorMaterial == null)
+            {
+                interiorMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(interiorMaterial, path);
+            }
+            interiorMaterial.SetColor("_BaseColor", InteriorColor);
+            interiorMaterial.SetFloat("_Smoothness", 0f);
+            EditorUtility.SetDirty(interiorMaterial);
+            return interiorMaterial;
         }
 
         private static bool[,] Mask(int w, int d, Func<int, int, bool> filled)
@@ -1146,6 +1177,17 @@ namespace EpochCity
                 child.localPosition = new Vector3(x, 0f, z);
                 child.localRotation = Quaternion.Euler(0f, rotY, 0f);
                 return new Builder(child, palette, Overrides);
+            }
+
+            /// <summary>Einfacher Quader mit eigenem Material (z. B. Innenraum).</summary>
+            public void PutBox(Vector3 center, Vector3 size, Material material)
+            {
+                var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Object.DestroyImmediate(box.GetComponent<Collider>());
+                box.transform.SetParent(Root, false);
+                box.transform.localPosition = center;
+                box.transform.localScale = size;
+                box.GetComponent<MeshRenderer>().sharedMaterial = material;
             }
 
             /// <summary>Bauteil je Achse gestreckt (in der gedrehten Lage des Teils, nicht der FBX-Achsen).</summary>
