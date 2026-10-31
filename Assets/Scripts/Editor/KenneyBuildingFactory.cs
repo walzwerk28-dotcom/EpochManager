@@ -40,7 +40,7 @@ namespace EpochCity
             antique = CreatePalette("Antike", recolor: true);
             original = CreatePalette("Original", recolor: false);
 
-            // Eigener Boden unter jedem Gebäude (wie die Grundstücke in Cities: Skylines); das Feld hat schon Acker
+            // Eigener Boden unter jedem Gebäude (wie die Grundstücke in Cities: Skylines), unter dem Feld Ackerfurchen
             var gravel = GroundMaterial("Kies", GroundKind.Gravel);
             var paving = GroundMaterial("Pflaster", GroundKind.Paving);
             var earth = GroundMaterial("Erde", GroundKind.Earth);
@@ -54,6 +54,7 @@ namespace EpochCity
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
                          "Holzfaeller", "Foerster", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
                 grounds[n] = earth;
+            grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
 
             // Antike: Kalkstein und Terrakotta-Dächer
             Assign("Bld_Wohnhaus", Make("Wohnhaus", 1, antique,
@@ -67,7 +68,12 @@ namespace EpochCity
             Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
             Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
             Assign("Bld_Schreibschule", Make("Schreibschule", 2, antique, School));
-            Assign("Bld_Feld", Make("Feld", 2, original, Field));
+            // Feld: vier Wachstumsstufen als Varianten in fester Reihenfolge; CropStages zeigt die passende
+            var field = Make("Feld", 2, original,
+                b => Field(b, FieldStage.Stubble), b => Field(b, FieldStage.Sown),
+                b => Field(b, FieldStage.Green), b => Field(b, FieldStage.Ripe));
+            AddToPrefab<CropStages>(field);
+            Assign("Bld_Feld", field);
             Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
             Assign("Bld_Foerster", Make("Foerster", 2, antique, Forester));
             Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
@@ -790,25 +796,88 @@ namespace EpochCity
             b.Put(FT + "lantern", new Vector3(1.9f, 0f, 0f), 0f);
         }
 
-        /// <summary>Feld: Doppelreihen Acker mit Weizen (ein Büschel pro Stück, die Halme sind recht detailliert).</summary>
-        private static void Field(Builder b)
-        {
-            // Die Kenney-Farben sind für Weizen und Acker zu blass
-            b.Overrides["woodInner"] = Solid("Weizen", new Color(0.86f, 0.70f, 0.32f));
-            b.Overrides["_defaultMat"] = b.Overrides["woodInner"];
-            b.Overrides["dirt"] = Solid("Acker", new Color(0.50f, 0.36f, 0.24f));
-            b.Overrides["dirtDark"] = Solid("AckerDunkel", new Color(0.38f, 0.27f, 0.18f));
+        private enum FieldStage { Stubble, Sown, Green, Ripe }
 
-            const int rows = 4, tiles = 4;
+        /// <summary>
+        /// Feld in einer Wachstumsstufe: Furchenboden (Bodenplatte), 6 Reihen entlang x, Zaun hinten und links (in allen
+        /// Stufen gleich, damit alle Varianten gleich skaliert werden). Reihen aus Quadern mit welliger Oberkante, damit
+        /// das Feld von oben geschlossen wirkt; Kenney-Halme obendrauf für die Struktur.
+        /// </summary>
+        private static void Field(Builder b, FieldStage stage)
+        {
+            // Zwei Töne je Stufe, damit die Reihen nicht wie Blöcke wirken; Kenney-Halme nur im reifen Feld
+            var ripe = Solid("Weizen", new Color(0.84f, 0.67f, 0.30f));
+            var ripeDark = Solid("WeizenDunkel", new Color(0.74f, 0.56f, 0.24f));
+            var green = Solid("WeizenGruen", new Color(0.42f, 0.58f, 0.22f));
+            var greenDark = Solid("WeizenGruenDunkel", new Color(0.33f, 0.49f, 0.18f));
+            var stubble = Solid("Stoppeln", new Color(0.60f, 0.48f, 0.28f));
+            var stubbleDark = Solid("StoppelnDunkel", new Color(0.50f, 0.39f, 0.22f));
+            b.Overrides["woodInner"] = ripe;
+            b.Overrides["_defaultMat"] = ripe;
+
+            const int rows = 6, segments = 12;
+            const float rowSpacing = 0.64f, segment = 0.293f, rowStart = -1.8f;
             for (int r = 0; r < rows; r++)
             {
-                float z = (r - (rows - 1) * 0.5f) * 0.95f;
-                for (int t = 0; t < tiles; t++)
+                float z = (r - (rows - 1) * 0.5f) * rowSpacing;
+                for (int s = 0; s < segments; s++)
                 {
-                    float x = t - (tiles - 1) * 0.5f;
-                    b.Put(NK + "crops_dirtDoubleRow", new Vector3(x, 0f, z), 0f);
-                    b.Put(NK + "crops_wheatStageB", new Vector3(x, 0f, z), t % 2 == 0 ? 0f : 180f);
+                    float x = rowStart + (s + 0.5f) * segment;
+                    float jitter = Hash(r, s, 7);
+                    bool dark = Hash(r, s, 11) < 0.4f;
+                    switch (stage)
+                    {
+                        case FieldStage.Stubble:
+                        {
+                            float h = 0.05f * (0.6f + 0.8f * jitter);
+                            b.PutBox(new Vector3(x, h * 0.5f, z), new Vector3(segment, h, 0.42f), dark ? stubbleDark : stubble);
+                            break;
+                        }
+                        case FieldStage.Sown:
+                            b.PutBox(new Vector3(x, 0.025f, z), new Vector3(segment, 0.05f, 0.3f),
+                                     Solid("AckerDamm", new Color(0.40f, 0.28f, 0.18f)));
+                            b.PutBox(new Vector3(x, 0.07f, z + (jitter - 0.5f) * 0.1f), new Vector3(0.06f, 0.06f, 0.06f), green);
+                            break;
+                        case FieldStage.Green:
+                        {
+                            float h = 0.18f * (0.75f + 0.5f * jitter);
+                            b.PutBox(new Vector3(x, h * 0.5f, z), new Vector3(segment, h, 0.48f), dark ? greenDark : green);
+                            break;
+                        }
+                        default:
+                        {
+                            float h = 0.28f * (0.75f + 0.5f * jitter);
+                            b.PutBox(new Vector3(x, h * 0.5f, z), new Vector3(segment, h, 0.52f), dark ? ripeDark : ripe);
+                            if (s % 3 == r % 3) b.Put(NK + "crops_wheatStageB", new Vector3(x, 0f, z), jitter * 360f);
+                            break;
+                        }
+                    }
                 }
+            }
+
+            // Nach der Ernte: Garben am Feldrand
+            if (stage == FieldStage.Stubble)
+                for (int k = 0; k < 3; k++)
+                    b.Put(NK + "crops_wheatStageB", new Vector3(1.85f, 0f, -1.1f + k * 0.8f), k * 70f, 0.9f);
+
+            FieldFence(b);
+        }
+
+        /// <summary>Niedriger Holzzaun hinten und links: Pfosten je Meter, zwei Latten.</summary>
+        private static void FieldFence(Builder b)
+        {
+            var wood = Solid("Zaunholz", new Color(0.45f, 0.32f, 0.20f));
+            const float edge = 2f, post = 0.08f, height = 0.38f;
+            for (int k = 0; k <= 4; k++)
+            {
+                float t = k - edge;
+                b.PutBox(new Vector3(t, height * 0.5f, edge), new Vector3(post, height, post), wood);
+                if (k < 4) b.PutBox(new Vector3(-edge, height * 0.5f, t), new Vector3(post, height, post), wood);
+            }
+            foreach (float y in new[] { 0.16f, 0.32f })
+            {
+                b.PutBox(new Vector3(0f, y, edge), new Vector3(edge * 2f, 0.04f, 0.03f), wood);
+                b.PutBox(new Vector3(-edge, y, 0f), new Vector3(0.03f, 0.04f, edge * 2f), wood);
             }
         }
 
@@ -1276,6 +1345,16 @@ namespace EpochCity
             return prefab;
         }
 
+        /// <summary>Hängt eine Komponente an die Wurzel eines gespeicherten Prefabs (einmal).</summary>
+        private static void AddToPrefab<T>(GameObject prefab) where T : Component
+        {
+            string path = AssetDatabase.GetAssetPath(prefab);
+            var contents = PrefabUtility.LoadPrefabContents(path);
+            if (contents.GetComponent<T>() == null) contents.AddComponent<T>();
+            PrefabUtility.SaveAsPrefabAsset(contents, path);
+            PrefabUtility.UnloadPrefabContents(contents);
+        }
+
         /// <summary>
         /// Ein Nature-Kit-Teil als Deko-Prefab (Baum, Fels): in eigener Farbe, um scale vergrößert, Unterkante auf 0
         /// und mittig, zu einem Mesh verschmolzen; ohne Bodenplatte.
@@ -1456,7 +1535,7 @@ namespace EpochCity
 
         // ---------------------------------------------------------------- Boden
 
-        private enum GroundKind { Gravel, Paving, Earth }
+        private enum GroundKind { Gravel, Paving, Earth, Furrows }
 
         /// <summary>Bodenmaterial je Modellname; Modelle ohne Eintrag (Feld) bekommen keine Platte.</summary>
         private static readonly Dictionary<string, Material> grounds = new Dictionary<string, Material>();
@@ -1567,6 +1646,15 @@ namespace EpochCity
                     if (edge < 2) return new Color(0.50f, 0.46f, 0.40f, 1f); // Fuge
                     float stone = 0.88f + 0.14f * Hash(col, row, 4);
                     var c = new Color(0.86f, 0.81f, 0.71f) * (stone + 0.06f * fine - (edge < 4 ? 0.06f : 0f));
+                    c.a = 1f;
+                    return c;
+                }
+                case GroundKind.Furrows:
+                {
+                    // Acker: 8 Furchen je Rasterfeld entlang x, Kämme heller, Rinnen dunkler
+                    float ridge = 0.5f + 0.5f * Mathf.Sin((float)y / size * Mathf.PI * 2f * 8f);
+                    var c = new Color(0.47f, 0.33f, 0.22f) * (0.72f + 0.3f * ridge + 0.1f * coarse + 0.06f * fine);
+                    if (speck > 0.97f) c *= 0.8f;
                     c.a = 1f;
                     return c;
                 }
