@@ -7,17 +7,26 @@ namespace EpochCity
     /// Nachfrage je Zone (0 bis 1), wie die Nachfrage-Balken in Cities: Skylines. Sie steuert nur, wie schnell
     /// Zonen neu bebaut werden; bestehende Gebäude bleiben immer stehen.
     /// Wohnen: Belegung der Wohnhäuser in dieser Zone (jede Wohnzone für sich), zwischen zwei Schwellen auf 0..1 abgebildet. Leere oder unzufriedene
-    /// Häuser (die Einwohner streben Kapazität × Zufriedenheit an) senken sie; unter der Startkapazität gilt
-    /// eine Mindestnachfrage. Gewerbe: 1 − bebaute Gewerbefelder / (Einwohner / Einwohner je Feld); ohne
-    /// Einwohner keine Nachfrage. Wird aus dem Zustand berechnet und deshalb nicht gespeichert.
+    /// Häuser (die Einwohner streben Kapazität × Zufriedenheit an) senken sie; Häuser, die sich noch füllen, zählen
+    /// ihre erwarteten Zuzüge zum Teil mit (pendingWeight), neue Häuser ohne eigene Zufriedenheit nehmen den Schnitt der
+    /// Zone; unter der Startkapazität gilt eine Mindestnachfrage. Gewerbe: 1 − bebaute Gewerbefelder / (Einwohner /
+    /// Einwohner je Feld); ohne Einwohner keine Nachfrage. Der angezeigte Wert gleicht sich über smoothingSeconds
+    /// Spielzeit an (keine Sprünge, wenn ein Haus wächst). Wird aus dem Zustand berechnet und deshalb nicht gespeichert.
     /// </summary>
     public class ZoneDemand : MonoBehaviour
     {
         [SerializeField] private CityController city;
+        [SerializeField] private GameClock clock;
         [Tooltip("Zonen in der Reihenfolge der Anzeige")]
         public ZoneDefinition[] zones;
         [Tooltip("Sekunden (Echtzeit) zwischen zwei Neuberechnungen")]
         [Min(0f)] public float refreshSeconds = 0.5f;
+        [Tooltip("Spielsekunden, in denen sich die Nachfrage zu etwa zwei Dritteln an den neuen Wert angleicht (0 = sofort)")]
+        [Min(0f)] public float smoothingSeconds = 30f;
+        [Tooltip("Anteil der noch erwarteten Zuzüge (Kapazität × Zufriedenheit − Einwohner), der schon als belegt zählt")]
+        [Range(0f, 1f)] public float pendingWeight = 0.7f;
+        [Tooltip("Angenommene Zufriedenheit neuer Häuser, solange die Zone noch keine bewohnten Häuser hat")]
+        [Range(0f, 1f)] public float newHouseSatisfaction = 0.75f;
 
         private readonly Dictionary<ZoneDefinition, float> demand = new Dictionary<ZoneDefinition, float>();
         private float timer;
@@ -35,10 +44,14 @@ namespace EpochCity
             timer -= Time.unscaledDeltaTime;
             if (timer > 0f) return;
             timer = refreshSeconds;
-            Recalculate();
+            Recalculate(refreshSeconds * (clock != null ? clock.Speed : 1));
         }
 
-        public void Recalculate()
+        /// <summary>
+        /// Neu berechnen; gameSeconds = seit der letzten Berechnung vergangene Spielzeit für die Glättung
+        /// (ohne Angabe springt der Wert sofort auf das Ergebnis).
+        /// </summary>
+        public void Recalculate(float gameSeconds = float.PositiveInfinity)
         {
             if (city == null || zones == null) return;
 
@@ -52,28 +65,56 @@ namespace EpochCity
             Residents = residents;
             Capacity = capacity;
 
+            float blend = smoothingSeconds <= 0f ? 1f : 1f - Mathf.Exp(-gameSeconds / smoothingSeconds);
             foreach (var zone in zones)
-                if (zone != null)
-                    demand[zone] = zone.demandKind == ZoneDemandKind.Residential
-                        ? Residential(zone)
-                        : Commercial(zone, residents);
+            {
+                if (zone == null) continue;
+                float target = zone.demandKind == ZoneDemandKind.Residential
+                    ? Residential(zone)
+                    : Commercial(zone, residents);
+                demand[zone] = demand.TryGetValue(zone, out float current)
+                    ? Mathf.Lerp(current, target, blend)
+                    : target;
+            }
         }
 
-        /// <summary>Wohnen: Belegung der Häuser in dieser Zone (jede Wohnzone, z. B. Bauern und Handwerker, für sich).</summary>
+        /// <summary>
+        /// Wohnen: Belegung der Häuser in dieser Zone (jede Wohnzone, z. B. Bauern und Handwerker, für sich); erwartete
+        /// Zuzüge in Häuser, die sich noch füllen, zählen zum Teil schon mit.
+        /// </summary>
         private float Residential(ZoneDefinition zone)
         {
-            int residents = 0, capacity = 0;
+            // Schnitt der Zufriedenheit bewohnter Häuser (nach Wohnplätzen) für neue Häuser ohne eigenen Wert
+            float satisfactionSum = 0f;
+            int rated = 0;
             foreach (var b in city.Buildings)
             {
-                if (b.Definition.populationTier == null || city.Grid.GetZone(b.Origin) != zone) continue;
-                residents += b.Residents;
-                capacity += b.Definition.GetCapacity(city.UnlockedTechnologies);
+                if (!IsHouseIn(b, zone) || b.Residents <= 0) continue;
+                int cap = b.Definition.GetCapacity(city.UnlockedTechnologies);
+                satisfactionSum += b.Satisfaction * cap;
+                rated += cap;
             }
-            float occupancy = capacity > 0 ? (float)residents / capacity : 0f;
+            float average = rated > 0 ? satisfactionSum / rated : newHouseSatisfaction;
+
+            int residents = 0, capacity = 0;
+            float pending = 0f;
+            foreach (var b in city.Buildings)
+            {
+                if (!IsHouseIn(b, zone)) continue;
+                int cap = b.Definition.GetCapacity(city.UnlockedTechnologies);
+                float satisfaction = b.Residents > 0 || b.Satisfaction > 0f ? b.Satisfaction : average;
+                residents += b.Residents;
+                capacity += cap;
+                pending += Mathf.Max(0f, cap * satisfaction - b.Residents);
+            }
+            float occupancy = capacity > 0 ? (residents + pendingWeight * pending) / capacity : 0f;
             float value = Mathf.InverseLerp(zone.occupancyForNoDemand, zone.occupancyForFullDemand, occupancy);
             if (capacity < zone.starterCapacity) value = Mathf.Max(value, zone.starterDemand);
             return value;
         }
+
+        private bool IsHouseIn(BuildingInstance b, ZoneDefinition zone) =>
+            b.Definition.populationTier != null && city.Grid.GetZone(b.Origin) == zone;
 
         private float Commercial(ZoneDefinition zone, int residents)
         {

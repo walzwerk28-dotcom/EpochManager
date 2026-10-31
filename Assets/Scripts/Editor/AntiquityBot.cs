@@ -122,7 +122,7 @@ namespace EpochCity
                     clock.Advance(1f);
                     economy.Advance(1f);
                     research.Tick();
-                    if (demand != null) demand.Recalculate();
+                    if (demand != null) { demand.Recalculate(1f); TraceDemand(); }
                     growth.Advance(1f);
 
                     sinceDecision += 1f;
@@ -665,6 +665,25 @@ namespace EpochCity
                 map[key] = n + 1;
             }
 
+            // Verlauf der Nachfrage je Zone (ab der ersten Bebauung): Sekunden nahe 0 und Einbrüche von über 30 % auf unter 5 %
+            private readonly Dictionary<ZoneDefinition, (int seconds, int low, int drops, bool high)> demandTrace =
+                new Dictionary<ZoneDefinition, (int, int, int, bool)>();
+
+            private void TraceDemand()
+            {
+                foreach (var zone in demand.zones)
+                {
+                    if (zone == null || ZoneCells(zone) == 0) continue;
+                    demandTrace.TryGetValue(zone, out var t);
+                    float d = demand.GetDemand(zone);
+                    t.seconds++;
+                    if (d < 0.05f) t.low++;
+                    if (d > 0.3f) t.high = true;
+                    else if (d < 0.05f && t.high) { t.drops++; t.high = false; }
+                    demandTrace[zone] = t;
+                }
+            }
+
             private string Summary(double realSeconds)
             {
                 string dir = Path.Combine(Application.persistentDataPath, "balance");
@@ -685,6 +704,8 @@ namespace EpochCity
                 sb.AppendLine("Gebaut: " + string.Join(", ", builtCount.OrderByDescending(b => b.Value).Select(b => $"{b.Key} {b.Value}")));
                 sb.AppendLine("Häufigste Engpässe (Gebäude-Monate): " +
                               string.Join(", ", issues.OrderByDescending(i => i.Value).Take(12).Select(i => $"{i.Key} {i.Value}")));
+                sb.AppendLine("Nachfrage (Anteil der Zeit unter 5 %, Einbrüche von über 30 %): " + string.Join(", ",
+                    demandTrace.Select(t => $"{t.Key.ShortName} {100f * t.Value.low / Mathf.Max(1, t.Value.seconds):0} % / {t.Value.drops}")));
                 sb.AppendLine("Lager am Ende: " + string.Join(", ", goods.Select(g => $"{g.displayName} {city.Stock.Get(g):0}")));
                 sb.AppendLine($"CSV: {file}");
                 sb.AppendLine("Erste Aktionen: " + string.Join(" | ", actions.Take(25)));
