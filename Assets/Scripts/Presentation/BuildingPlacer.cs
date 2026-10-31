@@ -197,12 +197,14 @@ namespace EpochCity
         }
 
         /// <summary>
-        /// Zeigt bei Betrieben mit Vorkommen (Holzfäller, Steinbruch) den Umkreis um die Grundfläche: Felder mit dem
-        /// nötigen Vorkommen grün, die übrigen blass. Form ist die Bodenkachel des Vorkommens.
+        /// Zeigt bei Betrieben mit Vorkommen (Holzfäller, Steinbruch, Förster) den Umkreis um die Grundfläche: Felder mit
+        /// dem Vorkommen grün (beim Bedarf nur ausgewachsene, beim Förster auch junge), die übrigen blass. Form ist die
+        /// Bodenkachel des Vorkommens.
         /// </summary>
         private void ShowDepositRange()
         {
-            var deposit = selected.requiredDeposit;
+            var deposit = selected.requiredDeposit != null ? selected.requiredDeposit : selected.plantsDeposit;
+            bool planting = selected.requiredDeposit == null;
             if (deposit == null || deposit.tilePrefab == null)
             {
                 depositGhosts.Hide();
@@ -216,7 +218,8 @@ namespace EpochCity
                     var c = new Vector2Int(x, y);
                     if (city.Grid.InBounds(c)) depositCells.Add(c);
                 }
-            depositGhosts.Show(city, deposit.tilePrefab, depositCells, c => city.Grid.GetDeposit(c) == deposit,
+            depositGhosts.Show(city, deposit.tilePrefab, depositCells,
+                c => city.Grid.GetDeposit(c) == deposit && (planting || !city.Grid.IsYoung(c)),
                 GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
         }
 
@@ -228,7 +231,7 @@ namespace EpochCity
                 if (selected == null || selected.requiredDeposit == null) return 0;
                 int n = 0;
                 foreach (var c in depositCells)
-                    if (city.Grid.GetDeposit(c) == selected.requiredDeposit) n++;
+                    if (city.Grid.GetDeposit(c) == selected.requiredDeposit && !city.Grid.IsYoung(c)) n++;
                 return n;
             }
         }

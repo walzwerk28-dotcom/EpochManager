@@ -7,7 +7,8 @@ namespace EpochCity
     /// Zeigt die Rohstoff-Vorkommen: je Feld eine flache Bodenkachel (DepositDefinition.tilePrefab, z. B. Waldboden)
     /// und einige Deko-Modelle (Bäume, Felsen) mit Versatz, Drehung und Größe aus einem Zufall, der fest an der
     /// Feldposition hängt – nach dem Laden sieht der Wald gleich aus. Unter Gebäuden und Straßen ausgeblendet,
-    /// gerodete Felder verlieren ihre Darstellung. Gleicht sich bei jeder Änderung von Vorkommen, Gebäuden oder
+    /// gerodete Felder verlieren ihre Darstellung; junge Felder (gefällt oder gepflanzt) zeigen kleine Bäume, die mit
+    /// dem Alter wachsen. Gleicht sich bei jeder Änderung von Vorkommen, Gebäuden oder
     /// Straßen ab.
     /// </summary>
     public class DepositVisuals : MonoBehaviour
@@ -16,11 +17,17 @@ namespace EpochCity
         [Tooltip("Anteil der Feldbreite, um den die Deko höchstens aus der Feldmitte rückt")]
         [Range(0f, 0.5f)] [SerializeField] private float spread = 0.32f;
 
+        [Tooltip("Größe der Deko auf einem gerade gefällten oder gepflanzten Feld (Anteil der vollen Größe)")]
+        [Range(0.05f, 1f)] [SerializeField] private float saplingScale = 0.3f;
+
         private class CellView
         {
             public DepositDefinition Deposit;
             public GameObject Root;
             public int Decor;
+            public readonly List<Transform> DecorTransforms = new List<Transform>();
+            public readonly List<Vector3> FullScales = new List<Vector3>();
+            public float Growth = 1f;
         }
 
         private readonly Dictionary<Vector2Int, CellView> views = new Dictionary<Vector2Int, CellView>();
@@ -69,7 +76,25 @@ namespace EpochCity
                     views[c] = view = Create(c, grid.GetDeposit(c));
                 bool free = grid.GetAt(c) == null && !grid.HasRoad(c);
                 if (view.Root.activeSelf != free) view.Root.SetActive(free);
+                SetGrowth(view, GetGrowth(c, view.Deposit));
             }
+        }
+
+        /// <summary>Wuchs eines Felds: 1 ausgewachsen, junge Felder von saplingScale bis kurz vor 1 nach Alter.</summary>
+        private float GetGrowth(Vector2Int c, DepositDefinition deposit)
+        {
+            if (!city.Grid.YoungDeposits.TryGetValue(c, out int age)) return 1f;
+            int needed = city.IsTended(c, deposit)
+                ? Mathf.Min(deposit.regrowMonthsTended, deposit.regrowMonths) : deposit.regrowMonths;
+            return Mathf.Lerp(saplingScale, 0.9f, Mathf.Clamp01(age / (float)Mathf.Max(1, needed)));
+        }
+
+        private static void SetGrowth(CellView view, float growth)
+        {
+            if (Mathf.Approximately(view.Growth, growth)) return;
+            view.Growth = growth;
+            for (int i = 0; i < view.DecorTransforms.Count; i++)
+                view.DecorTransforms[i].localScale = view.FullScales[i] * growth;
         }
 
         private CellView Create(Vector2Int c, DepositDefinition deposit)
@@ -97,6 +122,8 @@ namespace EpochCity
                     var decor = Instantiate(prefab, center + offset,
                         Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), root.transform);
                     decor.transform.localScale *= Range(random, deposit.decorScale.x, deposit.decorScale.y);
+                    view.DecorTransforms.Add(decor.transform);
+                    view.FullScales.Add(decor.transform.localScale);
                     view.Decor++;
                 }
             }

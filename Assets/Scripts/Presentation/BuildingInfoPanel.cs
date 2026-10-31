@@ -143,7 +143,21 @@ namespace EpochCity
                     deposit.Set(b.DepositFactor, UiFactory.QualityColor(b.DepositFactor, theme),
                         $"{count} / {def.depositCellsForFull}");
                 });
+                // Gefällter Wald wächst nach: junge Felder im Umkreis
+                if (def.fellsDeposit)
+                    Line(theme.textMuted, () =>
+                    {
+                        int young = city.Grid.CountYoung(def.requiredDeposit, b.Origin, b.Footprint, def.depositRange);
+                        return young > 0 ? $"{young} Felder wachsen nach" : "nichts wächst nach";
+                    });
             }
+
+            // Förster: Pflanzumkreis mit Wald und jungen Feldern
+            if (def.plantsDeposit != null)
+                Line(theme.textMuted, () =>
+                    $"Pflanzt {def.plantsDeposit.displayName} im Umkreis {def.depositRange}: " +
+                    $"{city.Grid.CountDeposit(def.plantsDeposit, b.Origin, b.Footprint, def.depositRange)} ausgewachsen, " +
+                    $"{city.Grid.CountYoung(def.plantsDeposit, b.Origin, b.Footprint, def.depositRange)} jung");
 
             if (def.populationTier != null)
             {
@@ -177,6 +191,8 @@ namespace EpochCity
                     float multiplier = city.GetMultiplier(b);
                     string inputs = Amounts(f.inputs, 1f);
                     string outputs = Amounts(f.outputs, multiplier);
+                    if (string.IsNullOrEmpty(outputs))
+                        return def.plantsDeposit != null ? $"pflanzt 1 Feld {def.plantsDeposit.displayName}" : inputs;
                     return string.IsNullOrEmpty(inputs) ? $"ergibt {outputs}" : $"{inputs} → {outputs}";
                 });
             }

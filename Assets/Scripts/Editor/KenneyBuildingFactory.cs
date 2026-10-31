@@ -52,7 +52,7 @@ namespace EpochCity
                          "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
+                         "Holzfaeller", "Foerster", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
                 grounds[n] = earth;
 
             // Antike: Kalkstein und Terrakotta-Dächer
@@ -69,6 +69,7 @@ namespace EpochCity
             Assign("Bld_Schreibschule", Make("Schreibschule", 2, antique, School));
             Assign("Bld_Feld", Make("Feld", 2, original, Field));
             Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
+            Assign("Bld_Foerster", Make("Foerster", 2, antique, Forester));
             Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
             Assign("Bld_Steinbruch", Make("Steinbruch", 2, antique, Quarry));
             Assign("Bld_Olivenhain", Make("Olivenhain", 2, antique, OliveGrove));
@@ -827,6 +828,25 @@ namespace EpochCity
             b.Put(NK + "stump_roundDetailed", new Vector3(-1.6f, 0f, -1.4f), 0f);
             b.Put(NK + "stump_old", new Vector3(0.9f, 0f, -1.6f), 60f);
             b.Put(NK + "log", new Vector3(-1.5f, 0f, -0.5f), 75f);
+        }
+
+        /// <summary>Förster: Holzhütte hinten links, rechts und vorn Reihen junger Bäume (Setzlinge), vorn ein Karren.</summary>
+        private static void Forester(Builder b)
+        {
+            NatureColors(b);
+            var hut = b.At(-1f, 1f);
+            Walls(hut, 2, 2, 0, (i, j, dir) =>
+                dir == Vector2Int.down && i == 1 ? "wall-wood-door" :
+                dir == Vector2Int.down ? "wall-wood-window-small" : "wall-wood");
+            GableRoof(hut, 2, 2, 1, "roof");
+
+            for (int row = 0; row < 3; row++)
+                for (int k = 0; k < 2; k++)
+                    b.Put(NK + (row % 2 == 0 ? "tree_small" : "tree_pineSmallA"),
+                        new Vector3(0.75f + k * 0.8f, 0f, 1.5f - row * 0.85f), (row * 2 + k) * 55f, 0.9f);
+            for (int k = 0; k < 4; k++)
+                b.Put(NK + "plant_bushSmall", new Vector3(-1.6f + k * 0.5f, 0f, -0.6f), k * 80f, 0.9f);
+            b.Put(FT + "cart", new Vector3(-0.9f, 0f, -1.5f), 0f, 0.8f);
         }
 
         /// <summary>Zimmerei: offener Schuppen auf Holzpfosten mit Rückwand, darunter ein Stamm, ringsum Stämme und Bretterstapel.</summary>

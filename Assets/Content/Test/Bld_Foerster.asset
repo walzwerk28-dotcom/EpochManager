@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "F\xF6rster"
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 2
-  prefab: {fileID: 1503567068319729729, guid: 06c6009035aed7e4d8a3991cd2ca31d3, type: 3}
+  prefab: {fileID: 98820518385203728, guid: 7339ca67200bad241998ba3fb1e78334, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

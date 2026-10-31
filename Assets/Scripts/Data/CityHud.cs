@@ -129,7 +129,8 @@ namespace EpochCity
                     float factor = city.GetDepositFactor(selected, cell, selected.size, out int count);
                     return $"{selected.displayName}  |  {selected.requiredDeposit.displayName} im Umkreis: " +
                            $"{count} / {selected.depositCellsForFull} → {factor * 100f:0} %" +
-                           (count == 0 ? "  |  hier nicht baubar" : "");
+                           (city.Grid.CountDeposit(selected.requiredDeposit, cell, selected.size, selected.depositRange, true) == 0
+                               ? "  |  hier nicht baubar" : "");
                 }
             }
 
@@ -155,7 +156,11 @@ namespace EpochCity
             var zone = city.Grid.GetZone(cell);
             var deposit = city.Grid.GetDeposit(cell);
             var parts = new List<string>();
-            if (deposit != null) parts.Add(deposit.displayName);
+            // Junger Wald mit Alter, z. B. „Wald (jung, 3 / 8 Monate)“
+            if (deposit != null && city.Grid.YoungDeposits.TryGetValue(cell, out int age))
+                parts.Add($"{deposit.displayName} (jung, {age} / " +
+                          $"{(city.IsTended(cell, deposit) ? Mathf.Min(deposit.regrowMonthsTended, deposit.regrowMonths) : deposit.regrowMonths)} Monate)");
+            else if (deposit != null) parts.Add(deposit.displayName);
             if (zone != null) parts.Add($"{zone.displayName} (frei)");
             return string.Join("  |  ", parts);
         }
@@ -429,6 +434,7 @@ namespace EpochCity
                 if (function == null) continue;
                 string inputs = Amounts(function.inputs);
                 string outputs = Amounts(function.outputs);
+                if (string.IsNullOrEmpty(outputs) && def.plantsDeposit != null) outputs = $"1 Feld {def.plantsDeposit.displayName}";
                 sb.AppendLine(string.IsNullOrEmpty(inputs)
                     ? $"{function.label}: {outputs} je {function.cycleSeconds:0.#} s"
                     : $"{function.label}: {inputs} → {outputs} je {function.cycleSeconds:0.#} s");
@@ -447,6 +453,12 @@ namespace EpochCity
                     ? $"Braucht {def.requiredDeposit.displayName} im Umkreis {def.depositRange} " +
                       $"({def.depositCellsForFull} Felder für 100 %)"
                     : $"Muss auf {def.requiredDeposit.displayName} stehen ({def.depositCellsForFull} Felder für 100 %)");
+            if (def.fellsDeposit && def.requiredDeposit != null)
+                sb.AppendLine($"Fällt alle {def.cyclesPerFelling} Zyklen ein Feld; es wächst in " +
+                              $"{def.requiredDeposit.regrowMonths} Monaten nach");
+            if (def.plantsDeposit != null)
+                sb.AppendLine($"Pflanzt {def.plantsDeposit.displayName} im Umkreis {def.depositRange}; dort wächst er in " +
+                              $"{def.plantsDeposit.regrowMonthsTended} Monaten nach");
             if (city.IsAvailable(def)) sb.Append(MissingLine(def.buildCost, def.materialCosts));
             sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ?? Muted("Braucht ein angrenzendes Straßenfeld"));
             return sb.ToString().TrimEnd();
