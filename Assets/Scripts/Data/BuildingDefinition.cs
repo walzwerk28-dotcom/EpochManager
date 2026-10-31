@@ -63,6 +63,14 @@ namespace EpochCity
         [Header("Schichten durch Technologien")]
         public BuildingLayer[] layers;
 
+        [Header("Feuer")]
+        [Tooltip("Brandrisiko gegenüber einem normalen Gebäude (Holzbau 1,5, Steinbau 0,5, 0 = brennt nie)")]
+        [Min(0f)] public float fireRisk = 1f;
+        [Tooltip("Feuerwache: Brandschutz-Reichweite über das Straßennetz in Straßenfeldern (0 = kein Brandschutz)")]
+        [Min(0f)] public float fireProtectionRange;
+        [Tooltip("Brandschutz über die Entfernung: x = 0 an der Wache bis 1 an der Reichweite, y = Schutz")]
+        public AnimationCurve fireProtectionByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
+
         [Header("Lager (nur Kategorie Storage)")]
         [Tooltip("Einzugsweite über das Straßennetz, in Straßenfeldern (bessere Straßen zählen kürzer)")]
         [Min(1f)] public float catchmentRange = 20f;

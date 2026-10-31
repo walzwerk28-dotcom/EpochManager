@@ -808,8 +808,36 @@ namespace EpochCity
             artisans.needs = new[] { food, firewoodNeed, water, marketNeed, faith, oilNeed, ceramicNeed };
             scholars.needs = new[] { food, firewoodNeed, water, marketNeed, faith, oilNeed, ceramicNeed, wineNeed };
 
+            // ---------------------------------------------------------------- Feuer (2026-10-31, Variante a)
+            // Brandrisiko je Gebäude (Holzbau höher, Steinbau niedriger); Feuerwache als Dienst mit Reichweite wie in
+            // Cities: Skylines. Wie Tempel und Brunnen ohne Arbeitskräfte (Dienste ohne Funktion bremsen sie nicht).
+            var fireStation = GetOrCreate<BuildingDefinition>("Bld_Feuerwache");
+            fireStation.displayName = "Feuerwache";
+            fireStation.epoch = antike;
+            fireStation.requiredTechnology = null;
+            fireStation.category = BuildingCategory.Service;
+            fireStation.size = new Vector2Int(2, 2);
+            fireStation.buildCost = 120f;
+            fireStation.materialCosts = Cost((boards, 4f), (stone, 4f));
+            fireStation.upkeepPerMonth = 2f;
+            fireStation.baseCapacity = 0;
+            fireStation.baseFunctions = new BuildingFunction[0];
+            fireStation.layers = new BuildingLayer[0];
+            fireStation.workerTier = null;
+            fireStation.workers = 0;
+            fireStation.fireProtectionRange = 20f;
+            fireStation.fireProtectionByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
+            fireStation.prefab = KeepModel(fireStation.prefab, () => CreatePrefab("Prefab_Feuerwache", fireStation.size, 2f, new Color(0.7f, 0.3f, 0.25f)));
+
+            foreach (var def in new[] { woodcutter, woodChopper, carpentry, forester })
+                def.fireRisk = 1.5f;
+            foreach (var def in new[] { temple, academy, library, school, quarry, fireStation, field, oilPress, winePress })
+                def.fireRisk = 0.5f;
+            well.fireRisk = 0f;
+
             // Reiter der Bauleiste (wie in Anno): die Stufe, deren Kette ein Gebäude dient, nicht die seiner Arbeiter
-            foreach (var def in new[] { field, woodcutter, forester, carpentry, woodChopper, quarry, storage, market, school, well, temple, mill })
+            mill.menuTier = null; // nur Testgebäude fürs Mittelalter: Reiter „Sonstiges“
+            foreach (var def in new[] { field, woodcutter, forester, carpentry, woodChopper, quarry, storage, market, school, well, temple, fireStation })
                 def.menuTier = farmers;
             foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
                 def.menuTier = artisans;
@@ -839,7 +867,7 @@ namespace EpochCity
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
-                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed
+                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten

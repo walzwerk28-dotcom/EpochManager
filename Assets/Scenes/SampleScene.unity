@@ -767,6 +767,7 @@ GameObject:
   - component: {fileID: 1598712642}
   - component: {fileID: 1598712643}
   - component: {fileID: 1598712644}
+  - component: {fileID: 1598712645}
   m_Layer: 0
   m_Name: Simulation
   m_TagString: Untagged
@@ -975,6 +976,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ForestSimulation
   city: {fileID: 440537052}
   clock: {fileID: 2124652275}
+--- !u!114 &1598712645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1598712634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e24ea58203ff7a4db42e15509c4cc4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.FireSimulation
+  city: {fileID: 440537052}
+  clock: {fileID: 2124652275}
+  frequency: 2
+  baseChancePerMonth: 0.0015
+  burnSeconds: 30
+  extinguishSeconds: 6
+  damagedMonths: 3
+  extinguishedDamageMonths: 1
+  seed: 0
 --- !u!1 &1627082945
 GameObject:
   m_ObjectHideFlags: 0

@@ -191,7 +191,9 @@ namespace EpochCity
                     satisfaction = b.Satisfaction,
                     missingNeeds = b.MissingNeeds,
                     facing = b.Facing,
-                    variant = GetVariant(b)
+                    variant = GetVariant(b),
+                    fire = (int)b.Fire,
+                    fireTimer = b.FireTimer
                 };
                 foreach (var function in b.Definition.GetActiveFunctions(city.UnlockedTechnologies))
                     entry.progress.Add(function != null && b.Progress.TryGetValue(function, out float p) ? p : 0f);
@@ -255,6 +257,8 @@ namespace EpochCity
                 }
                 b.IsProtected = entry.isProtected;
                 b.IsPaused = entry.isPaused; // Anbindung (stillgelegte Lager) folgt mit RefreshConnections
+                b.Fire = (FireState)entry.fire; // Brandschutz folgt mit ConnectionsChanged (FireSimulation)
+                b.FireTimer = entry.fireTimer;
                 b.Residents = entry.residents;
                 if (!string.IsNullOrEmpty(entry.tier) && Resolve<PopulationTierDefinition>(entry.tier, out var tier))
                     b.Tier = tier;

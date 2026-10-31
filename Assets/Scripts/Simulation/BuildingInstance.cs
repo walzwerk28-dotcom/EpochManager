@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace EpochCity
 {
+    /// <summary>Feuerzustand eines Gebäudes (FireSimulation).</summary>
+    public enum FireState { None, Burning, Damaged }
+
     /// <summary>Ein tatsächlich gebautes Gebäude in der Stadt.</summary>
     public class BuildingInstance
     {
@@ -67,6 +70,15 @@ namespace EpochCity
 
         /// <summary>Stillgelegt (wie in Anno): produziert nichts, bietet keine Dienste, zahlt nur einen Teil des Unterhalts.</summary>
         public bool IsPaused { get; set; }
+
+        /// <summary>Feuer (FireSimulation): brennt oder ist beschädigt; arbeitet dann nicht und bietet keine Dienste.</summary>
+        public FireState Fire { get; set; }
+
+        /// <summary>Brennend: verbleibende Spielsekunden bis zum Ende des Brands; beschädigt: verbleibende Spielmonate.</summary>
+        public float FireTimer { get; set; }
+
+        /// <summary>Stillgelegt, brennend oder beschädigt: produziert nichts und bietet keine Dienste.</summary>
+        public bool IsOutOfService => IsPaused || Fire != FireState.None;
 
         public BuildingInstance(BuildingDefinition definition, Vector2Int origin, EpochDefinition builtIn, float facing = 0f)
         {

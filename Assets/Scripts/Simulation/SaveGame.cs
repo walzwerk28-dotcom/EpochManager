@@ -16,8 +16,9 @@ namespace EpochCity
         /// Formatversion; bei inkompatiblen Änderungen erhöhen und alte Stände umwandeln.
         /// 2: Rohstoff-Vorkommen (deposits); ältere Stände behalten die beim Start erzeugte Karte.
         /// 3: junge Felder (youngDeposits, gefällter oder gepflanzter Wald); ältere Stände sind ganz ausgewachsen.
+        /// 4: Feuer je Gebäude (BuildingEntry.fire, fireTimer); ältere Stände ohne Brände.
         /// </summary>
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         public int version = CurrentVersion;
         public string savedAt;
@@ -126,6 +127,10 @@ namespace EpochCity
         public float facing = -1f;
         [Tooltip("Gezeigte Modellvariante (RandomVariant), −1 = keine")]
         public int variant = -1;
+        [Tooltip("Feuer: 0 = nichts, 1 = brennt, 2 = beschädigt (ältere Spielstände 0)")]
+        public int fire;
+        [Tooltip("Brennend: verbleibende Spielsekunden; beschädigt: verbleibende Spielmonate")]
+        public float fireTimer;
     }
 
     [Serializable]

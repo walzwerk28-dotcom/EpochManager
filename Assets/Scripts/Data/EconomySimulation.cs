@@ -42,7 +42,7 @@ namespace EpochCity
         {
             int sum = 0;
             foreach (var b in city.Buildings)
-                if (b.Definition.workerTier == tier && !b.IsPaused) sum += b.Definition.workers;
+                if (b.Definition.workerTier == tier && !b.IsOutOfService) sum += b.Definition.workers;
             return sum;
         }
 
@@ -120,6 +120,12 @@ namespace EpochCity
                 if (building.IsPaused)
                 {
                     building.Status = functions.Count > 0 ? "stillgelegt" : "";
+                    continue;
+                }
+                if (building.Fire != FireState.None)
+                {
+                    building.Status = building.Fire == FireState.Burning ? "brennt"
+                        : $"beschädigt (noch {Mathf.CeilToInt(building.FireTimer)} {(building.FireTimer > 1f ? "Monate" : "Monat")})";
                     continue;
                 }
 

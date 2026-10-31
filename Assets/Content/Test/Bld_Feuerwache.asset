@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 940d9108773fac84ab420d97f53a3ac3, type: 3}
+  m_Name: Bld_Feuerwache
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingDefinition
+  displayName: Feuerwache
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  category: 3
+  prefab: {fileID: 7521502009469128924, guid: 535241387efbf204ca6c892b3bf32ad9, type: 3}
+  size: {x: 2, y: 2}
+  zone: {fileID: 0}
+  populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 0}
+  menuTier: {fileID: 11400000, guid: cc2e65e2f3d6148439ce0533a6e51efe, type: 2}
+  workerTier: {fileID: 0}
+  workers: 0
+  requiredDeposit: {fileID: 0}
+  depositRange: 0
+  depositCellsForFull: 1
+  fellsDeposit: 0
+  cyclesPerFelling: 4
+  plantsDeposit: {fileID: 0}
+  buildCost: 120
+  materialCosts:
+  - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
+    amount: 4
+  - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
+    amount: 4
+  upkeepPerMonth: 6
+  baseCapacity: 0
+  baseFunctions: []
+  layers: []
+  fireRisk: 0.5
+  fireProtectionRange: 20
+  fireProtectionByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.6
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.4
+      inSlope: -0.6
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  catchmentRange: 20
+  efficiencyByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.75
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.25
+      inSlope: -0.75
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  minEfficiency: 0.25

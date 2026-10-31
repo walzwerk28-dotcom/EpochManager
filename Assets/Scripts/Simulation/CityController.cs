@@ -700,7 +700,7 @@ namespace EpochCity
             foreach (var b in Buildings)
             {
                 var def = b.Definition;
-                if (def.plantsDeposit != deposit || b.IsPaused) continue;
+                if (def.plantsDeposit != deposit || b.IsOutOfService) continue;
                 if (c.x >= b.Origin.x - def.depositRange && c.x < b.Origin.x + b.Footprint.x + def.depositRange &&
                     c.y >= b.Origin.y - def.depositRange && c.y < b.Origin.y + b.Footprint.y + def.depositRange)
                     return true;

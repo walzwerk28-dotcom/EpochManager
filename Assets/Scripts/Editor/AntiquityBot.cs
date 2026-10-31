@@ -42,6 +42,7 @@ namespace EpochCity
             private PopulationSimulation population;
             private ZoneGrowth growth;
             private ZoneDemand demand;
+            private FireSimulation fire;
             private ResearchSystem research;
             private EpochProgression progression;
             private BuildingPlacer placer;
@@ -78,6 +79,8 @@ namespace EpochCity
                 population = Object.FindAnyObjectByType<PopulationSimulation>();
                 growth = Object.FindAnyObjectByType<ZoneGrowth>();
                 demand = Object.FindAnyObjectByType<ZoneDemand>();
+                fire = Object.FindAnyObjectByType<FireSimulation>();
+                if (fire != null) fire.Reseed(seed);
                 research = Object.FindAnyObjectByType<ResearchSystem>();
                 progression = Object.FindAnyObjectByType<EpochProgression>();
                 placer = Object.FindAnyObjectByType<BuildingPlacer>();
@@ -124,6 +127,7 @@ namespace EpochCity
                     research.Tick();
                     if (demand != null) { demand.Recalculate(1f); TraceDemand(); }
                     growth.Advance(1f);
+                    if (fire != null) fire.Advance(1f);
 
                     sinceDecision += 1f;
                     if (sinceDecision >= DecisionSeconds)
@@ -704,6 +708,9 @@ namespace EpochCity
                 sb.AppendLine("Gebaut: " + string.Join(", ", builtCount.OrderByDescending(b => b.Value).Select(b => $"{b.Key} {b.Value}")));
                 sb.AppendLine("Häufigste Engpässe (Gebäude-Monate): " +
                               string.Join(", ", issues.OrderByDescending(i => i.Value).Take(12).Select(i => $"{i.Key} {i.Value}")));
+                if (fire != null)
+                    sb.AppendLine($"Feuer: {fire.IgnitionCount} Brände, {fire.ExtinguishedCount} gelöscht, {fire.DestroyedCount} Zonengebäude abgebrannt, " +
+                                  $"am Ende {city.Buildings.Count(b => b.Fire == FireState.Damaged)} beschädigt, {city.Buildings.Count(b => b.Fire == FireState.Burning)} brennend");
                 sb.AppendLine("Nachfrage (Anteil der Zeit unter 5 %, Einbrüche von über 30 %): " + string.Join(", ",
                     demandTrace.Select(t => $"{t.Key.ShortName} {100f * t.Value.low / Mathf.Max(1, t.Value.seconds):0} % / {t.Value.drops}")));
                 sb.AppendLine("Lager am Ende: " + string.Join(", ", goods.Select(g => $"{g.displayName} {city.Stock.Get(g):0}")));
