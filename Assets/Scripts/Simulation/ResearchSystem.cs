@@ -52,7 +52,10 @@ namespace EpochCity
             return true;
         }
 
-        private void Update()
+        private void Update() => Tick();
+
+        /// <summary>Forschung aus dem Lager ins laufende Projekt übertragen; auch für Zeitraffer per Code.</summary>
+        public void Tick()
         {
             if (city == null || researchResource == null || Current == null) return;
 

@@ -31,9 +31,12 @@ namespace EpochCity
             SetSpeed(speed);
         }
 
-        private void Update()
+        private void Update() => Advance(Time.deltaTime * Speed);
+
+        /// <summary>Spielzeit voranbringen (Spielsekunden); löst je vollem Monat MonthPassed aus. Auch für Zeitraffer per Code.</summary>
+        public void Advance(float seconds)
         {
-            monthProgress += Time.deltaTime * Speed;
+            monthProgress += seconds;
             while (monthProgress >= secondsPerMonth)
             {
                 monthProgress -= secondsPerMonth;

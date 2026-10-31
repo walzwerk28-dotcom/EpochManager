@@ -85,9 +85,15 @@ namespace EpochCity
 
         private void Update()
         {
-            if (city == null || clock == null || city.Grid == null) return;
+            if (clock != null) Advance(Time.deltaTime * clock.Speed);
+        }
 
-            accumulator += Time.deltaTime * clock.Speed;
+        /// <summary>Spielzeit voranbringen (Spielsekunden) in festen Schritten; auch für Zeitraffer per Code.</summary>
+        public void Advance(float seconds)
+        {
+            if (city == null || city.Grid == null) return;
+
+            accumulator += seconds;
             while (accumulator >= stepSeconds)
             {
                 accumulator -= stepSeconds;

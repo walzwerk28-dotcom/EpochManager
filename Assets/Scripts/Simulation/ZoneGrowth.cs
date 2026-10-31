@@ -40,7 +40,13 @@ namespace EpochCity
 
         private void Update()
         {
-            if (city == null || clock == null || city.Grid == null) return;
+            if (clock != null) Advance(Time.deltaTime * clock.Speed);
+        }
+
+        /// <summary>Spielzeit voranbringen (Spielsekunden); auch für Zeitraffer per Code.</summary>
+        public void Advance(float dt)
+        {
+            if (city == null || city.Grid == null) return;
 
             if (zones.Count == 0 && zoneBuildings != null)
             {
@@ -52,7 +58,6 @@ namespace EpochCity
                         if (zone != null && !zones.Contains(zone)) zones.Add(zone);
             }
 
-            float dt = Time.deltaTime * clock.Speed;
             foreach (var zone in zones)
             {
                 float rate = demand != null ? demand.GetDemand(zone) : 1f;
