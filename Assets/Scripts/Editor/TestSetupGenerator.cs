@@ -789,7 +789,7 @@ namespace EpochCity
             // Belastet den Wald zusätzlich, der Förster wird früher wichtig. Köhlerei (Holzkohle) folgt im Mittelalter.
             var firewood = Resource("Res_Brennholz", "Brennholz", antike, false);
             var woodChopper = ProductionBuilding("Bld_Holzhacker", "Holzhacker", antike, 60f, 1f,
-                "Holz hacken", logs, 1f, firewood, 3f, 5f, new Color(0.55f, 0.4f, 0.25f));
+                "Holz hacken", logs, 1f, firewood, 5f, 5f, new Color(0.55f, 0.4f, 0.25f));
             woodChopper.materialCosts = Cost((boards, 2f));
             woodChopper.workerTier = farmers;
             woodChopper.workers = 2;
