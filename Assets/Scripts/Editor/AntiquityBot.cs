@@ -627,7 +627,7 @@ namespace EpochCity
 
             private static IEnumerable<string> Reasons(string status)
             {
-                if (string.IsNullOrEmpty(status) || status == "läuft") yield break;
+                if (string.IsNullOrEmpty(status) || status == "läuft" || status == "Wald gepflegt") yield break;
                 if (status.StartsWith("läuft ("))
                 {
                     int comma = status.IndexOf(", ");

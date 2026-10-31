@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Handwerk
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   path: 2
-  researchCost: 100
+  researchCost: 200
   prerequisites: []
   description: "Werkst\xE4tten, Werkh\xF6fe und Speicherh\xF6fe erl\xF6sen 25 % mehr;
     Zimmereien, Steinbr\xFCche, \xD6lpressen und T\xF6pfereien liefern 25 % mehr."

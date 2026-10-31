@@ -581,7 +581,7 @@ MonoBehaviour:
   cellSize: 2
   currentEpoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   startTechnologies: []
-  startMoney: 50000
+  startMoney: 5000
   startStock:
   - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
     amount: 20
@@ -1265,6 +1265,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.DepositTiles
   city: {fileID: 440537052}
   spread: 0.32
+  saplingScale: 0.3
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

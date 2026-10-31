@@ -40,7 +40,7 @@ MonoBehaviour:
       amount: 2
     outputs:
     - resource: {fileID: 11400000, guid: aa82ce7491460e24f9dcb1aeec26e2ec, type: 2}
-      amount: 4
+      amount: 2
     cycleSeconds: 5
   layers:
   - requiredTechnology: {fileID: 11400000, guid: ecec991b2e2169a4d87588d3abeb2ca8, type: 2}

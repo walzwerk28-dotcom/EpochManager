@@ -163,7 +163,7 @@ namespace EpochCity
                         else if (!HasRoom(function.outputs, multiplier, out string full))
                             building.Status = "Lager voll: " + full; // wartet, ohne Eingänge zu verbrauchen
                         else if (building.Definition.plantsDeposit != null && !city.PlantDeposit(building))
-                            building.Status = "wartet: kein Platz zum Pflanzen";
+                            building.Status = "Wald gepflegt"; // Umkreis voll: kein Mangel, der Förster lässt den Jungwald schneller wachsen
                         else
                         {
                             Consume(function.inputs);

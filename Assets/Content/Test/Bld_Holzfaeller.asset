@@ -31,7 +31,7 @@ MonoBehaviour:
   plantsDeposit: {fileID: 0}
   buildCost: 60
   materialCosts: []
-  upkeepPerMonth: 1
+  upkeepPerMonth: 3
   baseCapacity: 0
   baseFunctions:
   - label: "B\xE4ume f\xE4llen"

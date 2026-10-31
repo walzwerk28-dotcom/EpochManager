@@ -33,7 +33,7 @@ MonoBehaviour:
   materialCosts:
   - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
     amount: 2
-  upkeepPerMonth: 2
+  upkeepPerMonth: 6
   baseCapacity: 0
   baseFunctions:
   - label: Weizen anbauen

@@ -35,7 +35,7 @@ MonoBehaviour:
     amount: 4
   - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
     amount: 2
-  upkeepPerMonth: 3
+  upkeepPerMonth: 9
   baseCapacity: 0
   baseFunctions:
   - label: Weizen verkaufen
