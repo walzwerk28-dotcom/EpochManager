@@ -52,7 +52,7 @@ namespace EpochCity
                          "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Foerster", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
+                         "Holzfaeller", "Holzhacker", "Foerster", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
                 grounds[n] = earth;
             grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
 
@@ -75,6 +75,7 @@ namespace EpochCity
             AddToPrefab<CropStages>(field);
             Assign("Bld_Feld", field);
             Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
+            Assign("Bld_Holzhacker", Make("Holzhacker", 2, antique, WoodChopper));
             Assign("Bld_Foerster", Make("Foerster", 2, antique, Forester));
             Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
             Assign("Bld_Steinbruch", Make("Steinbruch", 2, antique, Quarry));
@@ -897,6 +898,29 @@ namespace EpochCity
             b.Put(NK + "stump_roundDetailed", new Vector3(-1.6f, 0f, -1.4f), 0f);
             b.Put(NK + "stump_old", new Vector3(0.9f, 0f, -1.6f), 60f);
             b.Put(NK + "log", new Vector3(-1.5f, 0f, -0.5f), 75f);
+        }
+
+        /// <summary>Holzhacker: offener Holzschuppen rechts mit Brennholzstapeln, links Hackklotz mit Scheiten, hinten Karren und Stämme.</summary>
+        private static void WoodChopper(Builder b)
+        {
+            NatureColors(b);
+            WorkShed(b.At(1f, 0.6f));
+            // Der Schuppen voller Brennholz: zwei Lagen Stapel bis unters Dach
+            for (int x = 0; x < 3; x++)
+                for (int y = 0; y < 2; y++)
+                    b.Put(NK + "log_stack", new Vector3(0.35f + x * 0.65f, y * 0.32f, 1.1f), 0f);
+            b.Put(NK + "log_stack", new Vector3(1.6f, 0f, -1.1f), 0f);
+            b.Put(NK + "log_stack", new Vector3(1.6f, 0.32f, -1.1f), 0f);
+
+            // Hackklotz mit Scheiten ringsum
+            b.Put(NK + "stump_roundDetailed", new Vector3(-0.9f, 0f, -0.6f), 0f, 1.5f);
+            for (int k = 0; k < 7; k++)
+            {
+                float a = k * 51f * Mathf.Deg2Rad;
+                b.Put(NK + "log", new Vector3(-0.9f + Mathf.Cos(a) * 0.55f, 0f, -0.6f + Mathf.Sin(a) * 0.45f), k * 47f, 0.45f);
+            }
+            b.Put(NK + "log_stackLarge", new Vector3(-1.2f, 0f, 1.3f), 0f);
+            b.Put(FT + "cart", new Vector3(-0.2f, 0f, 1.6f), 90f);
         }
 
         /// <summary>Förster: Holzhütte hinten links, rechts und vorn Reihen junger Bäume (Setzlinge), vorn ein Karren.</summary>

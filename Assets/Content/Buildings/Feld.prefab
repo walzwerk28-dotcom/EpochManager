@@ -290,7 +290,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6446320385686471542}
   - component: {fileID: 8967411094979367766}
-  - component: {fileID: 8775290284327518459}
+  - component: {fileID: 6866825567928130436}
   m_Layer: 0
   m_Name: Feld
   m_TagString: Untagged
@@ -329,7 +329,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f580394c492b4d54faa3182f6c1bafc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.RandomVariant
---- !u!114 &8775290284327518459
+--- !u!114 &6866825567928130436
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

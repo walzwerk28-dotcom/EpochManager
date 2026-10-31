@@ -784,8 +784,32 @@ namespace EpochCity
             wineNeed.providers = new BuildingDefinition[0];
             scholars.needs = new[] { food, water, marketNeed, faith, oilNeed, ceramicNeed, wineNeed };
 
+            // ---------------------------------------------------------------- Brennholz (2026-10-31)
+            // Holzfäller → Stämme → Holzhacker → Brennholz; alle Stufen brauchen es von Anfang an (Ebene 2 nach Nahrung).
+            // Belastet den Wald zusätzlich, der Förster wird früher wichtig. Köhlerei (Holzkohle) folgt im Mittelalter.
+            var firewood = Resource("Res_Brennholz", "Brennholz", antike, false);
+            var woodChopper = ProductionBuilding("Bld_Holzhacker", "Holzhacker", antike, 60f, 1f,
+                "Holz hacken", logs, 1f, firewood, 3f, 5f, new Color(0.55f, 0.4f, 0.25f));
+            woodChopper.materialCosts = Cost((boards, 2f));
+            woodChopper.workerTier = farmers;
+            woodChopper.workers = 2;
+
+            var firewoodNeed = GetOrCreate<NeedDefinition>("Need_Brennholz");
+            firewoodNeed.displayName = "Brennholz";
+            firewoodNeed.epoch = antike;
+            firewoodNeed.requiredTechnology = null;
+            firewoodNeed.pyramidLevel = 2;
+            firewoodNeed.weight = 1f;
+            firewoodNeed.kind = NeedKind.Goods;
+            firewoodNeed.resource = firewood;
+            firewoodNeed.amountPerResidentPerMonth = 0.1f;
+            firewoodNeed.providers = new BuildingDefinition[0];
+            farmers.needs = new[] { food, firewoodNeed, water, marketNeed, faith };
+            artisans.needs = new[] { food, firewoodNeed, water, marketNeed, faith, oilNeed, ceramicNeed };
+            scholars.needs = new[] { food, firewoodNeed, water, marketNeed, faith, oilNeed, ceramicNeed, wineNeed };
+
             // Reiter der Bauleiste (wie in Anno): die Stufe, deren Kette ein Gebäude dient, nicht die seiner Arbeiter
-            foreach (var def in new[] { field, woodcutter, forester, carpentry, quarry, storage, market, school, well, temple, mill })
+            foreach (var def in new[] { field, woodcutter, forester, carpentry, woodChopper, quarry, storage, market, school, well, temple, mill })
                 def.menuTier = farmers;
             foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
                 def.menuTier = artisans;
@@ -815,7 +839,7 @@ namespace EpochCity
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
-                grapes, wine, vineyard, winePress, wineNeed, forester
+                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten
