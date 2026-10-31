@@ -6,7 +6,8 @@ namespace EpochCity
 {
     /// <summary>
     /// Bevölkerung, abstrakt pro Wohnhaus und einmal pro Spielmonat gerechnet:
-    /// Waren werden aus dem Lager verbraucht, Dienste über ihre Reichweite im Straßennetz geprüft.
+    /// Waren werden aus dem Lager verbraucht (voll erfüllt, sobald ein Lager erreichbar ist), Dienste über ihre
+    /// Reichweite im Straßennetz geprüft.
     /// Aus der gewichteten Erfüllung der Bedürfnisse ergibt sich die Zufriedenheit; die Einwohner bewegen
     /// sich in Schritten auf Kapazität × Zufriedenheit zu (Zuzug und Wegzug), an einer Straße aber mindestens auf
     /// Kapazität × minOccupancy. Danach zahlen sie Steuern
@@ -174,7 +175,7 @@ namespace EpochCity
             foreach (var need in GetActiveNeeds(house))
             {
                 float f = need.kind == NeedKind.Goods
-                    ? (goodsRatio.TryGetValue(need, out float ratio) ? ratio : 0f) * house.Connection
+                    ? GoodsFulfilment(need, house)
                     : GetServiceCoverage(need, house);
 
                 weightSum += need.weight;
@@ -255,7 +256,7 @@ namespace EpochCity
                 {
                     if (need == null) continue;
                     float f = need.kind == NeedKind.Service ? GetServiceCoverage(need, house)
-                        : (goodsRatio.TryGetValue(need, out float ratio) ? ratio : 0f) * house.Connection;
+                        : GoodsFulfilment(need, house);
                     if (f < missingThreshold) return $"braucht {need.displayName}";
                 }
             return "";
@@ -290,6 +291,14 @@ namespace EpochCity
                     activeNeeds.Add(need);
             return activeNeeds;
         }
+
+        /// <summary>
+        /// Ware für ein Wohnhaus: gedeckter Anteil des Verbrauchs, sobald irgendein Lager über die Straße erreichbar ist
+        /// (entschieden 2026-10-31, wie in Anno: die Entfernung zählt für Häuser über Markt und andere Dienste, nicht über
+        /// den Abstand zum Lager; für Betriebe bleibt die Lager-Anbindung ein Effizienzfaktor).
+        /// </summary>
+        private float GoodsFulfilment(NeedDefinition need, BuildingInstance house) =>
+            house.Connection > 0f && goodsRatio.TryGetValue(need, out float ratio) ? ratio : 0f;
 
         /// <summary>Bester Abdeckungswert über die Straßenfelder am Haus; Entfernungen werden pro Monat zwischengespeichert.</summary>
         private float GetServiceCoverage(NeedDefinition need, BuildingInstance house)
