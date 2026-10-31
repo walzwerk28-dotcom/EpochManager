@@ -1096,9 +1096,27 @@ namespace EpochCity
             for (int i = 0; i + 1 < w; i += 2)
                 for (int j = 0; j < d; j++)
                 {
-                    b.Put(FT + part, Cell(i, j, w, d) + Vector3.up * y, 180f); // Traufe nach Westen
-                    b.Put(FT + part, Cell(i + 1, j, w, d) + Vector3.up * y, 0f); // Traufe nach Osten
+                    RoofPiece(b, part, Cell(i, j, w, d) + Vector3.up * y, -1, j, d); // Traufe nach Westen
+                    RoofPiece(b, part, Cell(i + 1, j, w, d) + Vector3.up * y, 1, j, d); // Traufe nach Osten
                 }
+        }
+
+        /// <summary>Überstand der Traufe über die Zellkante (die Wand reicht 0,1 hinaus, das Dachteil nur 0,07).</summary>
+        private const float EaveOverhang = 0.25f;
+        /// <summary>Überstand am Giebel: das Dachteil endet an der Zellkante, die Wand 0,1 dahinter.</summary>
+        private const float GableOverhang = 0.15f;
+
+        /// <summary>
+        /// Ein Dachteil, zur Traufe hin gestreckt (der First bleibt an der Zellkante zum Nachbarteil) und am
+        /// ersten bzw. letzten Teil eines Firsts über den Giebel verlängert; mittlere Teile überlappen sich so nicht.
+        /// </summary>
+        private static void RoofPiece(Builder b, string part, Vector3 cell, int eaveSide, int j, int d)
+        {
+            const float pieceWidth = 1.07f; // vom First (−0,5) bis zur Traufe (0,57)
+            float sx = (pieceWidth + EaveOverhang - 0.07f) / pieceWidth;
+            float south = j == 0 ? GableOverhang : 0f, north = j == d - 1 ? GableOverhang : 0f;
+            var position = cell + new Vector3(eaveSide * 0.5f * (sx - 1f), 0f, (north - south) * 0.5f);
+            b.Put(FT + part, position, eaveSide > 0 ? 0f : 180f, new Vector3(sx, 1f, 1f + south + north));
         }
 
         // ---------------------------------------------------------------- Zusammenbau
@@ -1128,6 +1146,17 @@ namespace EpochCity
                 child.localPosition = new Vector3(x, 0f, z);
                 child.localRotation = Quaternion.Euler(0f, rotY, 0f);
                 return new Builder(child, palette, Overrides);
+            }
+
+            /// <summary>Bauteil je Achse gestreckt (in der gedrehten Lage des Teils, nicht der FBX-Achsen).</summary>
+            public void Put(string path, Vector3 position, float rotY, Vector3 scale)
+            {
+                var holder = new GameObject("Stretched").transform;
+                holder.SetParent(Root, false);
+                holder.localPosition = position;
+                holder.localRotation = Quaternion.Euler(0f, rotY, 0f);
+                holder.localScale = scale;
+                new Builder(holder, palette, Overrides).Put(path, Vector3.zero, 0f);
             }
 
             public void Put(string path, Vector3 position, float rotY, float scale = 1f)
