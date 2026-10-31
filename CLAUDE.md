@@ -12,14 +12,14 @@ Spielerische Vorbilder sind **Cities: Skylines** und die **Anno-Reihe**. Sie die
 
 ## Feste Entscheidungen
 - Friedlicher Aufbau, keine Gegner. Eine Karte mit wenigen, großen, freischaltbaren Regionen.
-- Zuerst Endlos-Modus, später zusätzlicher Modus mit Zielen (Ziele als austauschbare Daten).
+- Zuerst Endlos-Modus („Freies Bauen“), später zusätzlich ein Story-Modus mit Kapiteln und Zielen (Ziele als austauschbare Daten, wie die Kampagnen in Anno); Auswahl über ein Startmenü (Idee des Entwicklers, 2026-10-31).
 - Sechs Epochen: Antike, Mittelalter, Renaissance, Industrialisierung, Moderne, Zukunft. Vertical Slice zuerst mit Antike, Mittelalter, Industrialisierung.
-- Bauweise: Zonen für Wohnen und Gewerbe, Einzelplatzierung für Produktion, Dienstleistungen, Wunderbauten, Denkmäler. Jedes Gebäude (selbst gesetzt oder gewachsen) braucht beim Bau ein angrenzendes Straßenfeld. Gebäude werden nie automatisch ersetzt; Zonen füllen sich mit Gebäuden der aktuellen Epoche. Abriss nur durch den Spieler, Denkmalschutz verhindert Abriss.
+- Bauweise: Zonen für Wohnen und Gewerbe, Einzelplatzierung für Produktion, Dienstleistungen, Wunderbauten, Denkmäler. Jedes Gebäude (selbst gesetzt oder gewachsen) braucht beim Bau ein angrenzendes Straßenfeld. Gebäude werden nie automatisch ersetzt (Ausnahme: abgebrannte Zonengebäude, siehe Ereignisse); Zonen füllen sich mit Gebäuden der aktuellen Epoche. Abriss nur durch den Spieler, Denkmalschutz verhindert Abriss.
 - Wirtschaft: regionale Lager, Straßenanbindung als Effizienzfaktor (0 bis 100 %), weiche Abfallkurve mit der Entfernung. Verkehr ist sichtbar, aber reine Visualisierung und beeinflusst die Simulation nie.
 - Bevölkerung: drei Stufen, Bedürfnispyramide, neue Epochen fügen Bedürfnisse hinzu und entfernen keine. Abstrakt simuliert (Zahlen pro Viertel).
 - Geld: eine gemeinsame Stadtkasse, eine interne Währung mit epochenabhängigem Anzeigenamen. Unterhalt alter Gebäude wächst kaum mit den Epochen.
 - Technologien: verzweigter Baum mit vier Pfaden (Handel, Kultur, Industrie, Wissenschaft), gemeinsamer Forschungspool, Epochenwechsel über Schlüsseltechnologien und Stadt-Meilensteine.
-- Ereignisse: einstellbare Häufigkeit, Warnphase, keine dauerhafte Zerstörung von Gebäuden.
+- Ereignisse: einstellbare Häufigkeit, Warnphase, keine dauerhafte Zerstörung einzeln gesetzter Gebäude. Feuer und Feuerwehr (entschieden 2026-10-31, Idee des Entwicklers, Variante a): Brände können nur gewachsene Zonengebäude ganz zerstören; diese wachsen danach als Gebäude der aktuellen Epoche neu, so erneuern sich alte Viertel. Einzeln gesetzte Gebäude, Wunderbauten und Denkmäler werden nur beschädigt (arbeiten eine Zeit lang nicht) und bleiben stehen; Denkmalschutz verhindert den Neubau. Feuerwehr als Dienst mit Reichweite (wie in Cities: Skylines).
 - Wunderbauten sind einmalig pro Spiel.
 
 Das ausführliche Game-Design-Dokument liegt als Doc in Claude (Titel: "Game-Design-Dokument: Epochen-City-Builder").
