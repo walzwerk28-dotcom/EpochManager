@@ -6,11 +6,13 @@ namespace EpochCity
     /// <summary>
     /// Overlay-Karte für den Anbindungswert (Taste C oder HUD-Button): färbt Gebäude und Straßen
     /// von Grün (100 %) über Gelb bis Rot (keine Anbindung). Die Materialien selbst bleiben unverändert,
-    /// die Farbe kommt über einen MaterialPropertyBlock und wird beim Ausschalten entfernt.
+    /// die Farbe kommt über einen MaterialPropertyBlock und wird beim Ausschalten entfernt (Ruß von FireVisuals bleibt).
     /// </summary>
     public class ConnectionOverlay : MonoBehaviour
     {
         [SerializeField] private CityController city;
+        [Tooltip("Ruß an brennenden und beschädigten Gebäuden, solange das Overlay aus ist")]
+        [SerializeField] private FireVisuals fireVisuals;
         public Color goodColor = new Color(0.25f, 0.8f, 0.3f, 1f);
         public Color mediumColor = new Color(0.95f, 0.85f, 0.2f, 1f);
         public Color badColor = new Color(0.9f, 0.2f, 0.2f, 1f);
@@ -56,7 +58,7 @@ namespace EpochCity
             if (city == null) return;
 
             foreach (var b in city.Buildings)
-                Apply(b.View, Visible ? ColorFor(b.Connection) : (Color?)null);
+                Apply(b.View, Visible ? ColorFor(b.Connection) : fireVisuals != null ? fireVisuals.TintFor(b) : null);
 
             foreach (var entry in city.RoadViews)
             {
@@ -72,7 +74,7 @@ namespace EpochCity
             if (view == null) return;
             if (block == null) block = new MaterialPropertyBlock();
 
-            foreach (var r in view.GetComponentsInChildren<Renderer>())
+            foreach (var r in view.GetComponentsInChildren<MeshRenderer>())
             {
                 if (color == null)
                 {

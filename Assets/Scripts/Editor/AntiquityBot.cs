@@ -157,6 +157,7 @@ namespace EpochCity
                 if (EnsureUpgrades()) return;
                 if (EnsureGoods()) return;
                 if (EnsureServices()) return;
+                if (EnsureFireStations()) return;
                 if (EnsureResearchBuildings()) return;
                 if (EnsureStorage()) return;
                 if (EnsureForesters()) return;
@@ -285,6 +286,25 @@ namespace EpochCity
                                             Mathf.RoundToInt((float)group.Average(h => h.Origin.y)));
                 MarkRecent(provider.displayName + need.displayName);
                 return Build(provider.displayName, center);
+            }
+
+            /// <summary>Feuerwachen: ab 12 Gebäuden mit unter 30 % Brandschutz eine in der Mitte der größten ungeschützten Gruppe.</summary>
+            private bool EnsureFireStations()
+            {
+                if (fire == null) return false;
+                var station = placer.hotbar.FirstOrDefault(d => d != null && d.fireProtectionRange > 0f && city.IsAvailable(d));
+                if (station == null || Recently(station.displayName, 3)) return false;
+                var unprotected = city.Buildings.Where(b => b.Definition.fireRisk > 0f && fire.GetProtection(b) < 0.3f).ToList();
+                if (unprotected.Count < 12) return false;
+                float radius = station.fireProtectionRange * 0.5f;
+                var group = unprotected
+                    .Select(seed => unprotected.Where(h => Vector2Int.Distance(h.Origin, seed.Origin) <= radius).ToList())
+                    .OrderByDescending(g => g.Count).First();
+                if (group.Count < 6) return false;
+                var center = new Vector2Int(Mathf.RoundToInt((float)group.Average(h => h.Origin.x)),
+                                            Mathf.RoundToInt((float)group.Average(h => h.Origin.y)));
+                MarkRecent(station.displayName);
+                return Build(station.displayName, center);
             }
 
             /// <summary>Forschung: früh eine Schreibschule, nach der Schrift zwei Bibliotheken, nach Philosophie eine dritte.</summary>

@@ -60,6 +60,10 @@ namespace EpochCity
         private readonly CellGhostPool zoneGhosts = new CellGhostPool();
         // Umkreis von Betrieben, die ein Vorkommen brauchen: zählende Felder grün, der Rest blass
         private readonly CellGhostPool depositGhosts = new CellGhostPool();
+        private readonly CellGhostPool fireRangeGhosts = new CellGhostPool();
+        private readonly List<Vector2Int> fireRangeCells = new List<Vector2Int>();
+        private Vector2Int fireRangeOrigin = new Vector2Int(int.MinValue, 0);
+        private BuildingDefinition fireRangeDef;
         private readonly List<Vector2Int> depositCells = new List<Vector2Int>();
         private bool dragging;
         private Vector2Int dragStart;
@@ -178,10 +182,12 @@ namespace EpochCity
             {
                 if (ghost != null) ghost.SetActive(false);
                 depositGhosts.Hide();
+                fireRangeGhosts.Hide();
                 return;
             }
 
             ShowDepositRange();
+            ShowFireRange();
             bool canPlace = city.CanPlace(selected, hoverCell) && city.CanAfford(selected);
 
             if (ghost != null)
@@ -222,6 +228,35 @@ namespace EpochCity
                 c => city.Grid.GetDeposit(c) == deposit && (planting || !city.Grid.IsYoung(c)),
                 GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
         }
+
+        /// <summary>
+        /// Feuerwache: Straßenfelder in Reichweite des Brandschutzes, über das Straßennetz von der Grundfläche aus (wie
+        /// FireSimulation rechnet); nur neu berechnet, wenn sich das Feld unter der Maus ändert.
+        /// </summary>
+        private void ShowFireRange()
+        {
+            float range = selected.fireProtectionRange;
+            var tile = residentialZone != null ? residentialZone.tilePrefab : null;
+            if (range <= 0f || tile == null)
+            {
+                fireRangeGhosts.Hide();
+                return;
+            }
+            if (hoverCell != fireRangeOrigin || selected != fireRangeDef)
+            {
+                fireRangeOrigin = hoverCell;
+                fireRangeDef = selected;
+                fireRangeCells.Clear();
+                var starts = GridMap.GetAdjacentCells(hoverCell, selected.size);
+                foreach (var entry in ConnectionMap.ShortestDistances(city.Grid, starts))
+                    if (entry.Value <= range && city.Grid.HasRoad(entry.Key)) fireRangeCells.Add(entry.Key);
+            }
+            var color = new Color(1f, 0.45f, 0.15f, 0.55f);
+            fireRangeGhosts.Show(city, tile, fireRangeCells, c => true, color, color);
+        }
+
+        /// <summary>Straßenfelder in der Brandschutz-Vorschau (für Tests).</summary>
+        public int FireRangePreviewCount => fireRangeCells.Count;
 
         /// <summary>Anzahl der grün gezeigten Felder im Umkreis (für Tests).</summary>
         public int DepositPreviewCount

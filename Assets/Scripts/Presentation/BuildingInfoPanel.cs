@@ -21,6 +21,8 @@ namespace EpochCity
         [SerializeField] private BuildingPlacer placer;
         [Tooltip("Für den Unterhalt stillgelegter Gebäude")]
         [SerializeField] private EconomySimulation economy;
+        [Tooltip("Für Brandzustand und Brandschutz")]
+        [SerializeField] private FireSimulation fire;
 
         [Header("Aussehen")]
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
@@ -199,6 +201,18 @@ namespace EpochCity
             if (def.GetActiveFunctions(city.UnlockedTechnologies).Count > 0)
                 Line(theme.text, () => string.IsNullOrEmpty(b.Status) ? "" : $"Status: {b.Status}");
 
+            if (fire != null && (def.fireRisk > 0f || def.fireProtectionRange > 0f))
+            {
+                Line(theme.danger, () => FireLine(b));
+                Line(theme.textMuted, () =>
+                {
+                    string own = def.fireProtectionRange > 0f
+                        ? $"Feuerwache: Reichweite {def.fireProtectionRange:0} Straßenfelder  ·  " : "";
+                    return b.Fire == FireState.None && def.fireRisk > 0f
+                        ? $"{own}Brandschutz {fire.GetProtection(b) * 100f:0} %" : own.TrimEnd(' ', '·');
+                });
+            }
+
             Line(theme.text, () =>
             {
                 var sb = new StringBuilder();
@@ -237,6 +251,18 @@ namespace EpochCity
             return string.IsNullOrEmpty(b.UpgradeIssue)
                 ? $"Aufstieg ({next}): ab Zufriedenheit {tier.upgradeSatisfaction * 100f:0} % für {tier.upgradeMonths} Monate"
                 : $"Aufstieg ({next}): {b.UpgradeIssue}";
+        }
+
+        /// <summary>Brand: „Brennt! Ohne Löschen in 18 s abgebrannt“ bzw. „Beschädigt: noch 2 Monate“, sonst leer.</summary>
+        private string FireLine(BuildingInstance b)
+        {
+            if (b.Fire == FireState.Damaged)
+                return $"Beschädigt: noch {Mathf.CeilToInt(b.FireTimer)} {(b.FireTimer > 1f ? "Monate" : "Monat")}, dann instand gesetzt";
+            if (b.Fire != FireState.Burning) return "";
+            string outcome = b.Definition.zone != null && !b.IsProtected ? "abgebrannt" : "schwer beschädigt";
+            return fire.GetProtection(b) > 0f
+                ? $"Brennt! Die Feuerwehr löscht (Brandschutz {fire.GetProtection(b) * 100f:0} %)"
+                : $"Brennt! Ohne Löschen in {Mathf.CeilToInt(b.FireTimer)} s {outcome} – Feuerwache bauen";
         }
 
         /// <summary>Textzeile, die sich bei jeder Aktualisierung neu füllt und bei leerem Text verschwindet.</summary>

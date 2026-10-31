@@ -48,7 +48,7 @@ namespace EpochCity
             foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
-                         "Schreibschule", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
+                         "Schreibschule", "Feuerwache", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
                          "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
@@ -68,6 +68,7 @@ namespace EpochCity
             Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
             Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
             Assign("Bld_Schreibschule", Make("Schreibschule", 2, antique, School));
+            Assign("Bld_Feuerwache", Make("Feuerwache", 2, antique, FireStation));
             // Feld: vier Wachstumsstufen als Varianten in fester Reihenfolge; CropStages zeigt die passende
             var field = Make("Feld", 2, original,
                 b => Field(b, FieldStage.Stubble), b => Field(b, FieldStage.Sown),
@@ -761,6 +762,27 @@ namespace EpochCity
             b.Put(FT + "stall-bench", new Vector3(-0.8f, 0f, -1.4f), 0f);
             b.Put(FT + "stall-bench", new Vector3(0.8f, 0f, -1.4f), 0f);
             b.Put(FT + "lantern", new Vector3(1.7f, 0f, -0.6f), 0f);
+        }
+
+        /// <summary>Feuerwache: zweistöckiges Wachhaus mit zwei Bogentoren und rotem Banner, davor Wasserbecken, Eimer und Karren.</summary>
+        private static void FireStation(Builder b)
+        {
+            NatureColors(b);
+            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
+            const int w = 2, d = 2;
+            var hall = b.At(0f, 0.7f);
+            Walls(hall, w, d, 0, (i, j, dir) =>
+                dir == Vector2Int.down ? "wall-doorway-round" : "wall");
+            Walls(hall, w, d, 1, (i, j, dir) =>
+                dir == Vector2Int.down || j == 0 ? "wall-window-stone" : "wall");
+            GableRoof(hall, w, d, 2, "roof-high");
+            Side(hall, "banner-red", 0, 0, Vector2Int.down, 1, w, d);
+
+            b.Put(FT + "fountain-square", new Vector3(-1.1f, 0f, -1.35f), 0f, 0.45f);
+            for (int k = 0; k < 3; k++)
+                b.Put(NK + "stump_round", new Vector3(0.3f + k * 0.35f, 0f, -1.5f), k * 40f, 0.55f);
+            b.Put(FT + "cart", new Vector3(1.55f, 0f, -0.9f), 90f);
+            b.Put(FT + "lantern", new Vector3(-1.75f, 0f, -0.3f), 0f);
         }
 
         /// <summary>Brunnen 1 × 1: runder Brunnen mit klarem Wasser.</summary>

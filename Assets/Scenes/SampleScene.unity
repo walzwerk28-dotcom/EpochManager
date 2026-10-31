@@ -666,6 +666,7 @@ GameObject:
   - component: {fileID: 1216388726}
   - component: {fileID: 1216388725}
   - component: {fileID: 1216388727}
+  - component: {fileID: 1216388728}
   m_Layer: 0
   m_Name: BuildingPlacer
   m_TagString: Untagged
@@ -707,6 +708,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a7e0f07efedf69542a3b9942fb6c0646, type: 2}
   - {fileID: 11400000, guid: e209751f86a92d4458274ab83a522a2b, type: 2}
   - {fileID: 11400000, guid: 229afdcbf2f5dc848a6fed0eb044946e, type: 2}
+  - {fileID: 11400000, guid: ee71f10e1bc143649a5ce71a10984319, type: 2}
   - {fileID: 11400000, guid: 431f110eb0d44b440822a951a0019a8c, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
   roads:
@@ -747,9 +749,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ConnectionOverlay
   city: {fileID: 440537052}
+  fireVisuals: {fileID: 1216388728}
   goodColor: {r: 0.25, g: 0.8, b: 0.3, a: 1}
   mediumColor: {r: 0.95, g: 0.85, b: 0.2, a: 1}
   badColor: {r: 0.9, g: 0.2, b: 0.2, a: 1}
+--- !u!114 &1216388728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1216388724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de4b6efc4c625d64f87bfb9b38586dc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.FireVisuals
+  city: {fileID: 440537052}
+  fire: {fileID: 1598712645}
+  clock: {fileID: 2124652275}
+  saveSystem: {fileID: 1598712642}
+  overlay: {fileID: 1216388727}
+  sootColor: {r: 0.38, g: 0.34, b: 0.31, a: 1}
+  rubbleSeconds: 90
 --- !u!1 &1598712634
 GameObject:
   m_ObjectHideFlags: 0
@@ -1223,6 +1245,7 @@ MonoBehaviour:
   city: {fileID: 440537052}
   placer: {fileID: 1216388725}
   economy: {fileID: 1598712635}
+  fire: {fileID: 1598712645}
   theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!114 &1732010462
 MonoBehaviour:
@@ -1240,6 +1263,7 @@ MonoBehaviour:
   saveSystem: {fileID: 1598712642}
   progression: {fileID: 1598712639}
   population: {fileID: 1598712641}
+  fire: {fileID: 1598712645}
   duration: 3.5
   fadeTime: 0.6
   maxVisible: 4
@@ -1327,6 +1351,7 @@ MonoBehaviour:
   city: {fileID: 440537052}
   placer: {fileID: 1216388725}
   overlay: {fileID: 1216388727}
+  fire: {fileID: 1598712645}
   theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!4 &2116940970
 Transform:

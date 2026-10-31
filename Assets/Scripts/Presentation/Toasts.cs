@@ -18,6 +18,8 @@ namespace EpochCity
         [SerializeField] private EpochProgression progression;
         [Tooltip("Für Meldungen zu Auf- und Abstieg von Häusern")]
         [SerializeField] private PopulationSimulation population;
+        [Tooltip("Für Meldungen zu Bränden")]
+        [SerializeField] private FireSimulation fire;
 
         [Tooltip("Sekunden, die eine Meldung voll sichtbar bleibt")]
         [Min(0.5f)] public float duration = 3.5f;
@@ -61,6 +63,12 @@ namespace EpochCity
         {
             if (saveSystem != null) saveSystem.Reported += OnSaveReported;
             if (population != null) population.TiersChanged += OnTiersChanged;
+            if (fire != null)
+            {
+                fire.Ignited += OnIgnited;
+                fire.Extinguished += OnExtinguished;
+                fire.Destroyed += OnBurnedDown;
+            }
             if (city != null)
             {
                 city.TechnologyUnlocked += OnTechnologyUnlocked;
@@ -72,12 +80,30 @@ namespace EpochCity
         {
             if (saveSystem != null) saveSystem.Reported -= OnSaveReported;
             if (population != null) population.TiersChanged -= OnTiersChanged;
+            if (fire != null)
+            {
+                fire.Ignited -= OnIgnited;
+                fire.Extinguished -= OnExtinguished;
+                fire.Destroyed -= OnBurnedDown;
+            }
             if (city != null)
             {
                 city.TechnologyUnlocked -= OnTechnologyUnlocked;
                 city.EpochChanged -= OnEpochChanged;
             }
         }
+
+        private void OnIgnited(BuildingInstance b) =>
+            Show(fire.GetProtection(b) > 0f
+                    ? $"Brand: {b.Definition.displayName} – die Feuerwehr ist unterwegs"
+                    : $"Brand: {b.Definition.displayName} – keine Feuerwache in Reichweite",
+                theme.danger, Icon(i => i.warning));
+
+        private void OnExtinguished(BuildingInstance b) =>
+            Show($"Brand gelöscht: {b.Definition.displayName}", theme.positive, Icon(i => i.done));
+
+        private void OnBurnedDown(BuildingDefinition def, Vector2Int origin, float facing) =>
+            Show($"{def.displayName} ist abgebrannt – an seiner Stelle wird neu gebaut", theme.danger, Icon(i => i.warning));
 
         private void OnSaveReported(string message, bool success) =>
             Show(message, success ? theme.positive : theme.danger, Icon(i => success ? i.done : i.warning));

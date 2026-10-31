@@ -17,6 +17,8 @@ namespace EpochCity
         [SerializeField] private CityController city;
         [SerializeField] private BuildingPlacer placer;
         [SerializeField] private ConnectionOverlay overlay;
+        [Tooltip("Für Brandschutz und Brandzustand in der Infozeile")]
+        [SerializeField] private FireSimulation fire;
 
         [Header("Aussehen")]
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
@@ -142,16 +144,18 @@ namespace EpochCity
                 if (def.populationTier != null)
                 {
                     string missing = string.IsNullOrEmpty(building.MissingNeeds) ? "" : $"  |  fehlt: {building.MissingNeeds}";
-                    return $"{def.displayName}  |  {building.Residents} / {def.GetCapacity(city.UnlockedTechnologies)} " +
+                    return $"{def.displayName}{FireInfo(building)}  |  {building.Residents} / {def.GetCapacity(city.UnlockedTechnologies)} " +
                            $"{building.Tier.GetName(city.currentEpoch)}  |  Zufriedenheit {building.Satisfaction * 100f:0} %" +
-                           $"{missing}  |  {connection}";
+                           $"{missing}  |  {connection}{ProtectionInfo(building)}";
                 }
                 string status = string.IsNullOrEmpty(building.Status) ? "" : $"  |  {building.Status}";
-                return $"{def.displayName}{status}  |  {connection}";
+                return $"{def.displayName}{status}  |  {connection}{ProtectionInfo(building)}";
             }
 
             var road = city.Grid.GetRoad(cell);
-            if (road != null) return road.displayName;
+            if (road != null)
+                return fire != null && fire.GetProtectionAt(cell) > 0f
+                    ? $"{road.displayName}  |  Brandschutz {fire.GetProtectionAt(cell) * 100f:0} %" : road.displayName;
 
             var zone = city.Grid.GetZone(cell);
             var deposit = city.Grid.GetDeposit(cell);
@@ -164,6 +168,14 @@ namespace EpochCity
             if (zone != null) parts.Add($"{zone.displayName} (frei)");
             return string.Join("  |  ", parts);
         }
+
+        /// <summary>Brandzustand für Wohnhäuser (ihr Status steht nicht in der Zeile): „  |  brennt“.</summary>
+        private static string FireInfo(BuildingInstance b) =>
+            b.Fire == FireState.Burning ? "  |  brennt!" : b.Fire == FireState.Damaged ? "  |  beschädigt" : "";
+
+        private string ProtectionInfo(BuildingInstance b) =>
+            fire != null && b.Definition.fireRisk > 0f && b.Fire == FireState.None
+                ? $"  |  Brandschutz {fire.GetProtection(b) * 100f:0} %" : "";
 
         // ---------------------------------------------------------------- Aufbau
 

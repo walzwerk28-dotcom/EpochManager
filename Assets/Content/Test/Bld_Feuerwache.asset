@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Feuerwache
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 3
-  prefab: {fileID: 7521502009469128924, guid: 535241387efbf204ca6c892b3bf32ad9, type: 3}
+  prefab: {fileID: 757915720689178396, guid: 0c611a719713a454194f8504a233a96c, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
