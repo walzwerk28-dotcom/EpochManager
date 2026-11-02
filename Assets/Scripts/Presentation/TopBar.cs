@@ -37,6 +37,7 @@ namespace EpochCity
         private readonly List<Image> speedImages = new List<Image>();
         private Image cityImage, researchImage, menuImage, hintImage;
         private RectTransform menu;
+        private RectTransform leaveDialog;
         private float refreshTimer;
 
         private class DemandBar
@@ -225,7 +226,7 @@ namespace EpochCity
             {
                 var menuIcon = Icon(i => i.menu);
                 menuImage = BarButton(bar, "Menu", menuIcon != null ? "" : "Menü", 48f, ToggleMenu, menuIcon);
-                Tooltip.Attach(menuImage.gameObject, () => "<b>Menü</b>\nSpeichern (F5), Laden (F9)");
+                Tooltip.Attach(menuImage.gameObject, () => "<b>Menü</b>\nSpeichern (F5), Laden (F9), Hauptmenü");
                 BuildMenu(canvas);
             }
             if (cityHud != null)
@@ -325,7 +326,46 @@ namespace EpochCity
                 theme.button, theme.text, () => { saveSystem.QuickSave(); ToggleMenu(); }, Icon(i => i.save));
             UiFactory.CreateButton(menu, "Load", "Laden  (F9)", new Vector2(0f, 46f), theme.bodySize,
                 theme.button, theme.text, () => { saveSystem.QuickLoad(); ToggleMenu(); }, Icon(i => i.load));
+            // Nur, wenn das Startmenü im Build ist (sonst gibt es nichts, wohin man zurückkehren kann)
+            if (Application.CanStreamedLevelBeLoaded(MainMenu.MenuScene))
+            {
+                UiFactory.CreateButton(menu, "MainMenu", "Hauptmenü", new Vector2(0f, 46f), theme.bodySize,
+                    theme.button, theme.text, () => { ToggleMenu(); ShowLeaveDialog(true); }, Icon(i => i.menu));
+                BuildLeaveDialog(canvas);
+            }
             menu.gameObject.SetActive(false);
+        }
+
+        /// <summary>Rückfrage vor dem Wechsel ins Hauptmenü, da ungespeicherter Fortschritt verloren geht.</summary>
+        private void BuildLeaveDialog(Transform canvas)
+        {
+            leaveDialog = UiFactory.CreatePanel("LeaveDialog", canvas, new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(460f, 0f), theme.panel);
+            UiFactory.AddColumn(leaveDialog.gameObject, 20, 12f);
+            leaveDialog.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            UiFactory.WindowHeader(leaveDialog, "Zum Hauptmenü?", theme, () => ShowLeaveDialog(false));
+            var text = UiFactory.CreateText("Text", leaveDialog, "Nicht gespeicherter Fortschritt geht verloren.",
+                theme.bodySize, TextAlignmentOptions.MidlineLeft, theme.textMuted);
+            text.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
+            UiFactory.CreateButton(leaveDialog, "SaveAndLeave", "Speichern und verlassen", new Vector2(0f, 46f),
+                theme.bodySize, theme.accent, theme.text, () => { if (saveSystem.QuickSave()) LeaveToMenu(); },
+                Icon(i => i.save));
+            UiFactory.CreateButton(leaveDialog, "Leave", "Ohne Speichern verlassen", new Vector2(0f, 46f),
+                theme.bodySize, theme.danger, theme.text, LeaveToMenu);
+            UiFactory.CreateButton(leaveDialog, "Cancel", "Abbrechen", new Vector2(0f, 46f), theme.bodySize,
+                theme.button, theme.text, () => ShowLeaveDialog(false));
+            leaveDialog.gameObject.SetActive(false);
+        }
+
+        private void ShowLeaveDialog(bool show)
+        {
+            if (leaveDialog != null) leaveDialog.gameObject.SetActive(show);
+        }
+
+        private static void LeaveToMenu()
+        {
+            GameSettings.Active = null;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(MainMenu.MenuScene);
         }
 
         private void ToggleMenu()

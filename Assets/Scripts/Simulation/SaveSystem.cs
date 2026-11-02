@@ -21,7 +21,17 @@ namespace EpochCity
         [Tooltip("Für die Brand-Häufigkeit im Spielstand (leer = vom selben Objekt)")]
         [SerializeField] private FireSimulation fire;
         public ContentRegistry registry;
-        public string quickSaveSlot = "quicksave";
+        public const string QuickSaveSlot = "quicksave";
+        public string quickSaveSlot = QuickSaveSlot;
+
+        /// <summary>Spielstand, den die Spielszene nach dem Start lädt (vom Startmenü, „Fortsetzen“; null = keiner).</summary>
+        public static string PendingLoad { get; set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => PendingLoad = null;
+
+        /// <summary>Gibt es den Spielstand? Ohne Instanz, z. B. für das Startmenü.</summary>
+        public static bool Exists(string slot) => File.Exists(Path.Combine(SaveFolder, slot + ".json"));
 
         /// <summary>Vor dem Schreiben: Darstellungen können eigene Werte eintragen.</summary>
         public event Action<SaveGame> Saving;
@@ -49,6 +59,16 @@ namespace EpochCity
         private readonly HashSet<string> missing = new HashSet<string>();
 
         private FireSimulation Fire => fire != null ? fire : fire = GetComponent<FireSimulation>();
+
+        // Einen Frame nach dem Start, damit alle Systeme und Darstellungen ihr Start schon hinter sich haben
+        private System.Collections.IEnumerator Start()
+        {
+            if (string.IsNullOrEmpty(PendingLoad)) yield break;
+            string slot = PendingLoad;
+            PendingLoad = null;
+            yield return null;
+            Load(slot);
+        }
 
         public bool Save(string slot)
         {
