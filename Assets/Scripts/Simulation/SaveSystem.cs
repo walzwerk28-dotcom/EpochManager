@@ -28,7 +28,11 @@ namespace EpochCity
         public static string PendingLoad { get; set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => PendingLoad = null;
+        private static void ResetStatics()
+        {
+            PendingLoad = null;
+            IsLoadPending = false;
+        }
 
         /// <summary>Gibt es den Spielstand? Ohne Instanz, z. B. für das Startmenü.</summary>
         public static bool Exists(string slot) => File.Exists(Path.Combine(SaveFolder, slot + ".json"));
@@ -164,8 +168,31 @@ namespace EpochCity
             if (string.IsNullOrEmpty(PendingLoad)) yield break;
             string slot = PendingLoad;
             PendingLoad = null;
+            IsLoadPending = true;
             yield return null;
-            Load(slot);
+            try { Load(slot); }
+            finally { IsLoadPending = false; } // sonst bliebe der Ladebildschirm bei einem Fehler stehen
+        }
+
+        /// <summary>Wird ein angeforderter Spielstand gerade geladen (für den Ladebildschirm)?</summary>
+        public static bool IsLoadPending { get; private set; }
+
+        /// <summary>
+        /// Macht aus einem eingegebenen Namen einen Platz (Dateiname): Zeichen, die Dateinamen nicht erlauben, werden
+        /// zu „_“, höchstens 40 Zeichen; null, wenn nichts übrig bleibt oder der Name für Schnellspeicher und
+        /// Autosave reserviert ist.
+        /// </summary>
+        public static string ToSlotName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var chars = name.Trim().ToCharArray();
+            var invalid = Path.GetInvalidFileNameChars();
+            for (int i = 0; i < chars.Length; i++)
+                if (Array.IndexOf(invalid, chars[i]) >= 0) chars[i] = '_';
+            string slot = new string(chars);
+            if (slot.Length > 40) slot = slot.Substring(0, 40).TrimEnd();
+            if (slot == QuickSaveSlot || slot.StartsWith(AutosavePrefix) || slot.Trim('.', '_').Length == 0) return null;
+            return slot;
         }
 
         public bool Save(string slot) => Save(slot, "Gespeichert");

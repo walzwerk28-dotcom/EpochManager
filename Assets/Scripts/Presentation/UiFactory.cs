@@ -177,6 +177,33 @@ namespace EpochCity
             return button;
         }
 
+        /// <summary>Eingabefeld (TextMeshPro) im Stil der Buttons, für Layout-Gruppen (füllt die Breite).</summary>
+        public static TMP_InputField CreateInputField(Transform parent, string placeholder, UiTheme theme,
+            float height = 52f)
+        {
+            var go = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
+            go.transform.SetParent(parent, false);
+            var image = go.GetComponent<Image>();
+            image.color = theme.button;
+            MakeRounded(image);
+            var element = go.AddComponent<LayoutElement>();
+            element.preferredHeight = height;
+            element.flexibleWidth = 1f;
+
+            var input = go.GetComponent<TMP_InputField>();
+            input.textComponent.fontSize = theme.bodySize;
+            input.textComponent.color = theme.text;
+            input.textComponent.alignment = TextAlignmentOptions.MidlineLeft;
+            if (input.placeholder is TextMeshProUGUI hint)
+            {
+                hint.text = placeholder;
+                hint.fontSize = theme.bodySize;
+                hint.color = theme.textMuted;
+                hint.alignment = TextAlignmentOptions.MidlineLeft;
+            }
+            return input;
+        }
+
         /// <summary>Symbol als Image mit fester Größe für Layout-Gruppen; die Farbe tönt das weiße Symbol.</summary>
         public static Image AddIcon(Transform parent, Sprite icon, float size, Color color)
         {

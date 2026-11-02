@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace EpochCity
@@ -25,7 +24,12 @@ namespace EpochCity
         private readonly GameSettings settings = new GameSettings();
         private RectTransform newGameWindow;
         private TMP_InputField seedInput;
-        private Button continueButton;
+        private Button continueButton, loadButton;
+        private SaveGamesWindow saveGames;
+        private List<SaveSystem.SaveInfo> saves = new List<SaveSystem.SaveInfo>();
+
+        /// <summary>Für Tests: das Fenster „Spielstände“.</summary>
+        public SaveGamesWindow SaveGames => saveGames;
 
         /// <summary>Für Tests: ist das Fenster „Freies Bauen“ offen?</summary>
         public bool NewGameOpen => newGameWindow != null && newGameWindow.gameObject.activeSelf;
@@ -46,7 +50,7 @@ namespace EpochCity
             settings.mapSeed = seedInput != null && int.TryParse(seedInput.text, out int seed) ? Mathf.Max(0, seed) : 0;
             GameSettings.Active = settings;
             SaveSystem.PendingLoad = null;
-            SceneManager.LoadScene(gameScene);
+            SceneLoader.Load(gameScene, "Neue Stadt wird angelegt …");
         }
 
         /// <summary>Lädt die Spielszene und darin den neuesten Spielstand (wie „Fortsetzen“ in Anno).</summary>
@@ -56,10 +60,32 @@ namespace EpochCity
             if (slot == null) return;
             GameSettings.Active = null; // Modus und Brände kommen aus dem Spielstand
             SaveSystem.PendingLoad = slot;
-            SceneManager.LoadScene(gameScene);
+            SceneLoader.Load(gameScene, "Spielstand wird geladen …");
         }
 
-        public void ToggleNewGame() => newGameWindow.gameObject.SetActive(!newGameWindow.gameObject.activeSelf);
+        // Immer nur eins der beiden Fenster offen
+        public void ToggleNewGame()
+        {
+            newGameWindow.gameObject.SetActive(!newGameWindow.gameObject.activeSelf);
+            if (NewGameOpen) saveGames.Show(false);
+        }
+
+        public void ToggleSaveGames()
+        {
+            saveGames.Toggle();
+            if (saveGames.Visible) newGameWindow.gameObject.SetActive(false);
+        }
+
+        /// <summary>Fortsetzen und Laden nur, wenn es Spielstände gibt; der Tooltip nennt den neuesten.</summary>
+        private void RefreshSaveButtons()
+        {
+            saves = SaveSystem.ListSaves();
+            foreach (var button in new[] { continueButton, loadButton })
+            {
+                button.interactable = saves.Count > 0;
+                button.image.color = saves.Count > 0 ? theme.button : theme.locked;
+            }
+        }
 
         private static void Quit()
         {
@@ -97,13 +123,14 @@ namespace EpochCity
 
             var size = new Vector2(0f, 58f);
             continueButton = UiFactory.CreateButton(column, "Continue", "Fortsetzen", size, theme.titleSize,
-                theme.button, theme.text, Continue, Icon(i => i.load));
-            var saves = SaveSystem.ListSaves();
-            continueButton.interactable = saves.Count > 0;
-            if (saves.Count == 0) continueButton.image.color = theme.locked;
+                theme.button, theme.text, Continue, Icon(i => i.epoch));
             Tooltip.Attach(continueButton.gameObject, () => saves.Count > 0
-                ? $"<b>Fortsetzen</b>\nLädt den neuesten Spielstand:\n{Describe(saves[0])}"
-                : "<b>Fortsetzen</b>\nNoch kein Spielstand – im Spiel mit F5 speichern.");
+                ? $"<b>Fortsetzen</b>\nLädt den neuesten Spielstand:\n{SaveGamesWindow.Title(saves[0].slot)}\n" +
+                  SaveGamesWindow.Details(saves[0])
+                : "<b>Fortsetzen</b>\nNoch kein Spielstand – im Spiel speichern.");
+            loadButton = UiFactory.CreateButton(column, "Load", "Laden", size, theme.titleSize, theme.button,
+                theme.text, ToggleSaveGames, Icon(i => i.load));
+            Tooltip.Attach(loadButton.gameObject, () => "<b>Laden</b>\nAlle Spielstände, auch Autosaves.");
 
             UiFactory.CreateButton(column, "FreeBuild", "Freies Bauen", size, theme.titleSize, theme.accent,
                 theme.text, ToggleNewGame, Icon(i => i.city));
@@ -118,6 +145,11 @@ namespace EpochCity
                 Icon(i => i.close));
 
             BuildNewGameWindow(canvas);
+            saveGames = SaveGamesWindow.Create(canvas, theme, null, gameScene);
+            saveGames.Root.pivot = new Vector2(0f, 0.5f);
+            saveGames.Root.anchoredPosition = new Vector2(-260f, 0f); // rechts neben der Spalte wie „Freies Bauen“
+            saveGames.Changed += RefreshSaveButtons;
+            RefreshSaveButtons();
         }
 
         private void BuildNewGameWindow(Transform canvas)
@@ -190,40 +222,10 @@ namespace EpochCity
 
         private TMP_InputField CreateInput(Transform parent, string placeholder)
         {
-            var go = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
-            go.transform.SetParent(parent, false);
-            var image = go.GetComponent<Image>();
-            image.color = theme.button;
-            UiFactory.MakeRounded(image);
-            var element = go.AddComponent<LayoutElement>();
-            element.preferredHeight = 52f;
-            element.flexibleWidth = 1f;
-
-            var input = go.GetComponent<TMP_InputField>();
+            var input = UiFactory.CreateInputField(parent, placeholder, theme);
             input.contentType = TMP_InputField.ContentType.IntegerNumber;
             input.characterLimit = 9;
-            input.textComponent.fontSize = theme.bodySize;
-            input.textComponent.color = theme.text;
-            input.textComponent.alignment = TextAlignmentOptions.MidlineLeft;
-            if (input.placeholder is TextMeshProUGUI hint)
-            {
-                hint.text = placeholder;
-                hint.fontSize = theme.bodySize;
-                hint.color = theme.textMuted;
-                hint.alignment = TextAlignmentOptions.MidlineLeft;
-            }
             return input;
-        }
-
-        /// <summary>„Autosave 2 · 02.11. 14:30 · Antike, 1 240 Einwohner, Jahr 12“; ältere Stände ohne Kopf mit „–“.</summary>
-        public static string Describe(SaveSystem.SaveInfo info)
-        {
-            string name = info.IsQuickSave ? "Schnellspeicher"
-                : info.IsAutosave ? "Autosave " + info.slot.Substring(SaveSystem.AutosavePrefix.Length)
-                : info.slot;
-            string city = string.IsNullOrEmpty(info.epochName) ? "–"
-                : $"{info.epochName}, {info.population:N0} Einwohner, Jahr {info.totalMonths / 12 + 1}";
-            return $"{name} · {info.writtenAt:dd.MM. HH:mm} · {city}";
         }
 
         private static void Gap(Transform parent, float height)

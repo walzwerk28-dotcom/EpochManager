@@ -38,6 +38,10 @@ namespace EpochCity
         private Image cityImage, researchImage, menuImage, hintImage;
         private RectTransform menu;
         private RectTransform leaveDialog;
+        private SaveGamesWindow saveGames;
+
+        /// <summary>Für Tests: das Fenster „Spielstände“.</summary>
+        public SaveGamesWindow SaveGames => saveGames;
         private float refreshTimer;
 
         private class DemandBar
@@ -226,7 +230,7 @@ namespace EpochCity
             {
                 var menuIcon = Icon(i => i.menu);
                 menuImage = BarButton(bar, "Menu", menuIcon != null ? "" : "Menü", 48f, ToggleMenu, menuIcon);
-                Tooltip.Attach(menuImage.gameObject, () => "<b>Menü</b>\nSpeichern (F5), Laden (F9), Hauptmenü");
+                Tooltip.Attach(menuImage.gameObject, () => "<b>Menü</b>\nSpielstände, Schnellspeichern (F5), Schnellladen (F9), Hauptmenü");
                 BuildMenu(canvas);
             }
             if (cityHud != null)
@@ -313,18 +317,21 @@ namespace EpochCity
             demandBars.Add(new DemandBar { Zone = zone, Group = group, Fill = fill, Value = value });
         }
 
-        /// <summary>Kleines Menü unter dem Menü-Button: Speichern und Laden.</summary>
+        /// <summary>Kleines Menü unter dem Menü-Button: Spielstände, Schnellspeichern und -laden, Hauptmenü.</summary>
         private void BuildMenu(Transform canvas)
         {
             menu = UiFactory.CreatePanel("MenuPanel", canvas, new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(1f, 1f), new Vector2(220f, 0f), theme.panel);
+                new Vector2(1f, 1f), new Vector2(260f, 0f), theme.panel);
             menu.anchoredPosition = new Vector2(-12f, -Height - 6f);
             UiFactory.AddColumn(menu.gameObject, 10, 8f);
             menu.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            UiFactory.CreateButton(menu, "Save", "Speichern  (F5)", new Vector2(0f, 46f), theme.bodySize,
+            saveGames = SaveGamesWindow.Create(canvas, theme, saveSystem, null);
+            UiFactory.CreateButton(menu, "SaveGames", "Spielstände …", new Vector2(0f, 46f), theme.bodySize,
+                theme.button, theme.text, () => { ToggleMenu(); saveGames.Show(true); }, Icon(i => i.storage));
+            UiFactory.CreateButton(menu, "Save", "Schnellspeichern  (F5)", new Vector2(0f, 46f), theme.bodySize,
                 theme.button, theme.text, () => { saveSystem.QuickSave(); ToggleMenu(); }, Icon(i => i.save));
-            UiFactory.CreateButton(menu, "Load", "Laden  (F9)", new Vector2(0f, 46f), theme.bodySize,
+            UiFactory.CreateButton(menu, "Load", "Schnellladen  (F9)", new Vector2(0f, 46f), theme.bodySize,
                 theme.button, theme.text, () => { saveSystem.QuickLoad(); ToggleMenu(); }, Icon(i => i.load));
             // Nur, wenn das Startmenü im Build ist (sonst gibt es nichts, wohin man zurückkehren kann)
             if (Application.CanStreamedLevelBeLoaded(MainMenu.MenuScene))
@@ -365,7 +372,7 @@ namespace EpochCity
         private static void LeaveToMenu()
         {
             GameSettings.Active = null;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(MainMenu.MenuScene);
+            SceneLoader.Load(MainMenu.MenuScene, "Hauptmenü wird geladen …");
         }
 
         private void ToggleMenu()
