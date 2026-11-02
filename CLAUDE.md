@@ -30,6 +30,7 @@ Das ausführliche Game-Design-Dokument liegt als Doc in Claude (Titel: "Game-Des
 - Namespace: `EpochCity`. Scripts unter `Assets/Scripts/` in den Ordnern `Data`, `Simulation`, `Presentation`.
 - **Datengetrieben:** Epochen, Ressourcen, Technologien und Gebäude sind ScriptableObjects. Neue Inhalte und Balancing ohne Codeänderung.
 - **Simulation und Optik getrennt:** `Simulation` rechnet mit Zahlen, `Presentation` zeigt sie nur an.
+- **Modelle (entschieden 2026-11-03, Entwickler):** Neue Assets entstehen ab jetzt in Blender (installiert: Blender 5.2). Die bisherigen Kenney-Modelle aus `KenneyBuildingFactory` bleiben, bis sie ersetzt werden; neue Gebäude nicht mehr dort zusammensetzen.
 
 ## Vorhandene Scripts
 - Data: `EpochDefinition` (mit Bedingungen, um diese Epoche zu erreichen: Schlüsseltechnologien, wie viele davon nötig sind, Gebäude-Meilensteine), `ResourceDefinition` (mit `isCurrency`), `TechnologyDefinition`, `BuildingTypes` (Funktionen, Schichten), `BuildingDefinition` (Grundfunktion plus Schichten durch Technologien).
