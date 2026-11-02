@@ -49,12 +49,13 @@ namespace EpochCity
             SceneManager.LoadScene(gameScene);
         }
 
-        /// <summary>Lädt die Spielszene und darin den Schnellspeicher.</summary>
+        /// <summary>Lädt die Spielszene und darin den neuesten Spielstand (wie „Fortsetzen“ in Anno).</summary>
         public void Continue()
         {
-            if (!SaveSystem.Exists(SaveSystem.QuickSaveSlot)) return;
+            string slot = SaveSystem.NewestSlot();
+            if (slot == null) return;
             GameSettings.Active = null; // Modus und Brände kommen aus dem Spielstand
-            SaveSystem.PendingLoad = SaveSystem.QuickSaveSlot;
+            SaveSystem.PendingLoad = slot;
             SceneManager.LoadScene(gameScene);
         }
 
@@ -97,11 +98,11 @@ namespace EpochCity
             var size = new Vector2(0f, 58f);
             continueButton = UiFactory.CreateButton(column, "Continue", "Fortsetzen", size, theme.titleSize,
                 theme.button, theme.text, Continue, Icon(i => i.load));
-            bool hasSave = SaveSystem.Exists(SaveSystem.QuickSaveSlot);
-            continueButton.interactable = hasSave;
-            if (!hasSave) continueButton.image.color = theme.locked;
-            Tooltip.Attach(continueButton.gameObject, () => SaveSystem.Exists(SaveSystem.QuickSaveSlot)
-                ? "<b>Fortsetzen</b>\nLädt den Schnellspeicher (F5 im Spiel)."
+            var saves = SaveSystem.ListSaves();
+            continueButton.interactable = saves.Count > 0;
+            if (saves.Count == 0) continueButton.image.color = theme.locked;
+            Tooltip.Attach(continueButton.gameObject, () => saves.Count > 0
+                ? $"<b>Fortsetzen</b>\nLädt den neuesten Spielstand:\n{Describe(saves[0])}"
                 : "<b>Fortsetzen</b>\nNoch kein Spielstand – im Spiel mit F5 speichern.");
 
             UiFactory.CreateButton(column, "FreeBuild", "Freies Bauen", size, theme.titleSize, theme.accent,
@@ -212,6 +213,17 @@ namespace EpochCity
                 hint.alignment = TextAlignmentOptions.MidlineLeft;
             }
             return input;
+        }
+
+        /// <summary>„Autosave 2 · 02.11. 14:30 · Antike, 1 240 Einwohner, Jahr 12“; ältere Stände ohne Kopf mit „–“.</summary>
+        public static string Describe(SaveSystem.SaveInfo info)
+        {
+            string name = info.IsQuickSave ? "Schnellspeicher"
+                : info.IsAutosave ? "Autosave " + info.slot.Substring(SaveSystem.AutosavePrefix.Length)
+                : info.slot;
+            string city = string.IsNullOrEmpty(info.epochName) ? "–"
+                : $"{info.epochName}, {info.population:N0} Einwohner, Jahr {info.totalMonths / 12 + 1}";
+            return $"{name} · {info.writtenAt:dd.MM. HH:mm} · {city}";
         }
 
         private static void Gap(Transform parent, float height)

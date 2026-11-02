@@ -33,6 +33,104 @@ namespace EpochCity
         /// <summary>Gibt es den Spielstand? Ohne Instanz, z. B. für das Startmenü.</summary>
         public static bool Exists(string slot) => File.Exists(Path.Combine(SaveFolder, slot + ".json"));
 
+        [Header("Autosave (wie in Anno und Cities: Skylines)")]
+        [Tooltip("Echte Minuten zwischen zwei automatischen Spielständen, nur solange die Spielzeit läuft (0 = aus)")]
+        [Min(0f)] public float autosaveMinutes = 5f;
+        [Tooltip("So viele Plätze autosave_1 … autosave_N werden reihum überschrieben (der älteste zuerst)")]
+        [Min(1)] public int autosaveSlots = 3;
+        public const string AutosavePrefix = "autosave_";
+
+        /// <summary>Sekunden seit dem letzten automatischen Speichern (für Tests).</summary>
+        public float AutosaveTimer { get; private set; }
+
+        /// <summary>Eckdaten eines Spielstands für die Liste (Anzeige ohne Laden).</summary>
+        public struct SaveInfo
+        {
+            public string slot;
+            public DateTime writtenAt;
+            public string epochName;
+            public int population;
+            public int totalMonths;
+            public bool IsAutosave => slot.StartsWith(AutosavePrefix);
+            public bool IsQuickSave => slot == QuickSaveSlot;
+        }
+
+        /// <summary>Alle lesbaren Spielstände, der neueste zuerst; beschädigte werden übersprungen.</summary>
+        public static List<SaveInfo> ListSaves()
+        {
+            var list = new List<SaveInfo>();
+            if (!Directory.Exists(SaveFolder)) return list;
+            foreach (var path in Directory.GetFiles(SaveFolder, "*.json"))
+            {
+                try
+                {
+                    var data = JsonUtility.FromJson<SaveGame>(File.ReadAllText(path));
+                    if (data == null) continue;
+                    list.Add(new SaveInfo
+                    {
+                        slot = Path.GetFileNameWithoutExtension(path),
+                        writtenAt = File.GetLastWriteTime(path),
+                        epochName = data.epochName,
+                        population = data.population,
+                        totalMonths = data.totalMonths
+                    });
+                }
+                catch (Exception)
+                {
+                    // beschädigt: nicht in der Liste
+                }
+            }
+            list.Sort((a, b) => b.writtenAt.CompareTo(a.writtenAt));
+            return list;
+        }
+
+        /// <summary>Platz des neuesten Spielstands (auch Autosave und Schnellspeicher), null = keiner.</summary>
+        public static string NewestSlot()
+        {
+            var list = ListSaves();
+            return list.Count > 0 ? list[0].slot : null;
+        }
+
+        /// <summary>Löscht einen Spielstand endgültig.</summary>
+        public static bool Delete(string slot)
+        {
+            try
+            {
+                string path = Path.Combine(SaveFolder, slot + ".json");
+                if (!File.Exists(path)) return false;
+                File.Delete(path);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return false;
+            }
+        }
+
+        /// <summary>Speichert in den ältesten (oder ersten freien) Autosave-Platz.</summary>
+        public bool Autosave()
+        {
+            AutosaveTimer = 0f;
+            string target = null;
+            var oldest = DateTime.MaxValue;
+            for (int i = 1; i <= autosaveSlots; i++)
+            {
+                string slot = AutosavePrefix + i;
+                if (!HasSave(slot)) { target = slot; break; }
+                var time = File.GetLastWriteTime(GetPath(slot));
+                if (time < oldest) { oldest = time; target = slot; }
+            }
+            return Save(target, "Automatisch gespeichert");
+        }
+
+        private void Update()
+        {
+            if (autosaveMinutes <= 0f || clock == null || clock.Speed == 0) return;
+            AutosaveTimer += Time.unscaledDeltaTime;
+            if (AutosaveTimer >= autosaveMinutes * 60f) Autosave();
+        }
+
         /// <summary>Vor dem Schreiben: Darstellungen können eigene Werte eintragen.</summary>
         public event Action<SaveGame> Saving;
 
@@ -70,7 +168,10 @@ namespace EpochCity
             Load(slot);
         }
 
-        public bool Save(string slot)
+        public bool Save(string slot) => Save(slot, "Gespeichert");
+
+        /// <param name="message">Anfang der Meldung, dahinter das Spieldatum</param>
+        private bool Save(string slot, string message)
         {
             try
             {
@@ -84,7 +185,7 @@ namespace EpochCity
                 if (File.Exists(path)) File.Delete(path);
                 File.Move(temp, path);
 
-                Report($"Gespeichert ({DateText()})");
+                Report($"{message} ({DateText()})");
                 return true;
             }
             catch (Exception e)
@@ -122,6 +223,7 @@ namespace EpochCity
 
             missing.Clear();
             Apply(data);
+            AutosaveTimer = 0f;
             Loaded?.Invoke(data);
 
             if (missing.Count > 0)
@@ -149,6 +251,8 @@ namespace EpochCity
             var data = new SaveGame
             {
                 savedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                epochName = city.currentEpoch != null ? city.currentEpoch.displayName : "",
+                population = population != null ? population.TotalResidents : 0,
                 mode = (int)city.Mode,
                 fireFrequency = (int)(Fire != null ? Fire.frequency : FireFrequency.Normal),
                 money = city.Money,

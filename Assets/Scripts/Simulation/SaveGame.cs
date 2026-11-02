@@ -24,6 +24,10 @@ namespace EpochCity
         public int version = CurrentVersion;
         public string savedAt;
 
+        [Header("Kopf für die Liste der Spielstände (ältere Stände ohne: leer bzw. 0)")]
+        public string epochName;
+        public int population;
+
         [Header("Spiel")]
         public int mode = (int)GameMode.FreeBuild;
         public int fireFrequency = (int)FireFrequency.Normal;
