@@ -87,7 +87,10 @@ namespace EpochCity
                 progression = Object.FindAnyObjectByType<EpochProgression>();
                 placer = Object.FindAnyObjectByType<BuildingPlacer>();
                 if (city == null || city.Grid == null || clock == null || economy == null || population == null)
-                    return "Antike-Durchlauf: Szene nicht gefunden – im Play-Modus starten.";
+                    return PlayFromMainMenu.Enabled
+                        ? "Antike-Durchlauf: Szene nicht gefunden – Play startet im Hauptmenü; dort „Freies Bauen“ " +
+                          "starten oder EpochCity → Play startet im Hauptmenü ausschalten."
+                        : "Antike-Durchlauf: Szene nicht gefunden – im Play-Modus starten.";
                 if (city.Buildings.Count > 0) return "Antike-Durchlauf: Die Stadt ist nicht leer – Play-Modus neu starten.";
                 road = placer.road;
                 clock.SetSpeed(0); // die Zeit läuft nur über Advance
