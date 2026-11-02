@@ -17,6 +17,8 @@ namespace EpochCity
     {
         [SerializeField] private CityController city;
         [SerializeField] private GameClock clock;
+        [Tooltip("Kennt alle Zonen, damit die Aufstiegsmeldung die passende nennen kann (leer = vom selben Objekt)")]
+        [SerializeField] private ZoneDemand zoneDemand;
         [Tooltip("Höchstens dieser Anteil der Kapazität zieht pro Monat zu oder weg (mindestens 1 Person)")]
         [Range(0.01f, 1f)] public float maxChangePerMonth = 0.25f;
         [Tooltip("Ab dieser Erfüllung gilt ein Bedürfnis nicht mehr als fehlend")]
@@ -61,6 +63,7 @@ namespace EpochCity
 
         private void OnEnable()
         {
+            if (zoneDemand == null) zoneDemand = GetComponent<ZoneDemand>();
             if (clock != null) clock.MonthPassed += SimulateMonth;
         }
 
@@ -240,6 +243,17 @@ namespace EpochCity
             return 1;
         }
 
+        /// <summary>Wohnzone mit der niedrigsten Aufstiegsgrenze, die diese Stufe erlaubt (null = keine bekannt).</summary>
+        private ZoneDefinition ZoneForTier(int tierNumber)
+        {
+            if (zoneDemand == null || zoneDemand.zones == null) return null;
+            ZoneDefinition best = null;
+            foreach (var z in zoneDemand.zones)
+                if (z != null && z.maxTier >= tierNumber && (best == null || z.maxTier < best.maxTier))
+                    best = z;
+            return best;
+        }
+
         /// <summary>Warum das Haus nicht aufsteigt (leer = Bedingungen erfüllt).</summary>
         private string GetUpgradeIssue(BuildingInstance house)
         {
@@ -248,7 +262,11 @@ namespace EpochCity
             // Die Zone legt die höchste Stufe fest (Bauernzone: kein Aufstieg), wie Zonenarten in Cities: Skylines
             var zone = city.Grid.GetZone(house.Origin);
             if (zone != null && zone.maxTier > 0 && tier.nextTier.tier > zone.maxTier)
-                return $"nicht in der {zone.displayName}";
+            {
+                var target = ZoneForTier(tier.nextTier.tier);
+                return target != null ? $"nur in der {target.displayName}"
+                    : $"nicht in der {zone.displayName}";
+            }
             if (house.Satisfaction < tier.upgradeSatisfaction)
                 return $"Zufriedenheit unter {tier.upgradeSatisfaction * 100f:0} %";
             if (tier.upgradeRequires != null)
