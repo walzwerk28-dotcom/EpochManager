@@ -55,6 +55,8 @@ namespace EpochCity
 
             private readonly List<RectInt> openBlocks = new List<RectInt>();
             private readonly Dictionary<string, int> lastBuilt = new Dictionary<string, int>();
+            // Monat, in dem zuletzt ein Bau an diesem Material scheiterte (Bretter haben keinen laufenden Verbrauch)
+            private readonly Dictionary<ResourceDefinition, int> materialShort = new Dictionary<ResourceDefinition, int>();
             private readonly List<string> actions = new List<string>();
             private readonly Dictionary<string, int> builtCount = new Dictionary<string, int>();
             private readonly Dictionary<string, int> issues = new Dictionary<string, int>();
@@ -229,8 +231,11 @@ namespace EpochCity
                     float prod = MonthlyProduction(good);
                     float stock = city.Stock.Get(good);
                     bool waiting = city.Buildings.Any(b => b.Status.Contains("wartet: " + good.displayName));
+                    // Wartet ein vorhandener Betrieb auf seine Eingänge, hilft ein weiterer nicht (dafür sorgt dessen Kette)
+                    bool producerWaiting = city.Buildings.Any(b => b.Definition == producer && b.Status.Contains("wartet"));
                     bool shortage = material
-                        ? stock < 20f && prod < Mathf.Max(6f, need * 1.1f)
+                        ? (stock < 20f && prod < Mathf.Max(6f, need * 1.1f)) ||
+                          (materialShort.TryGetValue(good, out int m) && Month - m < 3 && !producerWaiting)
                         : need > prod * 0.95f && (stock < need || waiting);
                     if (!shortage) continue;
                     if (Build(producer.displayName, Center)) return true;
@@ -369,13 +374,28 @@ namespace EpochCity
             private bool Build(string name, Vector2Int near)
             {
                 var def = Def(name);
-                if (def == null || !city.IsAvailable(def) || !city.CanAfford(def) || city.Money - def.buildCost < Reserve) return false;
+                if (def == null || !city.IsAvailable(def)) return false;
+                if (!city.CanAfford(def))
+                {
+                    NoteMissingMaterial(def);
+                    return false;
+                }
+                if (city.Money - def.buildCost < Reserve) return false;
                 var deposit = def.requiredDeposit;
                 bool ok = deposit != null ? BuildAtDeposit(def, deposit)
                     : def.plantsDeposit != null ? BuildBeside(def, near, 5)
                     : BuildNear(def, near);
                 if (ok) MarkRecent(name);
                 return ok;
+            }
+
+            /// <summary>Merkt sich jedes Baumaterial, das für diesen Bau fehlt.</summary>
+            private void NoteMissingMaterial(BuildingDefinition def)
+            {
+                if (def.materialCosts == null) return;
+                foreach (var cost in def.materialCosts)
+                    if (cost.resource != null && city.Stock.Get(cost.resource) < cost.amount)
+                        materialShort[cost.resource] = Month;
             }
 
             private bool BuildNear(BuildingDefinition def, Vector2Int near)
