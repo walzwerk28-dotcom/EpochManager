@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 940d9108773fac84ab420d97f53a3ac3, type: 3}
+  m_Name: Bld_GrossesTheater
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.BuildingDefinition
+  displayName: "Gro\xDFes Theater"
+  epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
+  category: 5
+  prefab: {fileID: 1901019112758143825, guid: c52cd38c4da6a4b4a8cf9d8bb8da362d, type: 3}
+  size: {x: 4, y: 4}
+  zone: {fileID: 0}
+  populationTier: {fileID: 0}
+  requiredTechnology: {fileID: 11400000, guid: a15c3d0eb2641ad45b01445af3357317, type: 2}
+  menuTier: {fileID: 11400000, guid: e9c0dae1736404c4784f862fbfb8af43, type: 2}
+  workerTier: {fileID: 0}
+  workers: 0
+  requiredDeposit: {fileID: 0}
+  depositRange: 0
+  depositCellsForFull: 1
+  fellsDeposit: 0
+  cyclesPerFelling: 4
+  plantsDeposit: {fileID: 0}
+  buildCost: 1000
+  materialCosts: []
+  upkeepPerMonth: 15
+  baseCapacity: 0
+  baseFunctions: []
+  layers: []
+  fireRisk: 0.5
+  fireProtectionRange: 0
+  fireProtectionByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.6
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.4
+      inSlope: -0.6
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  isUnique: 1
+  stages:
+  - name: Fundament
+    materials:
+    - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
+      amount: 60
+    - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
+      amount: 30
+    money: 0
+    minSeconds: 60
+  - name: "Sitzr\xE4nge"
+    materials:
+    - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
+      amount: 150
+    money: 0
+    minSeconds: 60
+  - name: "B\xFChnenhaus"
+    materials:
+    - resource: {fileID: 11400000, guid: 1c13719486d75d64abea371798bafa63, type: 2}
+      amount: 60
+    - resource: {fileID: 11400000, guid: 81f699f617cfa2343923732976c3d7fa, type: 2}
+      amount: 40
+    money: 0
+    minSeconds: 60
+  - name: Ausstattung
+    materials:
+    - resource: {fileID: 11400000, guid: 224fdd2dbf7d3bc4eab34e224d439439, type: 2}
+      amount: 40
+    - resource: {fileID: 11400000, guid: a3207d579c5041a40898936fbd8fbcd5, type: 2}
+      amount: 30
+    money: 2000
+    minSeconds: 60
+  requiredTier: {fileID: 11400000, guid: e9c0dae1736404c4784f862fbfb8af43, type: 2}
+  requiredTierResidents: 50
+  satisfactionBonus: 0.1
+  bonusRange: 40
+  catchmentRange: 20
+  efficiencyByDistance:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.75
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.25
+      inSlope: -0.75
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  minEfficiency: 0.25

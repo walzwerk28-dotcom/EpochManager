@@ -710,6 +710,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 229afdcbf2f5dc848a6fed0eb044946e, type: 2}
   - {fileID: 11400000, guid: ee71f10e1bc143649a5ce71a10984319, type: 2}
   - {fileID: 11400000, guid: 431f110eb0d44b440822a951a0019a8c, type: 2}
+  - {fileID: 11400000, guid: ab13e9cc80ab6e94084f448ff64adfda, type: 2}
   road: {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
   roads:
   - {fileID: 11400000, guid: 4ce829610fb48eb4cb868d5503885b4d, type: 2}
@@ -814,6 +815,7 @@ MonoBehaviour:
   stepSeconds: 1
   unpaidEfficiency: 0.5
   pausedUpkeepFactor: 0.25
+  deliveryPerSecond: 2
 --- !u!4 &1598712637
 Transform:
   m_ObjectHideFlags: 0
@@ -933,6 +935,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.PopulationSimulation
   city: {fileID: 440537052}
   clock: {fileID: 2124652275}
+  zoneDemand: {fileID: 0}
   maxChangePerMonth: 0.25
   missingThreshold: 0.5
   minOccupancy: 0.25
@@ -957,8 +960,11 @@ MonoBehaviour:
   research: {fileID: 1598712638}
   population: {fileID: 1598712641}
   economy: {fileID: 1598712635}
+  fire: {fileID: 0}
   registry: {fileID: 11400000, guid: e2bcbd24a7807b74890f5a89a4963f1f, type: 2}
   quickSaveSlot: quicksave
+  autosaveMinutes: 5
+  autosaveSlots: 3
 --- !u!114 &1598712643
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -49,7 +49,7 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Feuerwache", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
-                         "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei" })
+                         "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei", "GrossesTheater" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
                          "Holzfaeller", "Holzhacker", "Foerster", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
@@ -119,6 +119,11 @@ namespace EpochCity
 
             // Gelehrtenzone und Akademie: Steinbauten mit Säulen, Innenhöfen und Gärten, auf Pflaster
             Assign("Bld_Akademie", Make("Akademie", new Vector2Int(2, 3), antique, Academy));
+            // Großes Theater (Wunderbau): fünf Baustufen in fester Reihenfolge, ConstructionStages zeigt die zur Bauphase
+            var theater = Make("GrossesTheater", 4, antique,
+                b => Theater(b, 0), b => Theater(b, 1), b => Theater(b, 2), b => Theater(b, 3), b => Theater(b, 4));
+            AddToPrefab<ConstructionStages>(theater);
+            Assign("Bld_GrossesTheater", theater);
             Assign("Bld_Gelehrtenhaus", Make("Gelehrtenhaus", new Vector2Int(1, 2), antique, ScholarHouseGarden, ScholarHousePortico));
             Assign("Bld_Stadtvilla", Make("Stadtvilla", 2, antique, TownVillaPortico, TownVillaAtrium));
             Assign("Bld_Villa", Make("Villa", new Vector2Int(2, 3), antique, VillaGardenFront, VillaPeristyleBack));
@@ -762,6 +767,117 @@ namespace EpochCity
             b.Put(FT + "stall-bench", new Vector3(-0.8f, 0f, -1.4f), 0f);
             b.Put(FT + "stall-bench", new Vector3(0.8f, 0f, -1.4f), 0f);
             b.Put(FT + "lantern", new Vector3(1.7f, 0f, -0.6f), 0f);
+        }
+
+        /// <summary>
+        /// Großes Theater 4 × 4 in einer Baustufe (0 = Baustelle, 1 = Fundament, 2 = Sitzränge, 3 = Bühnenhaus,
+        /// 4 = fertig): halbrunde Sitzränge hinten (+z), Orchestra in der Mitte, Bühnenhaus mit Säulen vorn zur Straße
+        /// (−z). Vier Ecksteine in allen Stufen, damit alle Varianten gleich skaliert werden.
+        /// </summary>
+        private static void Theater(Builder b, int stage)
+        {
+            NatureColors(b);
+            var limestone = Solid("Kalkstein", new Color(0.86f, 0.82f, 0.72f));
+            var limestoneDark = Solid("KalksteinDunkel", new Color(0.76f, 0.72f, 0.62f));
+            var foundation = Solid("Fundament", new Color(0.62f, 0.58f, 0.52f));
+            var dirt = Solid("Baugrube", new Color(0.45f, 0.34f, 0.24f));
+            var marble = Solid("Marmor", new Color(0.93f, 0.92f, 0.88f));
+            var timber = Solid("Gerüstholz", new Color(0.55f, 0.40f, 0.25f));
+            const float edge = 4f;
+            var center = new Vector3(0f, 0f, -1.2f); // Mitte der Orchestra
+
+            // Ecksteine (in allen Stufen gleich)
+            foreach (var x in new[] { -edge + 0.15f, edge - 0.15f })
+                foreach (var z in new[] { -edge + 0.15f, edge - 0.15f })
+                    b.PutBox(new Vector3(x, 0.15f, z), new Vector3(0.3f, 0.3f, 0.3f), limestoneDark);
+
+            if (stage == 0)
+            {
+                // Baustelle: ausgehobene Grube in Theaterform, Pflöcke, Baustoffe, Karren
+                b.PutBox(new Vector3(0f, 0.02f, 0.6f), new Vector3(7.4f, 0.04f, 5.2f), dirt);
+                for (int k = 0; k <= 8; k++)
+                {
+                    float a = Mathf.PI * k / 8f;
+                    b.PutBox(center + new Vector3(Mathf.Cos(a) * 3.8f, 0.25f, Mathf.Sin(a) * 3.8f),
+                        new Vector3(0.08f, 0.5f, 0.08f), timber);
+                }
+                b.Put(NK + "stone_largeA", new Vector3(-2.8f, 0f, -3.2f), 20f, 0.9f);
+                b.Put(NK + "stone_largeC", new Vector3(-1.6f, 0f, -3.3f), 70f, 0.9f);
+                b.Put(FT + "planks-half", new Vector3(2.2f, 0f, -3.2f), 0f);
+                b.Put(FT + "planks-half", new Vector3(2.2f, 0.2f, -3.2f), 90f);
+                b.Put(FT + "cart", new Vector3(0.4f, 0f, -3.3f), 90f);
+                return;
+            }
+
+            // Fundament: Sockel der Sitzränge als Halbring, Orchestra-Boden, Platte des Bühnenhauses
+            const int segments = 14;
+            for (int k = 0; k < segments; k++)
+            {
+                float a = Mathf.PI * (k + 0.5f) / segments;
+                float deg = -a * Mathf.Rad2Deg + 90f;
+                b.At(center.x + Mathf.Cos(a) * 2.6f, center.z + Mathf.Sin(a) * 2.6f, deg)
+                    .PutBox(new Vector3(0f, 0.1f, 0f), new Vector3(2.6f * Mathf.PI / segments + 0.05f, 0.2f, 2.6f), foundation);
+            }
+            b.PutBox(center + new Vector3(0f, 0.04f, 0f), new Vector3(2.4f, 0.08f, 2.4f), stage >= 4 ? marble : foundation);
+            b.PutBox(new Vector3(0f, 0.15f, -3.1f), new Vector3(7.2f, 0.3f, 1.3f), foundation);
+
+            if (stage == 1)
+            {
+                b.Put(NK + "stone_largeA", new Vector3(-3.2f, 0f, 2.8f), 40f, 0.9f);
+                b.Put(NK + "stone_largeC", new Vector3(3.2f, 0f, 2.8f), 10f, 0.9f);
+                b.Put(FT + "cart", new Vector3(2.6f, 0f, -2.2f), 0f);
+                return;
+            }
+
+            // Sitzränge: konzentrische Stufen, nach außen höher
+            const int rows = 6;
+            for (int r = 0; r < rows; r++)
+            {
+                float radius = 1.45f + r * 0.42f;
+                float height = 0.25f + r * 0.22f;
+                int segs = 10 + r * 2;
+                for (int k = 0; k < segs; k++)
+                {
+                    float a = Mathf.PI * (k + 0.5f) / segs;
+                    float deg = -a * Mathf.Rad2Deg + 90f;
+                    b.At(center.x + Mathf.Cos(a) * radius, center.z + Mathf.Sin(a) * radius, deg)
+                        .PutBox(new Vector3(0f, height * 0.5f, 0f),
+                            new Vector3(radius * Mathf.PI / segs + 0.04f, height, 0.44f), r % 2 == 0 ? limestone : limestoneDark);
+                }
+            }
+
+            if (stage == 2)
+            {
+                // Gerüst für das Bühnenhaus
+                for (int k = 0; k < 4; k++)
+                    b.Put(FT + "poles", new Vector3(-2.7f + k * 1.8f, 0.3f, -3.1f), 0f);
+                b.Put(FT + "planks-half", new Vector3(3.3f, 0f, -2.2f), 0f);
+                return;
+            }
+
+            // Bühnenhaus: Wand mit Bogentor, zur Straße eine Säulenhalle unter einem Gesims, innen die Holzbühne
+            b.PutBox(new Vector3(-2.15f, 1.3f, -3.1f), new Vector3(2.7f, 2.0f, 0.4f), limestone);
+            b.PutBox(new Vector3(2.15f, 1.3f, -3.1f), new Vector3(2.7f, 2.0f, 0.4f), limestone);
+            b.PutBox(new Vector3(0f, 1.95f, -3.1f), new Vector3(1.6f, 0.7f, 0.4f), limestone); // über dem Tor
+            b.PutBox(new Vector3(0f, 2.45f, -3.45f), new Vector3(7.3f, 0.3f, 1.1f), limestoneDark);
+            b.PutBox(new Vector3(0f, 0.45f, -2.4f), new Vector3(6.6f, 0.3f, 1.0f), timber);
+            for (int k = 0; k < 8; k++)
+                b.Put(FT + "pillar-stone", new Vector3(-3.5f + k, 0.3f, -3.75f), 0f, new Vector3(0.7f, 1.8f, 0.7f));
+
+            if (stage == 3)
+            {
+                b.Put(FT + "cart", new Vector3(3.2f, 0f, 3.2f), 30f);
+                return;
+            }
+
+            // Fertig: Banner, Laternen, Büsche an den Rängen
+            // Banner hängen an der Wand zur Straße (die Kenney-Banner sitzen an einer Zellkante, +x nach außen)
+            b.Put(FT + "banner-red", new Vector3(-2.15f, 0.3f, -3.8f), 90f);
+            b.Put(FT + "banner-red", new Vector3(2.15f, 0.3f, -3.8f), 90f);
+            b.Put(FT + "lantern", new Vector3(-3.6f, 0f, -2.0f), 0f);
+            b.Put(FT + "lantern", new Vector3(3.6f, 0f, -2.0f), 0f);
+            foreach (var x in new[] { -3.6f, 3.6f })
+                b.Put(NK + "plant_bushLarge", new Vector3(x, 0f, 1.6f), 0f, 0.8f);
         }
 
         /// <summary>Feuerwache: zweistöckiges Wachhaus mit zwei Bogentoren und rotem Banner, davor Wasserbecken, Eimer und Karren.</summary>

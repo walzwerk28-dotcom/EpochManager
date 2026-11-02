@@ -74,6 +74,12 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  isUnique: 0
+  stages: []
+  requiredTier: {fileID: 0}
+  requiredTierResidents: 0
+  satisfactionBonus: 0
+  bonusRange: 40
   catchmentRange: 20
   efficiencyByDistance:
     serializedVersion: 2

@@ -838,9 +838,39 @@ namespace EpochCity
             fireStation.fireProtectionByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
             fireStation.prefab = KeepModel(fireStation.prefab, () => CreatePrefab("Prefab_Feuerwache", fireStation.size, 2f, new Color(0.7f, 0.3f, 0.25f)));
 
+            // Wunderbau der Antike (2026-11-03): Großes Theater, einmalig, in vier Bauphasen wie die Großbauten in Anno;
+            // fertig +10 % Zufriedenheit für alle Wohnhäuser im Umkreis von 40 Straßenfeldern
+            var theater = GetOrCreate<BuildingDefinition>("Bld_GrossesTheater");
+            theater.displayName = "Großes Theater";
+            theater.epoch = antike;
+            theater.requiredTechnology = philosophy;
+            theater.category = BuildingCategory.Wonder;
+            theater.size = new Vector2Int(4, 4);
+            theater.buildCost = 1000f;
+            theater.materialCosts = new ResourceAmount[0];
+            theater.upkeepPerMonth = 5f; // ×3 (UpkeepScale) = 15, erst wenn fertig
+            theater.baseCapacity = 0;
+            theater.baseFunctions = new BuildingFunction[0];
+            theater.layers = new BuildingLayer[0];
+            theater.workerTier = null;
+            theater.workers = 0;
+            theater.isUnique = true;
+            theater.requiredTier = scholars;
+            theater.requiredTierResidents = 50;
+            theater.satisfactionBonus = 0.1f;
+            theater.bonusRange = 40f;
+            theater.stages = new[]
+            {
+                Stage("Fundament", 0f, 60f, (stone, 60f), (boards, 30f)),
+                Stage("Sitzränge", 0f, 60f, (stone, 150f)),
+                Stage("Bühnenhaus", 0f, 60f, (boards, 60f), (ceramics, 40f)),
+                Stage("Ausstattung", 2000f, 60f, (oil, 40f), (wine, 30f))
+            };
+            theater.prefab = KeepModel(theater.prefab, () => CreatePrefab("Prefab_GrossesTheater", theater.size, 2.5f, new Color(0.9f, 0.86f, 0.75f)));
+
             foreach (var def in new[] { woodcutter, woodChopper, carpentry, forester })
                 def.fireRisk = 1.5f;
-            foreach (var def in new[] { temple, academy, library, school, quarry, fireStation, field, oilPress, winePress })
+            foreach (var def in new[] { temple, academy, library, school, quarry, fireStation, field, oilPress, winePress, theater })
                 def.fireRisk = 0.5f;
             well.fireRisk = 0f;
 
@@ -850,7 +880,7 @@ namespace EpochCity
                 def.menuTier = farmers;
             foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
                 def.menuTier = artisans;
-            foreach (var def in new[] { vineyard, winePress, academy })
+            foreach (var def in new[] { vineyard, winePress, academy, theater })
                 def.menuTier = scholars;
             // Ketten einer Stufe erst mit deren Wohnzone baubar; die erste Forschung für die Schrift liefert die Schreibschule
             foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
@@ -876,7 +906,7 @@ namespace EpochCity
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
-                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation
+                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten
@@ -974,6 +1004,11 @@ namespace EpochCity
                 result[i] = new ResourceAmount { resource = items[i].resource, amount = items[i].amount };
             return result;
         }
+
+        /// <summary>Bauphase eines Großbaus: Name, Geld, Mindestdauer in Spielsekunden und Waren.</summary>
+        private static WonderStage Stage(string name, float money, float minSeconds,
+            params (ResourceDefinition resource, float amount)[] materials) =>
+            new WonderStage { name = name, money = money, minSeconds = minSeconds, materials = Cost(materials) };
 
         /// <summary>Schicht, die die Ausgaben aller Funktionen vervielfacht.</summary>
         private static BuildingLayer Boost(TechnologyDefinition tech, float multiplier) =>
