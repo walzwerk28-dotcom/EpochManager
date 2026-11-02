@@ -20,6 +20,8 @@ namespace EpochCity
         [SerializeField] private PopulationSimulation population;
         [Tooltip("Für Meldungen zu Bränden")]
         [SerializeField] private FireSimulation fire;
+        [Tooltip("Für Meldungen zu Bauphasen von Großbauten (leer = in der Szene suchen)")]
+        [SerializeField] private EconomySimulation economy;
 
         [Tooltip("Sekunden, die eine Meldung voll sichtbar bleibt")]
         [Min(0.5f)] public float duration = 3.5f;
@@ -61,6 +63,8 @@ namespace EpochCity
 
         private void OnEnable()
         {
+            if (economy == null) economy = FindAnyObjectByType<EconomySimulation>();
+            if (economy != null) economy.StageCompleted += OnStageCompleted;
             if (saveSystem != null) saveSystem.Reported += OnSaveReported;
             if (population != null) population.TiersChanged += OnTiersChanged;
             if (fire != null)
@@ -78,6 +82,7 @@ namespace EpochCity
 
         private void OnDisable()
         {
+            if (economy != null) economy.StageCompleted -= OnStageCompleted;
             if (saveSystem != null) saveSystem.Reported -= OnSaveReported;
             if (population != null) population.TiersChanged -= OnTiersChanged;
             if (fire != null)
@@ -104,6 +109,19 @@ namespace EpochCity
 
         private void OnBurnedDown(BuildingDefinition def, Vector2Int origin, float facing) =>
             Show($"{def.displayName} ist abgebrannt – an seiner Stelle wird neu gebaut", theme.danger, Icon(i => i.warning));
+
+        /// <summary>„Großes Theater: Fundament fertig (1 / 4)“, zum Schluss „… ist fertig – +10 % Zufriedenheit im Umkreis“.</summary>
+        private void OnStageCompleted(BuildingInstance b, int stage)
+        {
+            var def = b.Definition;
+            if (b.UnderConstruction)
+                Show($"{def.displayName}: {def.stages[stage - 1].name} fertig ({stage} / {def.stages.Length})",
+                    theme.heading, Icon(i => i.wonder));
+            else
+                Show($"{def.displayName} ist fertig" +
+                     (def.satisfactionBonus > 0f ? $" – +{def.satisfactionBonus * 100f:0} % Zufriedenheit im Umkreis" : ""),
+                    theme.positive, Icon(i => i.wonder));
+        }
 
         private void OnSaveReported(string message, bool success) =>
             Show(message, success ? theme.positive : theme.danger, Icon(i => success ? i.done : i.warning));

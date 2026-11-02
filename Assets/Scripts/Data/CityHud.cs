@@ -344,7 +344,7 @@ namespace EpochCity
                             $"{def.size.x} × {def.size.y}  ·  {Mathf.FloorToInt(def.buildCost)}" +
                             (materials != "" ? "\n" + materials : ""), i < 9 ? $"{i + 1}" : i == 9 ? "0" : "",
                             () => placer.Select(def), () => placer.SelectedBuilding == def,
-                            () => !city.IsAvailable(def), () => BuildingTooltip(def)).CanAfford =
+                            () => !city.IsAvailable(def) || city.GetPlacementLock(def) != null, () => BuildingTooltip(def)).CanAfford =
                             () => city.CanAfford(def);
                     }
                     break;
@@ -458,6 +458,22 @@ namespace EpochCity
                     ? $"{function.label}: {outputs} je {function.cycleSeconds:0.#} s"
                     : $"{function.label}: {inputs} → {outputs} je {function.cycleSeconds:0.#} s");
             }
+            if (def.isUnique) sb.AppendLine("Einmalig – nur ein Exemplar in der Stadt");
+            if (def.requiredTier != null && def.requiredTierResidents > 0)
+                sb.AppendLine($"Braucht {def.requiredTierResidents} {def.requiredTier.GetName(city.currentEpoch)}");
+            if (def.HasStages)
+            {
+                sb.AppendLine($"Wird in {def.stages.Length} Bauphasen gebaut (Waren kommen nach und nach aus dem Lager):");
+                foreach (var stage in def.stages)
+                {
+                    string goods = Amounts(stage.materials);
+                    if (stage.money > 0f) goods = (goods != "" ? goods + " + " : "") + $"{stage.money:0} {Currency()}";
+                    sb.AppendLine(Muted($"  {stage.name}: {goods}, mindestens {stage.minSeconds:0} s"));
+                }
+            }
+            if (def.satisfactionBonus > 0f)
+                sb.AppendLine($"Fertig: +{def.satisfactionBonus * 100f:0} % Zufriedenheit für Wohnhäuser im Umkreis von " +
+                              $"{def.bonusRange:0} Straßenfeldern");
             int capacity = def.GetCapacity(city.UnlockedTechnologies);
             if (def.category == BuildingCategory.Storage)
             {

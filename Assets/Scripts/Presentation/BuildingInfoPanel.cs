@@ -161,6 +161,24 @@ namespace EpochCity
                     $"{city.Grid.CountDeposit(def.plantsDeposit, b.Origin, b.Footprint, def.depositRange)} ausgewachsen, " +
                     $"{city.Grid.CountYoung(def.plantsDeposit, b.Origin, b.Footprint, def.depositRange)} jung");
 
+            // Großbau: Bauphase mit dem Gelieferten, danach die Wirkung
+            if (def.HasStages)
+            {
+                var phase = UiFactory.CreateBar(content, "Bau", theme);
+                updaters.Add(() =>
+                {
+                    int n = def.stages.Length;
+                    bool building = b.UnderConstruction;
+                    phase.Set(building ? (b.Stage + StageShare(b)) / n : 1f, building ? theme.heading : theme.accent,
+                        building ? $"Phase {b.Stage + 1} / {n}" : "fertig");
+                });
+                Line(theme.textMuted, () => StageLine(b));
+            }
+            if (def.satisfactionBonus > 0f)
+                Line(theme.textMuted, () =>
+                    $"Wirkung{(b.UnderConstruction ? " (wenn fertig)" : "")}: +{def.satisfactionBonus * 100f:0} % " +
+                    $"Zufriedenheit für Wohnhäuser im Umkreis von {def.bonusRange:0} Straßenfeldern");
+
             if (def.populationTier != null)
             {
                 var residents = UiFactory.CreateBar(content, "Einwohner", theme);
@@ -175,6 +193,7 @@ namespace EpochCity
                 updaters.Add(() => satisfaction.Set(b.Satisfaction, UiFactory.QualityColor(b.Satisfaction, theme),
                     $"{b.Satisfaction * 100f:0} %"));
                 Line(theme.danger, () => string.IsNullOrEmpty(b.MissingNeeds) ? "" : $"Fehlt: {b.MissingNeeds}");
+                Line(theme.positive, () => b.WonderBonus > 0f ? $"Wunderbau in der Nähe: +{b.WonderBonus * 100f:0} % Zufriedenheit" : "");
                 Line(theme.textMuted, () => TierLine(b));
             }
 
@@ -206,7 +225,7 @@ namespace EpochCity
                     return string.IsNullOrEmpty(inputs) ? $"ergibt {outputs}" : $"{inputs} → {outputs}";
                 });
             }
-            if (def.GetActiveFunctions(city.UnlockedTechnologies).Count > 0)
+            if (def.GetActiveFunctions(city.UnlockedTechnologies).Count > 0 || def.HasStages)
                 Line(theme.text, () => string.IsNullOrEmpty(b.Status) ? "" : $"Status: {b.Status}");
 
             if (fire != null && (def.fireRisk > 0f || def.fireProtectionRange > 0f))
@@ -301,6 +320,45 @@ namespace EpochCity
         }
 
         private string Currency() => city.currentEpoch != null ? city.currentEpoch.currencyName : "";
+
+        /// <summary>Anteil der aktuellen Bauphase: Mittel aus Waren, Geld und Mindestdauer (je 0 bis 1).</summary>
+        private static float StageShare(BuildingInstance b)
+        {
+            if (!b.UnderConstruction) return 1f;
+            var stage = b.Definition.stages[b.Stage];
+            float sum = 0f;
+            int parts = 0;
+            if (stage.materials != null)
+                foreach (var m in stage.materials)
+                {
+                    if (m.resource == null || m.amount <= 0f) continue;
+                    b.Delivered.TryGetValue(m.resource, out float have);
+                    sum += Mathf.Clamp01(have / m.amount);
+                    parts++;
+                }
+            if (stage.money > 0f) { sum += Mathf.Clamp01(b.StageMoney / stage.money); parts++; }
+            if (stage.minSeconds > 0f) { sum += Mathf.Clamp01(b.StageTimer / stage.minSeconds); parts++; }
+            return parts > 0 ? sum / parts : 1f;
+        }
+
+        /// <summary>„Sitzränge: 100 / 150 Stein · noch 10 s“; fertig leer.</summary>
+        private string StageLine(BuildingInstance b)
+        {
+            if (!b.UnderConstruction) return "";
+            var stage = b.Definition.stages[b.Stage];
+            var parts = new List<string>();
+            if (stage.materials != null)
+                foreach (var m in stage.materials)
+                {
+                    if (m.resource == null || m.amount <= 0f) continue;
+                    b.Delivered.TryGetValue(m.resource, out float have);
+                    parts.Add($"{Mathf.FloorToInt(have)} / {m.amount:0} {m.resource.displayName}");
+                }
+            if (stage.money > 0f) parts.Add($"{b.StageMoney:0} / {stage.money:0} {Currency()}");
+            float rest = stage.minSeconds - b.StageTimer;
+            if (rest > 0f) parts.Add($"noch mindestens {rest:0} s");
+            return $"{stage.name}: {string.Join(" · ", parts)}";
+        }
 
         private static string CategoryName(BuildingCategory category)
         {

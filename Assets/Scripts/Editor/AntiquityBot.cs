@@ -115,6 +115,10 @@ namespace EpochCity
                             foreach (var o in f.outputs)
                                 if (o.resource != null && !o.resource.isCurrency && !goods.Contains(o.resource)) goods.Add(o.resource);
                 city.TechnologyUnlocked += tech => Milestone(tech.displayName);
+                economy.StageCompleted += (b, stage) =>
+                {
+                    if (!b.UnderConstruction) Milestone(b.Definition.displayName + " fertig");
+                };
                 return null;
             }
 
@@ -163,6 +167,7 @@ namespace EpochCity
                 if (EnsureUpgrades()) return;
                 if (EnsureGoods()) return;
                 if (EnsureServices()) return;
+                if (EnsureWonder()) return;
                 if (EnsureFireStations()) return;
                 if (EnsureResearchBuildings()) return;
                 if (EnsureStorage()) return;
@@ -298,6 +303,23 @@ namespace EpochCity
             }
 
             /// <summary>Feuerwachen: ab 12 Gebäuden mit unter 30 % Brandschutz eine in der Mitte der größten ungeschützten Gruppe.</summary>
+            /// <summary>Wunderbauten: sobald einer baubar ist (Forschung, Einwohner, Geld), nah an der Mitte bauen.</summary>
+            private bool EnsureWonder()
+            {
+                foreach (var def in placer.hotbar)
+                {
+                    if (def == null || def.category != BuildingCategory.Wonder || !city.IsAvailable(def)) continue;
+                    if (city.GetPlacementLock(def) != null || Recently(def.displayName, 3)) continue;
+                    if (Build(def.displayName, Center))
+                    {
+                        Milestone(def.displayName + " begonnen");
+                        return true;
+                    }
+                    MarkRecent(def.displayName); // kein Platz oder kein Geld: nicht jeden Schritt neu versuchen
+                }
+                return false;
+            }
+
             private bool EnsureFireStations()
             {
                 if (fire == null) return false;
@@ -636,6 +658,19 @@ namespace EpochCity
                             foreach (var s in f.sales)
                                 if (s.resource == good) need += s.amount * clock.secondsPerMonth / f.cycleSeconds;
                     }
+                // Baustellen: was der laufenden Bauphase noch fehlt
+                foreach (var b in city.Buildings)
+                {
+                    if (!b.UnderConstruction) continue;
+                    var materials = b.Definition.stages[b.Stage].materials;
+                    if (materials == null) continue;
+                    foreach (var m in materials)
+                        if (m.resource == good)
+                        {
+                            b.Delivered.TryGetValue(good, out float have);
+                            need += Mathf.Max(0f, m.amount - have);
+                        }
+                }
                 return need;
             }
 

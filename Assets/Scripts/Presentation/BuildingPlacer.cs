@@ -230,12 +230,15 @@ namespace EpochCity
         }
 
         /// <summary>
-        /// Feuerwache: Straßenfelder in Reichweite des Brandschutzes, über das Straßennetz von der Grundfläche aus (wie
-        /// FireSimulation rechnet); nur neu berechnet, wenn sich das Feld unter der Maus ändert.
+        /// Feuerwache und Wunderbau: Straßenfelder in Reichweite des Brandschutzes bzw. des Zufriedenheitsbonus, über das
+        /// Straßennetz von der Grundfläche aus (wie FireSimulation und PopulationSimulation rechnen); orange für den
+        /// Brandschutz, gold für den Bonus; nur neu berechnet, wenn sich das Feld unter der Maus ändert.
         /// </summary>
         private void ShowFireRange()
         {
-            float range = selected.fireProtectionRange;
+            bool fire = selected.fireProtectionRange > 0f;
+            float range = fire ? selected.fireProtectionRange
+                : selected.satisfactionBonus > 0f ? selected.bonusRange : 0f;
             var tile = residentialZone != null ? residentialZone.tilePrefab : null;
             if (range <= 0f || tile == null)
             {
@@ -251,11 +254,11 @@ namespace EpochCity
                 foreach (var entry in ConnectionMap.ShortestDistances(city.Grid, starts))
                     if (entry.Value <= range && city.Grid.HasRoad(entry.Key)) fireRangeCells.Add(entry.Key);
             }
-            var color = new Color(1f, 0.45f, 0.15f, 0.55f);
+            var color = fire ? new Color(1f, 0.45f, 0.15f, 0.55f) : new Color(0.95f, 0.78f, 0.25f, 0.55f);
             fireRangeGhosts.Show(city, tile, fireRangeCells, c => true, color, color);
         }
 
-        /// <summary>Straßenfelder in der Brandschutz-Vorschau (für Tests).</summary>
+        /// <summary>Straßenfelder in der Vorschau von Brandschutz oder Wunderbau-Bonus (für Tests).</summary>
         public int FireRangePreviewCount => fireRangeCells.Count;
 
         /// <summary>Anzahl der grün gezeigten Felder im Umkreis (für Tests).</summary>
