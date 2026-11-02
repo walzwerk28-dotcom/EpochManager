@@ -15,6 +15,20 @@ namespace EpochCity
         public float amount;
     }
 
+    /// <summary>
+    /// Eine Bauphase eines Großbaus (wie die Bauabschnitte großer Bauten in Anno): Waren und Geld, die die Baustelle
+    /// nach und nach aus dem Lager holt, und eine Mindestdauer.
+    /// </summary>
+    [Serializable]
+    public class WonderStage
+    {
+        public string name;
+        public ResourceAmount[] materials;
+        [Min(0f)] public float money;
+        [Tooltip("Spielsekunden, die die Phase mindestens dauert (auch wenn alles schon geliefert ist)")]
+        [Min(0f)] public float minSeconds = 30f;
+    }
+
     /// <summary>Eine Ware im Sortiment eines Gewerbegebäudes: Menge je Zyklus und Preis je Einheit.</summary>
     [Serializable]
     public struct SaleOffer

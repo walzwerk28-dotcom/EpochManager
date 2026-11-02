@@ -80,7 +80,20 @@ namespace EpochCity
         public float FireTimer { get; set; }
 
         /// <summary>Stillgelegt, brennend oder beschädigt: produziert nichts und bietet keine Dienste.</summary>
-        public bool IsOutOfService => IsPaused || Fire != FireState.None;
+        public bool IsOutOfService => IsPaused || Fire != FireState.None || UnderConstruction;
+
+        /// <summary>Großbau: aktuelle Bauphase (0 … Anzahl Phasen; gleich der Anzahl = fertig).</summary>
+        public int Stage { get; set; }
+        /// <summary>In der aktuellen Phase schon gelieferte Waren.</summary>
+        public Dictionary<ResourceDefinition, float> Delivered { get; } = new Dictionary<ResourceDefinition, float>();
+        /// <summary>In der aktuellen Phase schon bezahltes Geld.</summary>
+        public float StageMoney { get; set; }
+        /// <summary>Spielsekunden in der aktuellen Phase.</summary>
+        public float StageTimer { get; set; }
+        /// <summary>Großbau, der noch nicht fertig ist: arbeitet nicht und bietet keinen Bonus.</summary>
+        public bool UnderConstruction => Definition.HasStages && Stage < Definition.stages.Length;
+        /// <summary>Wohnhaus: Zufriedenheitsbonus durch einen Wunderbau im Umkreis (im letzten Monat).</summary>
+        public float WonderBonus { get; set; }
 
         public BuildingInstance(BuildingDefinition definition, Vector2Int origin, EpochDefinition builtIn, float facing = 0f)
         {

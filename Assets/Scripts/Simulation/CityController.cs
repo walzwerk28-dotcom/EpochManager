@@ -87,9 +87,31 @@ namespace EpochCity
         /// Bauen verhindert, und das nötige Vorkommen mindestens einmal im Umkreis. Geld und Material prüft CanAfford.
         /// </summary>
         public bool CanPlace(BuildingDefinition def, Vector2Int origin) =>
-            IsAvailable(def) && Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size) &&
+            IsAvailable(def) && GetPlacementLock(def) == null &&
+            Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size) &&
             DepositAllows(def, origin, def.size) &&
             (def.requiredDeposit == null || Grid.CountDeposit(def.requiredDeposit, origin, def.size, def.depositRange, true) > 0);
+
+        /// <summary>
+        /// Was das Bauen außer Epoche und Forschung noch sperrt: einmalige Gebäude, die schon stehen, und zu wenige
+        /// Einwohner der nötigen Stufe („Benötigt 50 Gelehrte (jetzt 12)“); null = nichts.
+        /// </summary>
+        public string GetPlacementLock(BuildingDefinition def)
+        {
+            if (def == null) return null;
+            if (def.isUnique)
+                foreach (var b in Buildings)
+                    if (b.Definition == def) return "Einmalig – bereits gebaut";
+            if (def.requiredTier != null && def.requiredTierResidents > 0)
+            {
+                int residents = 0;
+                foreach (var b in Buildings)
+                    if (b.Tier == def.requiredTier) residents += b.Residents;
+                if (residents < def.requiredTierResidents)
+                    return $"Benötigt {def.requiredTierResidents} {def.requiredTier.GetName(currentEpoch)} (jetzt {residents})";
+            }
+            return null;
+        }
 
         public bool TryPlace(BuildingDefinition def, Vector2Int origin, out BuildingInstance placed)
         {

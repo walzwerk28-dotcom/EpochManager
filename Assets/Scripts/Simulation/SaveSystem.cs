@@ -350,8 +350,13 @@ namespace EpochCity
                     facing = b.Facing,
                     variant = GetVariant(b),
                     fire = (int)b.Fire,
-                    fireTimer = b.FireTimer
+                    fireTimer = b.FireTimer,
+                    stage = b.Definition.HasStages ? b.Stage : -1,
+                    stageMoney = b.StageMoney,
+                    stageTimer = b.StageTimer
                 };
+                foreach (var d in b.Delivered)
+                    if (d.Key != null) entry.delivered.Add(new AmountEntry(ContentRegistry.IdOf(d.Key), d.Value));
                 foreach (var function in b.Definition.GetActiveFunctions(city.UnlockedTechnologies))
                     entry.progress.Add(function != null && b.Progress.TryGetValue(function, out float p) ? p : 0f);
                 data.buildings.Add(entry);
@@ -421,6 +426,13 @@ namespace EpochCity
                 b.IsPaused = entry.isPaused; // Anbindung (stillgelegte Lager) folgt mit RefreshConnections
                 b.Fire = (FireState)entry.fire; // Brandschutz folgt mit ConnectionsChanged (FireSimulation)
                 b.FireTimer = entry.fireTimer;
+                // Bauphase ab Version 6; ältere Stände und −1: fertig
+                b.Stage = def.HasStages && entry.stage >= 0 ? Mathf.Min(entry.stage, def.stages.Length)
+                    : def.HasStages ? def.stages.Length : 0;
+                b.StageMoney = entry.stageMoney;
+                b.StageTimer = entry.stageTimer;
+                foreach (var d in entry.delivered)
+                    if (Resolve<ResourceDefinition>(d.id, out var resource)) b.Delivered[resource] = d.amount;
                 b.Residents = entry.residents;
                 if (!string.IsNullOrEmpty(entry.tier) && Resolve<PopulationTierDefinition>(entry.tier, out var tier))
                     b.Tier = tier;

@@ -479,7 +479,10 @@ namespace EpochCity
                 sb.AppendLine($"Pflanzt {def.plantsDeposit.displayName} im Umkreis {def.depositRange}; dort wächst er in " +
                               $"{def.plantsDeposit.regrowMonthsTended} Monaten nach");
             if (city.IsAvailable(def)) sb.Append(MissingLine(def.buildCost, def.materialCosts));
-            sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ?? Muted("Braucht ein angrenzendes Straßenfeld"));
+            string placementLock = city.GetPlacementLock(def);
+            sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ??
+                          (placementLock != null ? $"<color={UiTheme.Hex(theme.danger)}>{placementLock}</color>"
+                              : Muted("Braucht ein angrenzendes Straßenfeld")));
             return sb.ToString().TrimEnd();
         }
 

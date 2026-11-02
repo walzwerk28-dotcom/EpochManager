@@ -55,7 +55,8 @@ namespace EpochCity
 
         /// <summary>Unterhalt pro Monat, den dieses Gebäude gerade kostet (stillgelegt nur ein Teil).</summary>
         public float GetUpkeep(BuildingInstance building) =>
-            building.Definition.upkeepPerMonth * (building.IsPaused ? pausedUpkeepFactor : 1f);
+            building.UnderConstruction ? 0f // Baustellen kosten keinen Unterhalt
+            : building.Definition.upkeepPerMonth * (building.IsPaused ? pausedUpkeepFactor : 1f);
 
         public float LastMonthIncome { get; private set; }
         public float LastMonthUpkeep { get; private set; }
@@ -130,6 +131,11 @@ namespace EpochCity
                         : $"beschädigt (noch {Mathf.CeilToInt(building.FireTimer)} {(building.FireTimer > 1f ? "Monate" : "Monat")})";
                     continue;
                 }
+                if (building.UnderConstruction)
+                {
+                    Build(building, dt);
+                    continue;
+                }
 
                 var workerTier = building.Definition.workerTier;
                 building.WorkforceFactor = workerTier != null && workforce.TryGetValue(workerTier, out float wf) ? wf : 1f;
@@ -199,6 +205,85 @@ namespace EpochCity
                     building.Progress[function] = progress;
                 }
             }
+        }
+
+        // ---------------------------------------------------------------- Großbauten
+
+        [Header("Großbauten")]
+        [Tooltip("So viele Einheiten je Ware und Spielsekunde holt eine Baustelle höchstens aus dem Lager")]
+        [Min(0.1f)] public float deliveryPerSecond = 2f;
+
+        /// <summary>Eine Bauphase ist fertig (Gebäude, Nummer der fertigen Phase ab 1); bei der letzten ist der Bau fertig.</summary>
+        public event System.Action<BuildingInstance, int> StageCompleted;
+
+        /// <summary>
+        /// Baustelle eines Großbaus: holt die Waren der aktuellen Phase nach und nach aus dem Lager (nur über der
+        /// Rücklage für die Häuser, wie beim Gewerbe) und das Geld, sobald es in der Kasse ist; ist alles da und die
+        /// Mindestdauer um, beginnt die nächste Phase. Ohne erreichbares Lager steht sie still. Fertig: Denkmalschutz.
+        /// </summary>
+        private void Build(BuildingInstance building, float dt)
+        {
+            var def = building.Definition;
+            var stage = def.stages[building.Stage];
+            string label = $"Bauphase {building.Stage + 1} / {def.stages.Length}" +
+                           (string.IsNullOrEmpty(stage.name) ? "" : $" ({stage.name})");
+            if (building.Connection <= 0f)
+            {
+                building.Status = $"{label}: {building.ConnectionIssue}";
+                return;
+            }
+
+            building.StageTimer += dt;
+            string lacking = null;
+            if (stage.materials != null)
+                foreach (var m in stage.materials)
+                {
+                    if (m.resource == null || m.amount <= 0f) continue;
+                    building.Delivered.TryGetValue(m.resource, out float have);
+                    float open = m.amount - have;
+                    if (open <= 0.001f) continue;
+                    float take = Mathf.Min(open, deliveryPerSecond * dt,
+                        Mathf.Max(0f, city.Stock.Get(m.resource) - GetReserve(m.resource)));
+                    if (take > 0f)
+                    {
+                        city.Stock.Add(m.resource, -take);
+                        building.Delivered[m.resource] = have + take;
+                        open -= take;
+                    }
+                    if (open > 0.001f)
+                        lacking = (lacking == null ? "" : lacking + ", ") + $"{Mathf.CeilToInt(open)} {m.resource.displayName}";
+                }
+            float moneyOpen = stage.money - building.StageMoney;
+            if (moneyOpen > 0.001f)
+            {
+                if (city.Money >= moneyOpen)
+                {
+                    city.AddMoney(-moneyOpen);
+                    building.StageMoney = stage.money;
+                }
+                else
+                    lacking = (lacking == null ? "" : lacking + ", ") +
+                              $"{moneyOpen:0} {(city.currentEpoch != null ? city.currentEpoch.currencyName : "Geld")}";
+            }
+
+            if (lacking != null)
+            {
+                building.Status = $"{label}: braucht noch {lacking}";
+                return;
+            }
+            if (building.StageTimer < stage.minSeconds)
+            {
+                building.Status = $"{label}: wird gebaut (noch {stage.minSeconds - building.StageTimer:0} s)";
+                return;
+            }
+
+            building.Stage++;
+            building.Delivered.Clear();
+            building.StageMoney = 0f;
+            building.StageTimer = 0f;
+            building.Status = building.UnderConstruction ? "" : "fertig";
+            if (!building.UnderConstruction) building.IsProtected = true; // Wunderbauten stehen unter Denkmalschutz
+            StageCompleted?.Invoke(building, building.Stage);
         }
 
         // ---------------------------------------------------------------- Gewerbe

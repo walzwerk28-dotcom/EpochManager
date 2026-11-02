@@ -71,6 +71,21 @@ namespace EpochCity
         [Tooltip("Brandschutz über die Entfernung: x = 0 an der Wache bis 1 an der Reichweite, y = Schutz")]
         public AnimationCurve fireProtectionByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
 
+        [Header("Wunderbau und Großbauten")]
+        [Tooltip("Nur einmal in der Stadt baubar (Wunderbauten, entschieden: einmalig pro Spiel)")]
+        public bool isUnique;
+        [Tooltip("Bauphasen; leer = sofort fertig. Die Baustelle holt Waren und Geld nach und nach aus dem Lager")]
+        public WonderStage[] stages;
+        [Tooltip("Erst baubar, wenn so viele Einwohner dieser Stufe in der Stadt wohnen (leer = keine Bedingung)")]
+        public PopulationTierDefinition requiredTier;
+        [Min(0)] public int requiredTierResidents;
+        [Tooltip("Fertig: Prozentpunkte Zufriedenheit für alle Wohnhäuser im Umkreis (0,1 = +10 %)")]
+        [Range(0f, 1f)] public float satisfactionBonus;
+        [Tooltip("Umkreis des Bonus über das Straßennetz, in Straßenfeldern")]
+        [Min(0f)] public float bonusRange = 40f;
+
+        public bool HasStages => stages != null && stages.Length > 0;
+
         [Header("Lager (nur Kategorie Storage)")]
         [Tooltip("Einzugsweite über das Straßennetz, in Straßenfeldern (bessere Straßen zählen kürzer)")]
         [Min(1f)] public float catchmentRange = 20f;

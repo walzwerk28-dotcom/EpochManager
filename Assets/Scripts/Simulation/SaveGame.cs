@@ -18,8 +18,9 @@ namespace EpochCity
         /// 3: junge Felder (youngDeposits, gefällter oder gepflanzter Wald); ältere Stände sind ganz ausgewachsen.
         /// 4: Feuer je Gebäude (BuildingEntry.fire, fireTimer); ältere Stände ohne Brände.
         /// 5: Spielmodus und Brand-Häufigkeit (mode, fireFrequency); ältere Stände laden als Freies Bauen, „normal“.
+        /// 6: Bauphasen von Großbauten (BuildingEntry.stage, delivered, stageMoney, stageTimer); ältere: fertig.
         /// </summary>
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
 
         public int version = CurrentVersion;
         public string savedAt;
@@ -140,6 +141,11 @@ namespace EpochCity
         public int fire;
         [Tooltip("Brennend: verbleibende Spielsekunden; beschädigt: verbleibende Spielmonate")]
         public float fireTimer;
+        [Tooltip("Großbau: Bauphase (−1 in älteren Spielständen = fertig)")]
+        public int stage = -1;
+        public List<AmountEntry> delivered = new List<AmountEntry>();
+        public float stageMoney;
+        public float stageTimer;
     }
 
     [Serializable]
