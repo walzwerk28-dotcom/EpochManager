@@ -59,6 +59,7 @@ namespace EpochCity
             private readonly Dictionary<ResourceDefinition, int> materialShort = new Dictionary<ResourceDefinition, int>();
             private readonly List<string> actions = new List<string>();
             private readonly Dictionary<string, int> builtCount = new Dictionary<string, int>();
+            private readonly Dictionary<string, int> lowReasons = new Dictionary<string, int>();
             private readonly Dictionary<string, int> issues = new Dictionary<string, int>();
             private readonly Dictionary<string, int> milestones = new Dictionary<string, int>();
             private readonly StringBuilder csv = new StringBuilder();
@@ -627,8 +628,14 @@ namespace EpochCity
                 }
                 foreach (var b in city.Buildings)
                     foreach (var f in b.Definition.GetActiveFunctions(city.UnlockedTechnologies))
-                        foreach (var i in f.inputs)
-                            if (i.resource == good) need += i.amount * clock.secondsPerMonth / f.cycleSeconds;
+                    {
+                        if (f.inputs != null)
+                            foreach (var i in f.inputs)
+                                if (i.resource == good) need += i.amount * clock.secondsPerMonth / f.cycleSeconds;
+                        if (f.IsSale)
+                            foreach (var s in f.sales)
+                                if (s.resource == good) need += s.amount * clock.secondsPerMonth / f.cycleSeconds;
+                    }
                 return need;
             }
 
@@ -724,7 +731,15 @@ namespace EpochCity
                     demandTrace.TryGetValue(zone, out var t);
                     float d = demand.GetDemand(zone);
                     t.seconds++;
-                    if (d < 0.05f) t.low++;
+                    if (d < 0.05f)
+                    {
+                        t.low++;
+                        // Welche Faktoren bremsen, solange die Nachfrage fast 0 ist (mehrere gleichzeitig möglich)
+                        string issue = demand.GetIssue(zone) ?? "";
+                        foreach (var reason in new[] { "genug Gewerbe für die Kunden", "Waren fehlen", "zu wenig",
+                                                       "keine Kunden", "Häuser nicht voll belegt" })
+                            if (issue.Contains(reason)) Count(lowReasons, $"{zone.ShortName}: {reason}");
+                    }
                     if (d > 0.3f) t.high = true;
                     else if (d < 0.05f && t.high) { t.drops++; t.high = false; }
                     demandTrace[zone] = t;
@@ -756,6 +771,9 @@ namespace EpochCity
                                   $"am Ende {city.Buildings.Count(b => b.Fire == FireState.Damaged)} beschädigt, {city.Buildings.Count(b => b.Fire == FireState.Burning)} brennend");
                 sb.AppendLine("Nachfrage (Anteil der Zeit unter 5 %, Einbrüche von über 30 %): " + string.Join(", ",
                     demandTrace.Select(t => $"{t.Key.ShortName} {100f * t.Value.low / Mathf.Max(1, t.Value.seconds):0} % / {t.Value.drops}")));
+                if (lowReasons.Count > 0)
+                    sb.AppendLine("Gründe bei Nachfrage unter 5 % (Spielsekunden): " + string.Join(", ",
+                        lowReasons.OrderByDescending(r => r.Value).Select(r => $"{r.Key} {r.Value}")));
                 sb.AppendLine("Lager am Ende: " + string.Join(", ", goods.Select(g => $"{g.displayName} {city.Stock.Get(g):0}")));
                 sb.AppendLine($"CSV: {file}");
                 sb.AppendLine("Erste Aktionen: " + string.Join(" | ", actions.Take(25)));

@@ -15,6 +15,16 @@ namespace EpochCity
         public float amount;
     }
 
+    /// <summary>Eine Ware im Sortiment eines Gewerbegebäudes: Menge je Zyklus und Preis je Einheit.</summary>
+    [Serializable]
+    public struct SaleOffer
+    {
+        public ResourceDefinition resource;
+        [Min(0f)] public float amount;
+        [Tooltip("Erlös je Einheit in der Stadtkasse (vor dem Technologie-Bonus)")]
+        [Min(0f)] public float price;
+    }
+
     /// <summary>Eine Funktion eines Gebäudes: Eingänge -> Ausgänge pro Zyklus.</summary>
     [Serializable]
     public class BuildingFunction
@@ -23,6 +33,11 @@ namespace EpochCity
         public ResourceAmount[] inputs;
         public ResourceAmount[] outputs;
         [Min(0.1f)] public float cycleSeconds = 10f;
+        [Tooltip("Gewerbe: verkauft je Zyklus jede Ware, die über der Rücklage für die Einwohner vorrätig ist; " +
+                 "wartet nur, wenn gar nichts da ist")]
+        public SaleOffer[] sales;
+
+        public bool IsSale => sales != null && sales.Length > 0;
     }
 
     /// <summary>

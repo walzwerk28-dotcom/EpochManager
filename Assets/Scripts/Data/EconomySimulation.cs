@@ -104,6 +104,8 @@ namespace EpochCity
         private void Step(float dt)
         {
             bool unpaid = city.Money < 0f;
+            reserves.Clear();
+            reservesReady = false;
 
             // Arbeitskräfte je Stufe einmal pro Schritt
             workforce.Clear();
@@ -164,7 +166,20 @@ namespace EpochCity
 
                     while (progress >= function.cycleSeconds)
                     {
-                        if (!CanAfford(function.inputs, out string missing))
+                        if (function.IsSale)
+                        {
+                            // Gewerbe: verkauft, was über der Rücklage da ist; wartet nur, wenn nichts verkauft wird
+                            string sold = Sell(function.sales, multiplier, out string lacking);
+                            if (sold != null)
+                            {
+                                building.LastSale = sold;
+                                progress -= function.cycleSeconds;
+                                continue;
+                            }
+                            building.LastSale = "";
+                            building.Status = "wartet: " + lacking;
+                        }
+                        else if (!CanAfford(function.inputs, out string missing))
                             building.Status = "wartet: " + missing;
                         else if (!HasRoom(function.outputs, multiplier, out string full))
                             building.Status = "Lager voll: " + full; // wartet, ohne Eingänge zu verbrauchen
@@ -185,6 +200,62 @@ namespace EpochCity
                 }
             }
         }
+
+        // ---------------------------------------------------------------- Gewerbe
+
+        /// <summary>
+        /// Verkauft je Ware die volle Zyklusmenge, wenn sie über der Rücklage vorrätig ist (wie in Anno geht die
+        /// Versorgung der Häuser vor). Gibt die verkauften Waren zurück („Weizen, Öl“) oder null, wenn nichts verkauft
+        /// wurde; lacking nennt dann alles, was fehlt.
+        /// </summary>
+        private string Sell(SaleOffer[] sales, float multiplier, out string lacking)
+        {
+            lacking = null;
+            string sold = null;
+            foreach (var offer in sales)
+            {
+                if (offer.resource == null || offer.amount <= 0f) continue;
+                if (city.Stock.Get(offer.resource) - GetReserve(offer.resource) < offer.amount)
+                {
+                    lacking = lacking == null ? offer.resource.displayName : lacking + ", " + offer.resource.displayName;
+                    continue;
+                }
+                city.Stock.Add(offer.resource, -offer.amount);
+                float revenue = offer.amount * offer.price * multiplier;
+                city.AddMoney(revenue);
+                incomeThisMonth += revenue;
+                sold = sold == null ? offer.resource.displayName : sold + ", " + offer.resource.displayName;
+            }
+            return sold;
+        }
+
+        /// <summary>
+        /// Rücklage einer Ware für die Häuser: ein Monatsbedarf aller Einwohner, deren Stufe sie als Bedürfnis hat
+        /// (nur geltende Bedürfnisse). Einmal je Schritt berechnet.
+        /// </summary>
+        public float GetReserve(ResourceDefinition resource)
+        {
+            if (!reservesReady)
+            {
+                reservesReady = true;
+                foreach (var b in city.Buildings)
+                {
+                    if (b.Tier == null || b.Residents <= 0 || b.Tier.needs == null) continue;
+                    foreach (var need in b.Tier.needs)
+                    {
+                        if (need == null || need.kind != NeedKind.Goods || need.resource == null) continue;
+                        if (!city.IsUnlocked(need.requiredTechnology) || !city.IsEpochReached(need.epoch)) continue;
+                        reserves.TryGetValue(need.resource, out float r);
+                        reserves[need.resource] = r + b.Residents * need.amountPerResidentPerMonth;
+                    }
+                }
+            }
+            return reserves.TryGetValue(resource, out float reserve) ? reserve : 0f;
+        }
+
+        private readonly System.Collections.Generic.Dictionary<ResourceDefinition, float> reserves =
+            new System.Collections.Generic.Dictionary<ResourceDefinition, float>();
+        private bool reservesReady;
 
         /// <summary>Holzfäller: nach cyclesPerFelling Zyklen ein Feld des Vorkommens fällen (es wächst nach).</summary>
         private void Fell(BuildingInstance building)

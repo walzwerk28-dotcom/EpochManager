@@ -295,7 +295,7 @@ namespace EpochCity
                 6, new BuildingFunction[0], 1f, new Color(0.85f, 0.8f, 0.7f));
 
             var shop = CreateZoneBuilding("Bld_Laden", "Laden", antike, BuildingCategory.Commerce, commercial, 0,
-                SellWheat(wheat, coins, 2f, 4f), 1.2f, new Color(0.55f, 0.65f, 0.9f));
+                Sale(wheat, 2f, 2f), 1.2f, new Color(0.55f, 0.65f, 0.9f));
 
             // Größere Zonengebäude: Kapazität und Umsatz grob nach Fläche (etwa 4 Einwohner pro Feld)
             var townHouse = CreateZoneBuilding("Bld_Stadthaus", "Stadthaus", antike, BuildingCategory.Housing,
@@ -305,11 +305,11 @@ namespace EpochCity
             var insula = CreateZoneBuilding("Bld_Insula", "Insula", antike, BuildingCategory.Housing,
                 residential, 64, new BuildingFunction[0], 3f, new Color(0.85f, 0.8f, 0.7f), 4);
             var workshop = CreateZoneBuilding("Bld_Werkstatt", "Werkstatt", antike, BuildingCategory.Commerce,
-                commercial, 0, SellWheat(wheat, coins, 4f, 10f), 1.5f, new Color(0.55f, 0.65f, 0.9f), 2);
+                commercial, 0, Sale(wheat, 4f, 2.5f), 1.5f, new Color(0.55f, 0.65f, 0.9f), 2);
             var workyard = CreateZoneBuilding("Bld_Werkstatthof", "Werkstatthof", antike, BuildingCategory.Commerce,
-                commercial, 0, SellWheat(wheat, coins, 8f, 22f), 1.8f, new Color(0.55f, 0.65f, 0.9f), 3);
+                commercial, 0, Sale(wheat, 8f, 2.75f), 1.8f, new Color(0.55f, 0.65f, 0.9f), 3);
             var tradeHouse = CreateZoneBuilding("Bld_Handelshaus", "Handelshaus", antike, BuildingCategory.Commerce,
-                commercial, 0, SellWheat(wheat, coins, 14f, 40f), 2.4f, new Color(0.55f, 0.65f, 0.9f), 4);
+                commercial, 0, Sale(wheat, 14f, 40f / 14f), 2.4f, new Color(0.55f, 0.65f, 0.9f), 4);
 
             // Rechteckige Zonengebäude (Breite × Tiefe, schmale Front zur Straße), Werte ebenfalls nach Fläche
             var narrowHouse = CreateZoneBuilding("Bld_Schmalhaus", "Schmalhaus", antike, BuildingCategory.Housing,
@@ -319,11 +319,11 @@ namespace EpochCity
             var longHouse = CreateZoneBuilding("Bld_Langhaus", "Langhaus", antike, BuildingCategory.Housing,
                 residential, 32, new BuildingFunction[0], 1.9f, new Color(0.85f, 0.8f, 0.7f), new Vector2Int(2, 4));
             var taberna = CreateZoneBuilding("Bld_Taberna", "Taberna", antike, BuildingCategory.Commerce,
-                commercial, 0, SellWheat(wheat, coins, 3f, 7f), 1.3f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(1, 2));
+                commercial, 0, Sale(wheat, 3f, 7f / 3f), 1.3f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(1, 2));
             var office = CreateZoneBuilding("Bld_Kontor", "Kontor", antike, BuildingCategory.Commerce,
-                commercial, 0, SellWheat(wheat, coins, 6f, 15f), 1.6f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(2, 3));
+                commercial, 0, Sale(wheat, 6f, 2.5f), 1.6f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(2, 3));
             var granaryYard = CreateZoneBuilding("Bld_Speicherhof", "Speicherhof", antike, BuildingCategory.Commerce,
-                commercial, 0, SellWheat(wheat, coins, 7f, 19f), 1.8f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(2, 4));
+                commercial, 0, Sale(wheat, 7f, 19f / 7f), 1.8f, new Color(0.55f, 0.65f, 0.9f), new Vector2Int(2, 4));
 
             // Nur zum Testen des Epochenbezugs: im Mittelalter wachsen Fachwerkhäuser statt Wohnhäusern
             var timberHouse = CreateZoneBuilding("Bld_Fachwerkhaus", "Fachwerkhaus", mittelalter,
@@ -760,6 +760,15 @@ namespace EpochCity
             // Wein für Gelehrte: Weinberg (Bauern) → Trauben → Kelterei (Handwerker) → Wein
             var grapes = Resource("Res_Trauben", "Trauben", antike, false);
             var wine = Resource("Res_Wein", "Wein", antike, false);
+            // Sortiment des Gewerbes (2026-11-02; wie in Cities: Skylines verkauft Gewerbe Waren, wie in Anno nur den
+            // Überschuss über einem Monatsbedarf der Einwohner): Laden und Taberna (Bauern) nur Weizen; die Gebäude mit
+            // Handwerkern dazu Öl und Keramik zum 2,5-fachen, das Handelshaus auch Wein zum 3,5-fachen Weizenpreis
+            AddSales(workshop, (oil, 2f, 2.5f), (ceramics, 2f, 2.5f));
+            AddSales(office, (oil, 3f, 2.5f), (ceramics, 3f, 2.5f));
+            AddSales(workyard, (oil, 4f, 2.5f), (ceramics, 4f, 2.5f));
+            AddSales(granaryYard, (oil, 3f, 2.5f), (ceramics, 3f, 2.5f));
+            AddSales(tradeHouse, (oil, 7f, 2.5f), (ceramics, 7f, 2.5f), (wine, 4f, 3.5f));
+
             var vineyard = ProductionBuilding("Bld_Weinberg", "Weinberg", antike, 100f, 2f,
                 "Trauben lesen", null, 0f, grapes, 3f, 5f, new Color(0.45f, 0.3f, 0.5f));
             vineyard.materialCosts = Cost((boards, 2f));
@@ -878,9 +887,9 @@ namespace EpochCity
                 if (def.zone == null) def.upkeepPerMonth *= UpkeepScale;
                 else if (def.zone == commercial)
                     foreach (var function in def.baseFunctions)
-                        for (int i = 0; i < function.outputs.Length; i++)
-                            if (function.outputs[i].resource != null && function.outputs[i].resource.isCurrency)
-                                function.outputs[i].amount *= CommerceIncomeScale;
+                        if (function.IsSale)
+                            for (int i = 0; i < function.sales.Length; i++)
+                                function.sales[i].price *= CommerceIncomeScale;
             }
 
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
@@ -1051,19 +1060,38 @@ namespace EpochCity
             return def;
         }
 
-        /// <summary>Gewerbe-Funktion: Weizen gegen Geld verkaufen.</summary>
-        private static BuildingFunction[] SellWheat(ResourceDefinition wheat, ResourceDefinition coins,
-            float wheatIn, float coinsOut) =>
+        /// <summary>
+        /// Gewerbe-Funktion „Verkaufen“ (je 5 s) mit Weizen im Sortiment; weitere Waren ergänzt AddSales, sobald es sie
+        /// gibt. Preis je Einheit wie bei den früheren Funktionen (Münzen / Weizen), vor CommerceIncomeScale.
+        /// </summary>
+        private static BuildingFunction[] Sale(ResourceDefinition wheat, float amount, float price) =>
             new[]
             {
                 new BuildingFunction
                 {
-                    label = "Weizen verkaufen",
-                    inputs = new[] { new ResourceAmount { resource = wheat, amount = wheatIn } },
-                    outputs = new[] { new ResourceAmount { resource = coins, amount = coinsOut } },
-                    cycleSeconds = 5f
+                    label = "Verkaufen",
+                    inputs = new ResourceAmount[0],
+                    outputs = new ResourceAmount[0],
+                    cycleSeconds = 5f,
+                    sales = new[] { new SaleOffer { resource = wheat, amount = amount, price = price } }
                 }
             };
+
+        /// <summary>Weitere Waren ins Sortiment; Preis = Weizenpreis des Gebäudes × Faktor.</summary>
+        private static void AddSales(BuildingDefinition def,
+            params (ResourceDefinition resource, float amount, float priceFactor)[] goods)
+        {
+            var function = def.baseFunctions[0];
+            var wheat = function.sales[0];
+            var sales = new SaleOffer[1 + goods.Length];
+            sales[0] = wheat;
+            for (int i = 0; i < goods.Length; i++)
+                sales[i + 1] = new SaleOffer
+                {
+                    resource = goods[i].resource, amount = goods[i].amount, price = wheat.price * goods[i].priceFactor
+                };
+            function.sales = sales;
+        }
 
         private static T GetOrCreate<T>(string name) where T : ScriptableObject
         {

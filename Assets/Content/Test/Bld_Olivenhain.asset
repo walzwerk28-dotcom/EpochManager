@@ -42,6 +42,7 @@ MonoBehaviour:
     - resource: {fileID: 11400000, guid: 278ea97b995d50d4ebffdbe5723c0300, type: 2}
       amount: 3
     cycleSeconds: 5
+    sales: []
   layers: []
   fireRisk: 1
   fireProtectionRange: 0

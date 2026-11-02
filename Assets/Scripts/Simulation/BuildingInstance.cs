@@ -25,6 +25,8 @@ namespace EpochCity
 
         /// <summary>Kurzer Status für die Anzeige, z. B. "läuft" oder "wartet: Holz".</summary>
         public string Status { get; set; } = "";
+        /// <summary>Gewerbe: im letzten Zyklus verkaufte Waren („Weizen, Öl“; nicht gespeichert).</summary>
+        public string LastSale { get; set; } = "";
 
         /// <summary>Anbindungswert von 0 bis 1; multipliziert die Produktionsgeschwindigkeit.</summary>
         public float Connection { get; set; }

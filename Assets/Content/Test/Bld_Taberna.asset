@@ -34,14 +34,14 @@ MonoBehaviour:
   upkeepPerMonth: 0
   baseCapacity: 0
   baseFunctions:
-  - label: Weizen verkaufen
-    inputs:
+  - label: Verkaufen
+    inputs: []
+    outputs: []
+    cycleSeconds: 5
+    sales:
     - resource: {fileID: 11400000, guid: b9da7e50e2a7d754e81441b65fc186b3, type: 2}
       amount: 3
-    outputs:
-    - resource: {fileID: 11400000, guid: aa82ce7491460e24f9dcb1aeec26e2ec, type: 2}
-      amount: 1.75
-    cycleSeconds: 5
+      price: 0.5833333
   layers:
   - requiredTechnology: {fileID: 11400000, guid: ecec991b2e2169a4d87588d3abeb2ca8, type: 2}
     outputMultiplier: 1.25

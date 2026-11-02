@@ -177,6 +177,17 @@ namespace EpochCity
             return button;
         }
 
+        /// <summary>Sortiment eines Gewerbegebäudes: „4 Weizen je 0,63 · 2 Öl je 1,56 Drachmen“.</summary>
+        public static string SalesText(SaleOffer[] sales, float multiplier, string currency)
+        {
+            if (sales == null) return "";
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var offer in sales)
+                if (offer.resource != null && offer.amount > 0f)
+                    parts.Add($"{offer.amount:0.##} {offer.resource.displayName} je {offer.price * multiplier:0.##}");
+            return parts.Count > 0 ? string.Join(" · ", parts) + " " + currency : "";
+        }
+
         /// <summary>Eingabefeld (TextMeshPro) im Stil der Buttons, für Layout-Gruppen (füllt die Breite).</summary>
         public static TMP_InputField CreateInputField(Transform parent, string placeholder, UiTheme theme,
             float height = 52f)

@@ -444,6 +444,13 @@ namespace EpochCity
             foreach (var function in def.GetActiveFunctions(city.UnlockedTechnologies))
             {
                 if (function == null) continue;
+                if (function.IsSale)
+                {
+                    sb.AppendLine($"{function.label} je {function.cycleSeconds:0.#} s: " +
+                                  UiFactory.SalesText(function.sales, 1f, Currency()));
+                    sb.AppendLine(Muted("Verkauft nur, was über einem Monatsbedarf der Einwohner vorrätig ist."));
+                    continue;
+                }
                 string inputs = Amounts(function.inputs);
                 string outputs = Amounts(function.outputs);
                 if (string.IsNullOrEmpty(outputs) && def.plantsDeposit != null) outputs = $"1 Feld {def.plantsDeposit.displayName}";

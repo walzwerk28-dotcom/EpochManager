@@ -188,6 +188,14 @@ namespace EpochCity
                     b.Progress.TryGetValue(f, out float progress);
                     bar.Set(progress / f.cycleSeconds, theme.accent, $"{progress:0.0} / {f.cycleSeconds:0.#} s");
                 });
+                if (f.IsSale)
+                {
+                    // Gewerbe: Sortiment mit Preisen, darunter was zuletzt verkauft wurde
+                    Line(theme.textMuted, () => "verkauft je Zyklus: " +
+                                                UiFactory.SalesText(f.sales, city.GetMultiplier(b), Currency()));
+                    Line(theme.textMuted, () => string.IsNullOrEmpty(b.LastSale) ? "" : $"zuletzt verkauft: {b.LastSale}");
+                    continue;
+                }
                 Line(theme.textMuted, () =>
                 {
                     float multiplier = city.GetMultiplier(b);
