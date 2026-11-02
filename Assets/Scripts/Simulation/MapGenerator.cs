@@ -12,9 +12,10 @@ namespace EpochCity
     public static class MapGenerator
     {
         /// <summary>Setzt die Vorkommen ins Raster und gibt den verwendeten Startwert zurück.</summary>
-        public static int Generate(GridMap grid, MapDefinition map)
+        /// <param name="seedOverride">Startwert statt map.seed (0 = den aus der Karte nehmen)</param>
+        public static int Generate(GridMap grid, MapDefinition map, int seedOverride = 0)
         {
-            int seed = map.seed != 0 ? map.seed : Random.Range(1, int.MaxValue);
+            int seed = seedOverride != 0 ? seedOverride : map.seed != 0 ? map.seed : Random.Range(1, int.MaxValue);
             var random = new System.Random(seed);
             if (map.patches == null) return seed;
 

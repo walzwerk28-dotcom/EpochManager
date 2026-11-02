@@ -17,11 +17,16 @@ namespace EpochCity
         /// 2: Rohstoff-Vorkommen (deposits); ältere Stände behalten die beim Start erzeugte Karte.
         /// 3: junge Felder (youngDeposits, gefällter oder gepflanzter Wald); ältere Stände sind ganz ausgewachsen.
         /// 4: Feuer je Gebäude (BuildingEntry.fire, fireTimer); ältere Stände ohne Brände.
+        /// 5: Spielmodus und Brand-Häufigkeit (mode, fireFrequency); ältere Stände laden als Freies Bauen, „normal“.
         /// </summary>
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
 
         public int version = CurrentVersion;
         public string savedAt;
+
+        [Header("Spiel")]
+        public int mode = (int)GameMode.FreeBuild;
+        public int fireFrequency = (int)FireFrequency.Normal;
 
         [Header("Stadt")]
         public float money;

@@ -32,6 +32,8 @@ namespace EpochCity
 
         public GridMap Grid { get; private set; }
         public float Money { get; private set; }
+        /// <summary>Spielmodus aus dem Startmenü bzw. dem Spielstand (ohne Menü Freies Bauen).</summary>
+        public GameMode Mode { get; set; } = GameMode.FreeBuild;
 
         /// <summary>Warenvorrat. Im Prototyp gibt es ein gemeinsames Lager; regionale Lager folgen später.</summary>
         public ResourceStock Stock { get; } = new ResourceStock();
@@ -43,8 +45,10 @@ namespace EpochCity
         private void Awake()
         {
             Grid = new GridMap(gridWidth, gridHeight, cellSize);
-            if (map != null) MapSeed = MapGenerator.Generate(Grid, map);
-            Money = startMoney;
+            var settings = GameSettings.Active;
+            if (settings != null) Mode = settings.mode;
+            if (map != null) MapSeed = MapGenerator.Generate(Grid, map, settings != null ? settings.mapSeed : 0);
+            Money = settings != null ? settings.startMoney : startMoney;
             if (startStock != null)
                 foreach (var a in startStock)
                     if (a.resource != null && !a.resource.isCurrency) Stock.Add(a.resource, a.amount);

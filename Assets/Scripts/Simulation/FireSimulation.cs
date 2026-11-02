@@ -61,6 +61,7 @@ namespace EpochCity
 
         private void Awake()
         {
+            if (GameSettings.Active != null) frequency = GameSettings.Active.fireFrequency;
             random = seed != 0 ? new System.Random(seed) : new System.Random();
         }
 

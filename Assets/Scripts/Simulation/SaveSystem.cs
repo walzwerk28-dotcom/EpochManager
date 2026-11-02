@@ -18,6 +18,8 @@ namespace EpochCity
         [SerializeField] private ResearchSystem research;
         [SerializeField] private PopulationSimulation population;
         [SerializeField] private EconomySimulation economy;
+        [Tooltip("Für die Brand-Häufigkeit im Spielstand (leer = vom selben Objekt)")]
+        [SerializeField] private FireSimulation fire;
         public ContentRegistry registry;
         public string quickSaveSlot = "quicksave";
 
@@ -45,6 +47,8 @@ namespace EpochCity
         public bool QuickLoad() => Load(quickSaveSlot);
 
         private readonly HashSet<string> missing = new HashSet<string>();
+
+        private FireSimulation Fire => fire != null ? fire : fire = GetComponent<FireSimulation>();
 
         public bool Save(string slot)
         {
@@ -125,6 +129,8 @@ namespace EpochCity
             var data = new SaveGame
             {
                 savedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                mode = (int)city.Mode,
+                fireFrequency = (int)(Fire != null ? Fire.frequency : FireFrequency.Normal),
                 money = city.Money,
                 epoch = ContentRegistry.IdOf(city.currentEpoch)
             };
@@ -207,6 +213,11 @@ namespace EpochCity
         private void Apply(SaveGame data)
         {
             city.ClearForLoad();
+
+            // Ab Version 5; ältere Stände: Freies Bauen mit normaler Brand-Häufigkeit
+            bool hasSettings = data.version >= 5;
+            city.Mode = hasSettings ? (GameMode)data.mode : GameMode.FreeBuild;
+            if (Fire != null) Fire.frequency = hasSettings ? (FireFrequency)data.fireFrequency : FireFrequency.Normal;
 
             // Technologien vor den Gebäuden, damit die Reihenfolge der aktiven Funktionen stimmt
             var techs = new List<TechnologyDefinition>();
