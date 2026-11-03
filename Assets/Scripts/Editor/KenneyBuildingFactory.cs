@@ -62,7 +62,7 @@ namespace EpochCity
                 b => House(b, "wall", 1, doorLeft: false, chimney: true, roof: "roof"),
                 b => House(b, "wall", 1, doorLeft: true, chimney: false, roof: "roof-high")));
             Assign("Bld_Laden", Make("Laden", 1, antique, Shop));
-            Assign("Bld_Markt", Make("Markt", 2, antique, Market));
+            // Markt: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Lager", Make("Lager", 2, antique, Storage));
             Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
             Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
@@ -919,20 +919,6 @@ namespace EpochCity
             b.Put(FT + "stall-green", Cell(1, 1, w, d), 0f);
             b.Put(FT + "stall-bench", Cell(0, 0, w, d), 0f);
             b.Put(FT + "lantern", Cell(1, 0, w, d), 0f);
-        }
-
-        /// <summary>Markt: Brunnen in der Mitte, Stände ringsum.</summary>
-        private static void Market(Builder b)
-        {
-            // Eigenes, einfarbiges Wasser statt des Kenney-Materials
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", Vector3.zero, 0f);
-            b.Put(FT + "stall-red", new Vector3(-1.6f, 0f, 1.6f), 0f);
-            b.Put(FT + "stall-green", new Vector3(1.6f, 0f, 1.6f), 0f);
-            b.Put(FT + "stall-red", new Vector3(1.6f, 0f, -1.6f), 180f);
-            b.Put(FT + "stall", new Vector3(-1.6f, 0f, -1.6f), 90f);
-            b.Put(FT + "cart", new Vector3(-1.9f, 0f, 0f), 0f);
-            b.Put(FT + "lantern", new Vector3(1.9f, 0f, 0f), 0f);
         }
 
         private enum FieldStage { Stubble, Sown, Green, Ripe }
