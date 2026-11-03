@@ -210,8 +210,18 @@ wy, wz = (WIN_Y0 + WIN_Y1) / 2, (WIN_Z0 + WIN_Z1) / 2
 box((0.02, WIN_Y1 - WIN_Y0, WIN_Z1 - WIN_Z0), (HX1 + 0.005, wy, wz), material=INTERIOR)
 box((0.07, WIN_Y1 - WIN_Y0 + 0.1, 0.06), (HX1 + 0.035, wy, WIN_Z0 - 0.03), material=WOOD_DARK)
 box((0.07, WIN_Y1 - WIN_Y0 + 0.1, 0.06), (HX1 + 0.035, wy, WIN_Z1 + 0.03), material=WOOD_DARK)
+# Läden: Scharnier an der Fensterkante auf der Wandfläche, fast flach an die Wand geklappt (20° Abstand zur Wand)
+shutter_w = (WIN_Y1 - WIN_Y0) / 2
+open_a = math.radians(20)
 for sign in (-1, 1):
-    box((0.03, (WIN_Y1 - WIN_Y0) / 2, WIN_Z1 - WIN_Z0), (HX1 + 0.1, wy + sign * (WIN_Y1 - WIN_Y0) * 0.75, wz), rot=(0, 0, sign * 25), material=WOOD)
+    hinge_y = WIN_Y1 if sign > 0 else WIN_Y0
+    hx, hy = HX1 + 0.07, hinge_y
+    out_x, out_y = math.sin(open_a), sign * math.cos(open_a)     # Richtung vom Scharnier zur äußeren Kante
+    cx, cy = hx + out_x * shutter_w / 2, hy + out_y * shutter_w / 2
+    box((0.03, shutter_w, WIN_Z1 - WIN_Z0), (cx, cy, wz), rot=(0, 0, -sign * 20), material=WOOD)
+    nx, ny = math.cos(open_a), -sign * math.sin(open_a)          # Außenseite des Ladens
+    for z in (WIN_Z0 + 0.07, WIN_Z1 - 0.07):    # Querleisten
+        box((0.015, shutter_w * 0.9, 0.04), (cx + nx * 0.02, cy + ny * 0.02, z), rot=(0, 0, -sign * 20), material=WOOD_DARK)
 
 # ---------------------------------------------------------------- Römisches Ziegeldach
 
@@ -294,8 +304,9 @@ for row in range(5):
         x = -0.30 + col * 0.13 + (0.06 if row % 2 else 0.0)
         if x > HX1 - 0.12:
             continue
-        cyl(0.06, 0.38, (x, HY0 - 0.24, 0.07 + row * 0.115), rot=(90, 0, random.uniform(0, 40)), material=BARK, verts=6)
-        cyl(0.055, 0.01, (x, HY0 - 0.435, 0.07 + row * 0.115), rot=(90, 0, 0), material=END_GRAIN, verts=6)
+        spin = random.uniform(0, 60)   # Drehung um die eigene Längsachse (nach X 90 ist das die Welt-Y-Achse)
+        cyl(0.06, 0.38, (x, HY0 - 0.24, 0.07 + row * 0.115), rot=(90, spin, 0), material=BARK, verts=6)
+        cyl(0.055, 0.01, (x, HY0 - 0.435, 0.07 + row * 0.115), rot=(90, spin, 0), material=END_GRAIN, verts=6)
 
 # Stammstapel rechts: 4-3-2, Achse entlang y, mit Haltepfosten
 LOG_R, LOG_L = 0.13, 1.35
@@ -324,8 +335,16 @@ cyl(0.02, 0.18, (SAW_X, SAW_Y + 0.28, 0.98), rot=(0, 90, 0), material=WOOD, vert
 BLOCK = (-0.15, -1.15)
 cyl(0.24, 0.42, (BLOCK[0], BLOCK[1], 0.21), material=BARK, verts=12)
 cyl(0.22, 0.01, (BLOCK[0], BLOCK[1], 0.425), material=END_GRAIN, verts=12)
-cyl(0.022, 0.62, (BLOCK[0] + 0.18, BLOCK[1] - 0.05, 0.62), rot=(0, 35, 0), material=WOOD, verts=6)   # Stiel
-box((0.16, 0.035, 0.09), (BLOCK[0] + 0.01, BLOCK[1] - 0.05, 0.47), rot=(0, 35, 0), material=METAL)   # Klinge
+# Axt eingeschlagen: Stiel 30° über der Waagerechten, Kopf quer dazu, Schneide nach unten 6 cm im Holz
+AXE_A = 60                                        # Drehung um Y: Stielachse u, Schneidenrichtung v
+a_ = math.radians(AXE_A)
+u = (math.sin(a_), math.cos(a_))                  # (x, z) vom Auge zum Griffende
+v = (math.cos(a_), -math.sin(a_))                 # (x, z) vom Auge zur Schneide
+eye = (BLOCK[0] - 0.05, 0.48)
+ay = BLOCK[1] - 0.05
+cyl(0.022, 0.64, (eye[0] + u[0] * 0.28, ay, eye[1] + u[1] * 0.28), rot=(0, AXE_A, 0), material=WOOD, verts=6)   # Stiel
+box((0.17, 0.03, 0.08), (eye[0] + v[0] * 0.055, ay, eye[1] + v[1] * 0.055), rot=(0, AXE_A, 0), material=METAL)  # Kopf mit Nacken
+box((0.05, 0.014, 0.12), (eye[0] + v[0] * 0.12, ay, eye[1] + v[1] * 0.12), rot=(0, AXE_A, 0), material=METAL)   # breite Schneide
 for k in range(6):
     a = random.uniform(0, 2 * math.pi)
     r = random.uniform(0.38, 0.55)
