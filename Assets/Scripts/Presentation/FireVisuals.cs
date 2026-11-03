@@ -27,7 +27,7 @@ namespace EpochCity
         private readonly Dictionary<BuildingInstance, GameObject> flames = new Dictionary<BuildingInstance, GameObject>();
         private readonly List<Rubble> rubble = new List<Rubble>();
         private MaterialPropertyBlock block;
-        private Material particleMaterial;
+        private static Material particleMaterial;
         private Material charredMaterial;
 
         private class Rubble
@@ -243,8 +243,10 @@ namespace EpochCity
             return g;
         }
 
-        /// <summary>Weicher runder Fleck als Partikeltextur, unbeleuchtet und transparent (URP).</summary>
-        private Material ParticleMaterial()
+        private Material ParticleMaterial() => SoftParticleMaterial();
+
+        /// <summary>Weicher runder Fleck als Partikeltextur, unbeleuchtet und transparent (URP); auch für den Baustaub.</summary>
+        public static Material SoftParticleMaterial()
         {
             if (particleMaterial != null) return particleMaterial;
             const int size = 64;

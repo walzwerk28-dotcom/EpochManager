@@ -146,8 +146,10 @@ namespace EpochCity
         {
             if (!(AssetImporter.GetAtPath(path) is ModelImporter importer)) return;
             bool changed = importer.globalScale != 1f || importer.importCameras || importer.importLights ||
-                           importer.importAnimation || importer.animationType != ModelImporterAnimationType.None;
+                           importer.importAnimation || importer.animationType != ModelImporterAnimationType.None ||
+                           !importer.isReadable;
             importer.globalScale = 1f;
+            importer.isReadable = true; // ConstructionVisuals liest die Eckpunkte, um das Gerüst um den Hauskörper zu stellen
             importer.useFileScale = true;
             importer.importCameras = false;
             importer.importLights = false;

@@ -667,6 +667,7 @@ GameObject:
   - component: {fileID: 1216388725}
   - component: {fileID: 1216388727}
   - component: {fileID: 1216388728}
+  - component: {fileID: 1216388729}
   m_Layer: 0
   m_Name: BuildingPlacer
   m_TagString: Untagged
@@ -773,6 +774,24 @@ MonoBehaviour:
   overlay: {fileID: 1216388727}
   sootColor: {r: 0.38, g: 0.34, b: 0.31, a: 1}
   rubbleSeconds: 90
+--- !u!114 &1216388729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1216388724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 581c807a87d12d94baee563a24c1d5ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.ConstructionVisuals
+  city: {fileID: 440537052}
+  kit: {fileID: 919132149155446097, guid: 9a3dcb8a8969b9949850e09e50cbcaf1, type: 3}
+  foundationShare: 0.2
+  levelHeight: 0.5
+  postSpacing: 1
+  clearance: 0.1
 --- !u!1 &1598712634
 GameObject:
   m_ObjectHideFlags: 0
@@ -1270,6 +1289,7 @@ MonoBehaviour:
   progression: {fileID: 1598712639}
   population: {fileID: 1598712641}
   fire: {fileID: 1598712645}
+  economy: {fileID: 0}
   duration: 3.5
   fadeTime: 0.6
   maxVisible: 4
