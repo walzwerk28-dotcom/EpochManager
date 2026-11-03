@@ -75,7 +75,7 @@ namespace EpochCity
                 b => Field(b, FieldStage.Green), b => Field(b, FieldStage.Ripe));
             AddToPrefab<CropStages>(field);
             Assign("Bld_Feld", field);
-            Assign("Bld_Holzfaeller", Make("Holzfaeller", 2, antique, Woodcutter));
+            // Holzfäller: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Holzhacker", Make("Holzhacker", 2, antique, WoodChopper));
             Assign("Bld_Foerster", Make("Foerster", 2, antique, Forester));
             Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
@@ -1018,24 +1018,6 @@ namespace EpochCity
                 b.PutBox(new Vector3(0f, y, edge), new Vector3(edge * 2f, 0.04f, 0.03f), wood);
                 b.PutBox(new Vector3(-edge, y, 0f), new Vector3(0.03f, 0.04f, edge * 2f), wood);
             }
-        }
-
-        /// <summary>Holzfäller: Holzhütte hinten links, davor Stammstapel und Baumstümpfe, hinten rechts ein Baum.</summary>
-        private static void Woodcutter(Builder b)
-        {
-            NatureColors(b);
-            var hut = b.At(-1f, 1f);
-            Walls(hut, 2, 2, 0, (i, j, dir) =>
-                dir == Vector2Int.down && i == 0 ? "wall-wood-door" :
-                dir == Vector2Int.down ? "wall-wood-window-small" : "wall-wood");
-            GableRoof(hut, 2, 2, 1, "roof");
-
-            b.Put(NK + "tree_oak", new Vector3(1.3f, 0f, 1.3f), 30f, 1.6f);
-            b.Put(NK + "log_stackLarge", new Vector3(1.1f, 0f, -0.6f), 90f);
-            b.Put(NK + "log_stack", new Vector3(-0.4f, 0f, -1.2f), 0f);
-            b.Put(NK + "stump_roundDetailed", new Vector3(-1.6f, 0f, -1.4f), 0f);
-            b.Put(NK + "stump_old", new Vector3(0.9f, 0f, -1.6f), 60f);
-            b.Put(NK + "log", new Vector3(-1.5f, 0f, -0.5f), 75f);
         }
 
         /// <summary>Holzhacker: offener Holzschuppen rechts mit Brennholzstapeln, links Hackklotz mit Scheiten, hinten Karren und Stämme.</summary>
