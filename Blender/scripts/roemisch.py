@@ -739,6 +739,73 @@ def stairs(x, y, yaw, height, width=0.26, step=0.16):
         box((L, 0.025, 0.06), (x + c * run / 2 + ox, y + s * run / 2 + oy, height / 2), rot=(0, -pitch, yaw), material=WOOD_DARK)
 
 
+def prism(top, thickness, material):
+    """Platte aus einem ebenen Vieleck (3D-Punkte der Oberseite), nach unten um thickness verdickt."""
+    n = len(top)
+    verts = [tuple(p) for p in top] + [(p[0], p[1], p[2] - thickness) for p in top]
+    faces = [tuple(range(n)), tuple(range(n, 2 * n))[::-1]] + [(i, n + i, n + (i + 1) % n, (i + 1) % n) for i in range(n)]
+    mesh = bpy.data.meshes.new("Platte")
+    mesh.from_pydata(verts, [], faces)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new("Platte", mesh)
+    bpy.context.collection.objects.link(obj)
+    return keep(obj, material)
+
+
+def rod(p0, p1, r, material, verts=8):
+    """Rundstab (Zylinder) von p0 nach p1, z. B. Imbrex oder Gratziegel auf einer beliebigen Schräge."""
+    a, b = Vector(p0), Vector(p1)
+    d = b - a
+    obj = cyl(r, d.length, tuple((a + b) / 2), material=material, verts=verts)
+    obj.rotation_mode = "QUATERNION"
+    obj.rotation_quaternion = d.to_track_quat("Z", "Y")
+    return obj
+
+
+def atrium_roof(x0, x1, y0, y1, ox0, ox1, oy0, oy1, z_out, z_in, spout=TERRACOTTA):
+    """Atriumdach (Compluvium): vier Dachflächen fallen von den Außenwänden (z_out) nach innen zu einer rechteckigen
+    Öffnung (z_in) ab und treffen sich an den Ecken in Graten. Ziegel als Halbrohre den Hang hinab, Gratziegel,
+    Stirnziegel am Rand der Öffnung und in der Mitte jeder Seite ein Wasserspeier über dem Becken."""
+    outer = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    inner = [(ox0, oy0), (ox1, oy0), (ox1, oy1), (ox0, oy1)]
+    for i in range(4):
+        j = (i + 1) % 4
+        a0, a1, b0, b1 = outer[i], outer[j], inner[i], inner[j]
+        prism([(a0[0], a0[1], z_out), (a1[0], a1[1], z_out), (b1[0], b1[1], z_in), (b0[0], b0[1], z_in)], T, TILE)
+        # Halbrohre: Linien von der Außenkante senkrecht nach innen, an den Graten gekürzt
+        ax, ay = a1[0] - a0[0], a1[1] - a0[1]
+        length = math.hypot(ax, ay)
+        ux, uy = ax / length, ay / length
+        nx, ny = -uy, ux                                           # nach innen (Umlauf gegen den Uhrzeiger)
+        depth = abs((b0[0] - a0[0]) * nx + (b0[1] - a0[1]) * ny)
+        s0 = (b0[0] - a0[0]) * ux + (b0[1] - a0[1]) * uy           # Lage der inneren Ecken entlang der Kante
+        s1 = (b1[0] - a0[0]) * ux + (b1[1] - a0[1]) * uy
+        count = max(2, int(length / 0.18))
+        for k in range(1, count):
+            s = k * length / count
+            run = depth * min(1.0, s / s0 if s0 > 0 else 1.0, (length - s) / (length - s1) if length > s1 else 1.0)
+            if run < 0.08:
+                continue
+            px, py = a0[0] + ux * s, a0[1] + uy * s
+            z_end = z_out + (z_in - z_out) * run / depth
+            rod((px, py, z_out + 0.02), (px + nx * run, py + ny * run, z_end + 0.02), 0.032,
+                TILE if random.random() > 0.3 else TILE_DARK, verts=6)
+        rod((a0[0], a0[1], z_out + 0.03), (b0[0], b0[1], z_in + 0.03), 0.045, TILE_DARK, verts=8)   # Grat
+        # Rand der Öffnung: Stirnziegel und Wasserspeier
+        il = math.hypot(b1[0] - b0[0], b1[1] - b0[1])
+        for k in range(max(2, int(il / 0.16)) + 1):
+            t = k / max(2, int(il / 0.16))
+            px, py = b0[0] + (b1[0] - b0[0]) * t, b0[1] + (b1[1] - b0[1]) * t
+            box((0.06, 0.06, 0.07), (px + nx * 0.01, py + ny * 0.01, z_in + 0.04), rot=(0, 0, math.degrees(math.atan2(uy, ux))),
+                material=TILE_DARK)
+        mx, my = (b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2
+        rod((mx - nx * 0.02, my - ny * 0.02, z_in - 0.01), (mx + nx * 0.16, my + ny * 0.16, z_in - 0.05), 0.025, spout, verts=6)
+
+
 def impluvium(x, y, w, d):
     """Wasserbecken im Atrium: flacher Steinrand mit Wasser."""
     box((w, d, 0.06), (x, y, 0.03), material=LIME_DARK)
