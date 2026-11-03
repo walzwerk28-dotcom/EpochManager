@@ -143,6 +143,24 @@ def sack(loc, r):
     cone(r * 0.32, r * 0.12, r * 0.45, (x, y, z0 + r * 2.4), SACK, verts=6)
 
 
+def slab_yz(points, x0, depth, material):
+    """Vieleck (y, z) in der YZ-Ebene, in x von x0 bis x0 + depth gezogen (Wandstücke unter der Dachschräge, Zwickel)."""
+    import bmesh
+    n = len(points)
+    mesh = bpy.data.meshes.new("Wand")
+    verts = [(x0, y, z) for y, z in points] + [(x0 + depth, y, z) for y, z in points]
+    faces = [tuple(range(n))[::-1], tuple(range(n, 2 * n))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
+    mesh.from_pydata(verts, [], faces)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new("Wand", mesh)
+    bpy.context.collection.objects.link(obj)
+    return keep(obj, material)
+
+
 def placed(origin, angle):
     """Teile einer Gruppe in eigenen Koordinaten setzen (um z gedreht und verschoben)."""
     m = Matrix.Rotation(math.radians(angle), 4, "Z")
@@ -205,10 +223,71 @@ box((3.50, 0.10, wall_h), (0.0, WALL_Y, wall_h / 2), material=LIME)
 box((3.52, 0.12, 0.08), (0.0, WALL_Y, 0.04), material=LIME_DARK)
 box((3.46, 0.01, 0.50), (0.0, WALL_Y - 0.055, 0.33), material=RED)
 box((3.46, 0.012, 0.035), (0.0, WALL_Y - 0.056, 0.60), material=OCHRE)
-# Seitenwände hinten, halb so tief wie die Halle
-side_h = roof_z(2.60) - 0.05    # Höhe am vorderen Ende, damit die Wand nirgends durchs Dach ragt
-for x in (-1.70, 1.70):
-    box((0.10, 0.90, side_h), (x, 3.05, side_h / 2), material=LIME)
+
+# Außenseite der Rückwand wie Opus mixtum: Ziegelbänder im Kalkstein, Pilaster hinter den Säulen, Gesims unter der
+# Traufe, in jedem Feld ein Gitterfenster, in der Mitte eine Hintertür für Lieferungen
+BANDS = (0.35, 0.70, 1.05, 1.40, 1.75)
+BACK_FACE = WALL_Y + 0.05
+for z in BANDS:
+    box((3.50, 0.012, 0.05), (0.0, BACK_FACE + 0.001, z), material=TILE_DARK)
+for x in (-1.50, -0.50, 0.50, 1.50):
+    box((0.20, 0.07, 0.10), (x, BACK_FACE + 0.025, 0.05), material=LIME_DARK)
+    box((0.16, 0.05, 1.78), (x, BACK_FACE + 0.025, 0.99), material=LIME)
+    box((0.20, 0.07, 0.06), (x, BACK_FACE + 0.025, 1.89), material=LIME_DARK)
+box((3.56, 0.07, 0.06), (0.0, BACK_FACE + 0.035, 1.94), material=LIME_DARK)
+for x in (-1.0, 0.0, 1.0):
+    box((0.20, 0.012, 0.42), (x, BACK_FACE + 0.008, 1.40), material=SHADOW)          # Öffnung
+    for dx in (-0.05, 0.05):
+        box((0.02, 0.01, 0.42), (x + dx, BACK_FACE + 0.016, 1.40), material=WOOD_DARK)  # Gitter
+    box((0.20, 0.01, 0.02), (x, BACK_FACE + 0.016, 1.40), material=WOOD_DARK)
+    box((0.28, 0.05, 0.035), (x, BACK_FACE + 0.025, 1.172), material=LIME)            # Fensterbank
+    box((0.28, 0.02, 0.05), (x, BACK_FACE + 0.01, 1.635), material=TILE_DARK)        # Ziegelsturz
+box((0.42, 0.02, 0.80), (0.0, BACK_FACE + 0.015, 0.40), material=WOOD)               # Tür aus Bohlen
+for dx in (-0.105, 0.0, 0.105):
+    box((0.01, 0.005, 0.78), (dx, BACK_FACE + 0.027, 0.40), material=WOOD_DARK)
+for z in (0.20, 0.60):
+    box((0.40, 0.006, 0.035), (0.0, BACK_FACE + 0.028, z), material=WOOD_DARK)
+for s in (-1, 1):
+    box((0.05, 0.04, 0.85), (s * 0.235, BACK_FACE + 0.02, 0.425), material=LIME_DARK)  # Gewände
+box((0.58, 0.05, 0.09), (0.0, BACK_FACE + 0.025, 0.875), material=LIME_DARK)          # Sturz
+box((0.55, 0.10, 0.04), (0.0, BACK_FACE + 0.06, 0.02), material=LIME_DARK)            # Stufe
+
+# Seitenwände unter der Dachschräge, mit Rundbogenöffnung, Ziegelbändern und Eckpilastern
+SIDE_Y0, SIDE_Y1 = 2.05, BACK_FACE
+OPEN_Y0, OPEN_Y1, SPRING_Z = 2.55, 3.15, 0.70
+ARCH_R = (OPEN_Y1 - OPEN_Y0) / 2
+ARCH_CY = (OPEN_Y0 + OPEN_Y1) / 2
+APEX_Z = SPRING_Z + ARCH_R
+
+
+def wall_top(y):
+    return roof_z(y) - 0.035
+
+
+for sx in (-1, 1):
+    x0 = 1.65 if sx > 0 else -1.75
+    outer = sx * 1.75
+    slab_yz([(SIDE_Y0, 0.0), (OPEN_Y0, 0.0), (OPEN_Y0, wall_top(OPEN_Y0)), (SIDE_Y0, wall_top(SIDE_Y0))], x0, 0.10, LIME)
+    slab_yz([(OPEN_Y1, 0.0), (SIDE_Y1, 0.0), (SIDE_Y1, wall_top(SIDE_Y1)), (OPEN_Y1, wall_top(OPEN_Y1))], x0, 0.10, LIME)
+    slab_yz([(OPEN_Y0, APEX_Z), (OPEN_Y1, APEX_Z), (OPEN_Y1, wall_top(OPEN_Y1)), (OPEN_Y0, wall_top(OPEN_Y0))], x0, 0.10, LIME)
+    arc_l = [(ARCH_CY + ARCH_R * math.cos(math.radians(a)), SPRING_Z + ARCH_R * math.sin(math.radians(a))) for a in range(180, 89, -15)]
+    arc_r = [(ARCH_CY + ARCH_R * math.cos(math.radians(a)), SPRING_Z + ARCH_R * math.sin(math.radians(a))) for a in range(90, -1, -15)]
+    slab_yz(arc_l + [(OPEN_Y0, APEX_Z)], x0, 0.10, LIME)                             # Zwickel links und rechts
+    slab_yz(arc_r + [(OPEN_Y1, APEX_Z)], x0, 0.10, LIME)
+    for a in range(180, -1, -20):                                                   # Bogensteine aus Ziegel
+        t = math.radians(a)
+        box((0.015, 0.06, 0.08), (outer + sx * 0.0075, ARCH_CY + (ARCH_R + 0.04) * math.cos(t), SPRING_Z + (ARCH_R + 0.04) * math.sin(t)),
+            rot=(a - 90, 0, 0), material=TILE_DARK)
+    for z in BANDS:
+        y_from = max(SIDE_Y0, EAVE_Y + (z + 0.06 + 0.035 - EAVE_Z) / math.tan(PITCH))
+        segments = [(y_from, OPEN_Y0), (OPEN_Y1, SIDE_Y1)] if z < APEX_Z + 0.08 else [(y_from, SIDE_Y1)]
+        for a, b in segments:
+            a = max(a, y_from)
+            if b - a > 0.05:
+                box((0.012, b - a, 0.05), (outer, (a + b) / 2, z), material=TILE_DARK)
+    for y in (SIDE_Y0 + 0.07, SIDE_Y1 - 0.07):                                       # Eckpilaster
+        h = wall_top(y) - 0.06
+        box((0.05, 0.14, h), (outer + sx * 0.02, y, h / 2), material=LIME_DARK)
 # Vier Säulen mit Basis und Kapitell, darüber der Architrav
 for x in (-1.50, -0.50, 0.50, 1.50):
     box((0.15, 0.15, 0.05), (x, COL_Y, 0.025), material=LIME_DARK)
@@ -245,6 +324,9 @@ for i in range(count + 1):
 box((roof_w, 0.035, 0.08), (0.0, EAVE_Y - 0.02, roof_z(EAVE_Y) - 0.04), material=WOOD_DARK)        # Traufbrett
 for x in (ROOF_X0, ROOF_X1):                                                                       # Ortgang
     box((0.035, length, 0.08), (x, mid_y, roof_z(mid_y) - 0.04), rot=(math.degrees(PITCH), 0, 0), material=WOOD_DARK)
+    for k in range(int(length / 0.25)):                                                           # Stirnziegel am Ortgang
+        py = EAVE_Y + (0.12 + k * 0.25) * math.cos(PITCH)
+        box((0.025, 0.06, 0.07), (x + math.copysign(0.02, x), py, roof_z(py) + 0.025), rot=(math.degrees(PITCH), 0, 0), material=TILE_DARK)
 
 # Gemauerte Theke unter der Halle, dahinter ein Wandbord mit Krügen
 CTR_Y, CTR_TOP = 2.45, 0.50
