@@ -16,7 +16,7 @@ MonoBehaviour:
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 1
   prefab: {fileID: 903691428116548711, guid: 8b1a3e538a42bba4fbf18f3d5c85b1ee, type: 3}
-  size: {x: 2, y: 2}
+  size: {x: 2, y: 4}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
   requiredTechnology: {fileID: 0}

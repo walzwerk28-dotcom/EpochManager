@@ -101,7 +101,7 @@ namespace EpochCity
             market.displayName = "Markt";
             market.epoch = antike;
             market.category = BuildingCategory.Commerce;
-            market.size = new Vector2Int(2, 2);
+            market.size = new Vector2Int(2, 4);   // 2026-11-03: Marktplatz mit sechs Ständen und Halle (vorher 2 × 2)
             market.buildCost = 150f;
             market.upkeepPerMonth = 3f;
             market.baseCapacity = 0;
