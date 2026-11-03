@@ -16,7 +16,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 BLEND = args[0] if len(args) > 0 else None
@@ -383,18 +383,18 @@ def veg_bed(x0, x1, y0, y1, rows_along="y", plant=LEAF):
         n = max(1, int((x1 - x0) / 0.12))
         for i in range(n):
             x = x0 + (i + 0.5) * (x1 - x0) / n
-            m = max(1, int((y1 - y0) / 0.09))
+            m = max(1, int((y1 - y0) / 0.13))
             for j in range(m):
                 y = y0 + (j + 0.5) * (y1 - y0) / m
-                sphere(0.035, (x, y, 0.065), (1.0, 1.0, 0.8), plant if (i + j) % 3 else LEAF_DARK, segs=6, rings=4)
+                sphere(0.04, (x, y, 0.065), (1.0, 1.0, 0.8), plant if (i + j) % 3 else LEAF_DARK, segs=5, rings=3)
     else:
         n = max(1, int((y1 - y0) / 0.12))
         for i in range(n):
             y = y0 + (i + 0.5) * (y1 - y0) / n
-            m = max(1, int((x1 - x0) / 0.09))
+            m = max(1, int((x1 - x0) / 0.13))
             for j in range(m):
                 x = x0 + (j + 0.5) * (x1 - x0) / m
-                sphere(0.035, (x, y, 0.065), (1.0, 1.0, 0.8), plant if (i + j) % 3 else LEAF_DARK, segs=6, rings=4)
+                sphere(0.04, (x, y, 0.065), (1.0, 1.0, 0.8), plant if (i + j) % 3 else LEAF_DARK, segs=5, rings=3)
 
 
 def fence(points, h=0.30, material=WOOD_DARK):
@@ -513,6 +513,138 @@ def washing_line(x0, y0, x1, y1, h=0.75, cloths=((CLOTH, 0.12), (PAINT_BLUE, 0.1
     for k, (m, w) in enumerate(cloths):
         t = (k + 1) / (len(cloths) + 1)
         box((w, 0.006, 0.14), (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, h - 0.10), rot=(0, 0, yaw), material=m)
+
+
+def crate(x, y, z0=0.0, size=0.18, yaw=0.0):
+    """Kiste aus Brettern mit dunklen Kanten."""
+    box((size, size, size), (x, y, z0 + size / 2), rot=(0, 0, yaw), material=WOOD)
+    for z in (0.30, 0.94):
+        box((size + 0.01, size + 0.01, size * 0.11), (x, y, z0 + size * z), rot=(0, 0, yaw), material=WOOD_DARK)
+
+
+def hay(x, y, r=0.20):
+    """Heuhaufen: flache Kuppel mit Spitze."""
+    sphere(r, (x, y, r * 0.35), (1.0, 1.0, 0.75), STRAW, segs=10, rings=5)
+    cone(r * 0.55, 0.0, r * 0.45, (x, y, r * 0.95), STRAW, verts=10)
+
+
+def placed(origin, angle):
+    """Teile einer Gruppe in eigenen Koordinaten setzen (um z gedreht und verschoben)."""
+    m = Matrix.Rotation(math.radians(angle), 4, "Z")
+
+    def at(local):
+        return tuple(m @ Vector(local) + Vector((origin[0], origin[1], 0.0)))
+    return at
+
+
+def cart(x, y, yaw=0.0, load="sacks"):
+    """Handkarren mit zwei Rädern, Deichsel nach -y (vor der Drehung); Ladung 'sacks', 'hay' oder None."""
+    at = placed((x, y), yaw)
+    box((0.55 * S, 0.85 * S, 0.05 * S), at((0.0, 0.0, 0.36 * S)), rot=(0, 0, yaw), material=WOOD)
+    for sx in (-1, 1):
+        box((0.04 * S, 0.85 * S, 0.16 * S), at((sx * 0.275 * S, 0.0, 0.46 * S)), rot=(0, 0, yaw), material=WOOD_DARK)
+        cyl(0.22 * S, 0.06 * S, at((sx * 0.34 * S, 0.1 * S, 0.22 * S)), rot=(0, 90, yaw), material=WOOD_DARK, verts=12)
+        cyl(0.05 * S, 0.08 * S, at((sx * 0.36 * S, 0.1 * S, 0.22 * S)), rot=(0, 90, yaw), material=WOOD, verts=8)
+        box((0.04 * S, 0.6 * S, 0.04 * S), at((sx * 0.22 * S, -0.62 * S, 0.32 * S)), rot=(-20, 0, yaw), material=WOOD_DARK)
+    box((0.55 * S, 0.04 * S, 0.16 * S), at((0.0, 0.425 * S, 0.46 * S)), rot=(0, 0, yaw), material=WOOD_DARK)
+    cyl(0.025 * S, 0.7 * S, at((0.0, 0.1 * S, 0.22 * S)), rot=(0, 90, yaw), material=WOOD_DARK, verts=6)
+    if load == "sacks":
+        for lx, ly in ((-0.10, 0.15), (0.11, -0.08)):
+            p = at((lx * S, ly * S, 0.0))
+            sack(p[0], p[1], 0.385 * S, 0.10 * S)
+    elif load == "hay":
+        p = at((0.0, 0.0, 0.0))
+        sphere(0.20 * S, (p[0], p[1], 0.47 * S), (1.3, 1.9, 0.8), STRAW, segs=8, rings=5, rot=(0, 0, yaw))
+
+
+def cistern(x, y):
+    """Zisterne im Hof: runder Steinrand mit dunklem Wasser, Holzgestell mit Welle, Seil und Eimer."""
+    cyl(0.15, 0.22, (x, y, 0.11), material=LIME_DARK, verts=12)
+    cyl(0.17, 0.03, (x, y, 0.235), material=LIME, verts=12)
+    cyl(0.115, 0.01, (x, y, 0.245), material=DARK, verts=12)
+    for s in (-1, 1):
+        box((0.03, 0.03, 0.50), (x + s * 0.17, y, 0.25 + 0.25), material=WOOD_DARK)
+    cyl(0.018, 0.38, (x, y, 0.72), rot=(0, 90, 0), material=WOOD, verts=8)
+    box((0.006, 0.006, 0.26), (x, y, 0.58), material=SACK)
+    cone(0.035, 0.045, 0.06, (x, y, 0.44), WOOD, verts=8)
+    box((0.10, 0.012, 0.012), (x + 0.24, y, 0.72), material=WOOD_DARK)       # Kurbel
+
+
+def court_wall(points, h=0.40, t=0.09, plaster=PLASTER_WHITE):
+    """Hofmauer entlang der Punkte: verputzt auf Bruchsteinsockel, mit Ziegelabdeckung."""
+    for (xa, ya), (xb, yb) in zip(points, points[1:]):
+        length = math.hypot(xb - xa, yb - ya) + t
+        yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+        mx, my = (xa + xb) / 2, (ya + yb) / 2
+        box((length, t, h), (mx, my, h / 2), rot=(0, 0, yaw), material=plaster)
+        box((length + 0.02, t + 0.03, 0.08), (mx, my, 0.04), rot=(0, 0, yaw), material=STONE)
+        box((length + 0.02, t + 0.06, 0.035), (mx, my, h + 0.0175), rot=(0, 0, yaw), material=TILE_DARK)
+        cyl(0.028, length + 0.02, (mx, my, h + 0.045), rot=(0, 90, yaw), material=TILE, verts=8)
+
+
+def lean_to(x0, x1, y0, y1, h_low, low_side, plaster, pitch=14.0):
+    """Anbau mit Pultdach an einer Hauswand (low_side '+x' oder '-x' ist die Traufseite): Block bis h_low, Dreiecke in
+    Wandfarbe unter der Schräge an Vorder- und Rückseite."""
+    body(x0, x1, y0, y1, h_low, plaster)
+    rise = (x1 - x0) * math.tan(math.radians(pitch))
+    if low_side == "+x":
+        tri = [(x0, h_low), (x1, h_low), (x0, h_low + rise)]
+    else:
+        tri = [(x0, h_low), (x1, h_low), (x1, h_low + rise)]
+    slab(tri, "xz", y0, y1 - y0, plaster)
+    return shed_roof(x0, x1, y0, y1, h_low + rise, low_side, overhang=0.07, pitch=pitch)
+
+
+def open_shed(x0, x1, y0, y1, h, plaster=None):
+    """Offener Schuppen: Rückwand (Bretter oder Putz) an y1, Seitenwände halb hoch, vorn zwei Pfosten, Pultdach nach -y."""
+    wall = plaster or WOOD
+    box((x1 - x0, 0.06, h), ((x0 + x1) / 2, y1 - 0.03, h / 2), material=wall)
+    if plaster is None:
+        for k in range(1, int((x1 - x0) / 0.12)):
+            box((0.008, 0.006, h - 0.02), (x0 + k * 0.12, y1 - 0.064, h / 2), material=WOOD_DARK)
+    for x in (x0, x1):
+        box((0.05, y1 - y0, h * 0.5), (x, (y0 + y1) / 2, h * 0.25), material=wall)
+    rise = (y1 - y0) * math.tan(math.radians(16))
+    low = h + 0.04
+    for x in (x0 + 0.04, x1 - 0.04):
+        box((0.05, 0.05, low), (x, y0 + 0.04, low / 2), material=WOOD_DARK)
+    box((x1 - x0, 0.05, 0.05), ((x0 + x1) / 2, y0 + 0.04, low), material=WOOD_DARK)
+    for x in (x0, x1):                                                         # Dreiecke unter dem Dach an den Seiten
+        slab([(y0 + 0.02, low), (y1, low), (y1, low + rise)], "yz", x - 0.025, 0.05, WOOD_DARK)
+    return shed_roof(x0, x1, y0, y1, low + rise, "-y", overhang=0.07, pitch=16)
+
+
+def balcony(y_face, u0, u1, z, depth=0.20):
+    """Holzbalkon an einer Wand nach -y (y_face = Wandfläche): Kragbalken, Bohlenboden, Geländer mit Stäben."""
+    w = u1 - u0
+    cx = (u0 + u1) / 2
+    for k in range(max(2, int(w / 0.5)) + 1):
+        x = u0 + 0.05 + k * (w - 0.10) / max(2, int(w / 0.5))
+        box((0.04, depth + 0.02, 0.05), (x, y_face - depth / 2, z - 0.04), material=WOOD_DARK)
+    box((w, depth, 0.03), (cx, y_face - depth / 2, z), material=WOOD)
+    by = y_face - depth + 0.015
+    box((w, 0.025, 0.025), (cx, by, z + 0.26), material=WOOD_DARK)
+    for x in (u0 + 0.01, u1 - 0.01):
+        box((0.025, depth, 0.025), (x, y_face - depth / 2, z + 0.26), material=WOOD_DARK)
+    n = max(4, int(w / 0.09))
+    for k in range(n + 1):
+        box((0.012, 0.012, 0.24), (u0 + 0.01 + k * (w - 0.02) / n, by, z + 0.13), material=WOOD_DARK)
+    for x in (u0 + 0.01, u1 - 0.01):
+        for k in range(1, 4):
+            box((0.012, 0.012, 0.24), (x, y_face - depth + k * depth / 4, z + 0.13), material=WOOD_DARK)
+
+
+def path(points, w=0.16):
+    """Weg aus unregelmäßigen Trittplatten zwischen den Punkten."""
+    rnd = random.Random(int(points[0][0] * 77 + points[0][1] * 31))
+    for (xa, ya), (xb, yb) in zip(points, points[1:]):
+        length = math.hypot(xb - xa, yb - ya)
+        n = max(1, int(length / (w * 1.25)))
+        for k in range(n + 1):
+            t = k / n
+            box((w * rnd.uniform(0.85, 1.1), w * rnd.uniform(0.7, 0.95), 0.02),
+                (xa + (xb - xa) * t + rnd.uniform(-0.02, 0.02), ya + (yb - ya) * t + rnd.uniform(-0.02, 0.02), 0.01),
+                rot=(0, 0, rnd.uniform(-12, 12)), material=LIME_DARK)
 
 
 # ---------------------------------------------------------------- Varianten und Export

@@ -85,9 +85,7 @@ namespace EpochCity
             Assign("Bld_Kelterei", Make("Kelterei", 2, antique, WinePress));
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
-            Assign("Bld_Stadthaus", Make("Stadthaus", 2, antique,
-                b => Row(b, "wall", 4, 0f, (2, "roof", true), (1, "roof-high", false)),
-                b => Row(b, "wall", 4, 0f, (1, "roof-high", false), (2, "roof", true))));
+            // Stadthaus, Hofhaus, Langhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Domus", Make("Domus", 3, antique, DomusRow, DomusAtrium));
             Assign("Bld_Insula", Make("Insula", 4, antique, InsulaBlock, InsulaRow));
             Assign("Bld_Werkstatt", Make("Werkstatt", 2, antique, WorkshopYard, WorkshopSide));
@@ -95,9 +93,6 @@ namespace EpochCity
             Assign("Bld_Handelshaus", Make("Handelshaus", 4, antique, TradeHall, TradeCourt));
 
             // Rechteckige Zonengebäude (Breite × Tiefe, Vorderseite nach −z an der Schmalseite)
-            Assign("Bld_Hofhaus", Make("Hofhaus", new Vector2Int(2, 3), antique, CourtHouseGarden,
-                b => Row(b, "wall", 6, 0f, (1, "roof", false), (2, "roof", true))));
-            Assign("Bld_Langhaus", Make("Langhaus", new Vector2Int(2, 4), antique, LongHouseCourt, LongHouseGarden));
             Assign("Bld_Taberna", Make("Taberna", new Vector2Int(1, 2), antique, TabernaStall, TabernaHall));
             Assign("Bld_Kontor", Make("Kontor", new Vector2Int(2, 3), antique, OfficeHall, OfficeYard));
             Assign("Bld_Speicherhof", Make("Speicherhof", new Vector2Int(2, 4), antique, GranaryFront, GranaryYard));
@@ -586,30 +581,6 @@ namespace EpochCity
 
         // ---------------------------------------------------------------- Rechteckige Zonengebäude
 
-
-        /// <summary>Hofhaus 2 × 3: zwei Häuser an der Straße, Garten dahinter.</summary>
-        private static void CourtHouseGarden(Builder b)
-        {
-            NatureColors(b);
-            Row(b, "wall", 4, -1f, (2, "roof", true), (1, "roof-high", false));
-            b.Put(FT + "tree-high-round", new Vector3(-1f, 0f, 2.2f), 0f);
-            b.Put(NK + "plant_bushLarge", new Vector3(1f, 0f, 2.2f), 0f, 3f);
-        }
-
-        /// <summary>Langhaus 2 × 4: Vorderhaus zweistöckig, Hinterhaus einstöckig, Hof dazwischen.</summary>
-        private static void LongHouseCourt(Builder b)
-        {
-            Row(b, "wall", 4, -2f, (2, "roof", true), (2, "roof-high", false));
-            Row(b, "wall", 3, 2.5f, (1, "roof", false), (1, "roof", false));
-        }
-
-        /// <summary>Langhaus 2 × 4: tiefe Häuserzeile mit Bäumen im Hinterhof.</summary>
-        private static void LongHouseGarden(Builder b)
-        {
-            Row(b, "wall", 6, -1f, (2, "roof", false), (3, "roof", true));
-            b.Put(FT + "tree", new Vector3(-1f, 0f, 3.2f), 0f);
-            b.Put(FT + "tree-high-crooked", new Vector3(1f, 0f, 3.2f), 200f);
-        }
 
         /// <summary>Taberna 1 × 2: Stand auf Holzboden an der Straße, kleines Haus dahinter.</summary>
         private static void TabernaStall(Builder b)

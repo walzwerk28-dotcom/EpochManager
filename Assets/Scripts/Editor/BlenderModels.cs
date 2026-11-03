@@ -53,6 +53,21 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Schmalhaus.fbx", prefab = "Schmalhaus", building = "Bld_Schmalhaus",
                 cells = new Vector2Int(1, 2), ground = "Mat_Boden_Kies", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Stadthaus.fbx", prefab = "Stadthaus", building = "Bld_Stadthaus",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Kies", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Hofhaus.fbx", prefab = "Hofhaus", building = "Bld_Hofhaus",
+                cells = new Vector2Int(2, 3), ground = "Mat_Boden_Kies", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Langhaus.fbx", prefab = "Langhaus", building = "Bld_Langhaus",
+                cells = new Vector2Int(2, 4), ground = "Mat_Boden_Kies", variants = true
             }
         };
 
