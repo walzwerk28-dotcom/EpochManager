@@ -86,8 +86,7 @@ namespace EpochCity
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
             // Stadthaus, Hofhaus, Langhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Domus", Make("Domus", 3, antique, DomusRow, DomusAtrium));
-            Assign("Bld_Insula", Make("Insula", 4, antique, InsulaBlock, InsulaRow));
+            // Domus und Insula: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Werkstatt", Make("Werkstatt", 2, antique, WorkshopYard, WorkshopSide));
             Assign("Bld_Werkstatthof", Make("Werkstatthof", 3, antique, WorkshopCourtFront, WorkshopCourtWings));
             Assign("Bld_Handelshaus", Make("Handelshaus", 4, antique, TradeHall, TradeCourt));
@@ -189,56 +188,6 @@ namespace EpochCity
                 bool chimney = h.chimney && (k == houses.Length - 1 || houses[k + 1].storeys < h.storeys);
                 House(b.At(x, z), wall, h.storeys, doorLeft: k % 2 == 0, chimney, h.roof, d);
             }
-        }
-
-        /// <summary>Domus mit Garten: drei Häuser an der Straße, dahinter Bäume.</summary>
-        private static void DomusRow(Builder b)
-        {
-            NatureColors(b);
-            Row(b, "wall", 4, -1f, (1, "roof", false), (2, "roof", true), (1, "roof-high", false));
-            b.Put(FT + "tree-high-round", new Vector3(-2f, 0f, 2.2f), 0f);
-            b.Put(NK + "plant_bushLarge", new Vector3(0f, 0f, 2.2f), 0f, 3f);
-            b.Put(FT + "tree", new Vector3(2f, 0f, 2.2f), 40f);
-        }
-
-        /// <summary>Domus mit Atrium: einstöckiger Ring um einen Innenhof, zur Straße zweistöckig.</summary>
-        private static void DomusAtrium(Builder b)
-        {
-            const int w = 6, d = 6;
-            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 4 && j >= 2 && j < 4));
-            var upper = Mask(w, d, (i, j) => j < 2);
-            Walls(b, ring, 0, (i, j, dir) => Facade(i, j, dir, 0, "wall", door: i == 2));
-            Walls(b, upper, 1, (i, j, dir) => Facade(i, j, dir, 1, "wall", door: false));
-            FlatRoof(b, Mask(w, d, (i, j) => ring[i, j] && !upper[i, j]), 1);
-            FlatRoof(b, upper, 2);
-            b.Put(FT + "tree", new Vector3(0f, 0f, 0.5f), 0f);
-        }
-
-        /// <summary>Insula: dreistöckiger Block um einen Innenhof, unten Läden zur Straße.</summary>
-        private static void InsulaBlock(Builder b)
-        {
-            const int w = 8, d = 8, storeys = 3;
-            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 6 && j >= 2 && j < 6));
-            for (int level = 0; level < storeys; level++)
-            {
-                int l = level;
-                Walls(b, ring, l, (i, j, dir) =>
-                    l == 0 && dir == Vector2Int.down && j == 0
-                        ? (i == 3 ? "wall-doorway-round" : i % 2 == 0 ? "wall-doorway-square" : "wall-window-shutters")
-                        : Facade(i, j, dir, l, "wall", door: false));
-            }
-            FlatRoof(b, ring, storeys);
-            b.Put(FT + "tree-high-round", new Vector3(0f, 0f, 0.3f), 0f);
-        }
-
-        /// <summary>Insula als Zeile: vier hohe, schmale Häuser mit Hinterhof.</summary>
-        private static void InsulaRow(Builder b)
-        {
-            NatureColors(b);
-            Row(b, "wall", 6, -1f, (3, "roof", false), (2, "roof-high", true), (3, "roof", true), (2, "roof", false));
-            b.Put(FT + "tree", new Vector3(-2.5f, 0f, 3f), 0f);
-            b.Put(NK + "plant_bushLarge", new Vector3(0.5f, 0f, 3f), 0f, 3f);
-            b.Put(FT + "tree-high-crooked", new Vector3(3f, 0f, 3f), 120f);
         }
 
         /// <summary>Werkstatt: Halle hinten, Hof mit Stand und Karren zur Straße.</summary>

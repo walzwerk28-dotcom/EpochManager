@@ -76,6 +76,9 @@ FEATHER = mat("Federn", (0.94, 0.92, 0.86))
 COMB = mat("Kamm", (0.78, 0.18, 0.14))
 SACK = mat("Sack", (0.80, 0.72, 0.56))
 CLOTH = mat("Tuch", (0.88, 0.86, 0.80))
+CLOTH_RED = mat("TuchRot", (0.72, 0.24, 0.18))
+CLOTH_OCHRE = mat("TuchOcker", (0.88, 0.70, 0.36))
+WATER = mat("Wasser", (0.42, 0.70, 0.85), rough=0.2)
 
 STOREY = 1.0       # Stockwerkshöhe der Häuser
 PITCH = 24.0       # Dachneigung in Grad
@@ -244,18 +247,20 @@ def gable_roof(x0, x1, y0, y1, h, axis, plaster, overhang=0.09, pitch=PITCH):
     return ridge
 
 
-def shed_roof(x0, x1, y0, y1, z_high, low_side, overhang=0.08, pitch=16.0):
+def shed_roof(x0, x1, y0, y1, z_high, low_side, overhang=0.08, pitch=16.0, eave_overhang=None):
     """Pultdach über einem Rechteck; low_side '-x', '+x', '-y' oder '+y' ist die Traufseite. z_high = Unterkante der
-    Platte an der hohen Seite. Gibt die Höhe an der Traufe zurück."""
+    Platte an der hohen Seite. overhang gilt an den Seiten, eave_overhang (Standard wie overhang) an der Traufe.
+    Gibt die Höhe an der Traufe zurück."""
     sign = 1 if low_side[0] == "+" else -1
+    eave = overhang if eave_overhang is None else eave_overhang
     if low_side[1] == "y":
         a0, a1 = x0 - overhang, x1 + overhang
         b_top = y0 if sign > 0 else y1
-        run = (y1 - y0) + overhang
+        run = (y1 - y0) + eave
         return roof_side("x", a0, a1, b_top, sign, run, z_high, pitch)
     a0, a1 = y0 - overhang, y1 + overhang
     b_top = x0 if sign > 0 else x1
-    run = (x1 - x0) + overhang
+    run = (x1 - x0) + eave
     return roof_side("y", a0, a1, b_top, sign, run, z_high, pitch)
 
 
@@ -582,17 +587,22 @@ def court_wall(points, h=0.40, t=0.09, plaster=PLASTER_WHITE):
         cyl(0.028, length + 0.02, (mx, my, h + 0.045), rot=(0, 90, yaw), material=TILE, verts=8)
 
 
-def lean_to(x0, x1, y0, y1, h_low, low_side, plaster, pitch=14.0):
-    """Anbau mit Pultdach an einer Hauswand (low_side '+x' oder '-x' ist die Traufseite): Block bis h_low, Dreiecke in
-    Wandfarbe unter der Schräge an Vorder- und Rückseite."""
-    body(x0, x1, y0, y1, h_low, plaster)
-    rise = (x1 - x0) * math.tan(math.radians(pitch))
-    if low_side == "+x":
-        tri = [(x0, h_low), (x1, h_low), (x0, h_low + rise)]
+def lean_to(x0, x1, y0, y1, h_low, low_side, plaster, pitch=14.0, overhang=0.07, eave_overhang=None, socle=None):
+    """Flügel bzw. Anbau mit Pultdach (low_side '+x', '-x', '+y' oder '-y' ist die Traufseite): Block bis h_low, darüber
+    ein Keil in Wandfarbe unter der Schräge. Gibt die Höhe an der hohen Seite zurück."""
+    body(x0, x1, y0, y1, h_low, plaster, socle=socle)
+    depth = (x1 - x0) if low_side[1] == "x" else (y1 - y0)
+    rise = depth * math.tan(math.radians(pitch))
+    if low_side[1] == "x":
+        tri = [(x0, h_low), (x1, h_low), (x0, h_low + rise)] if low_side == "+x" else \
+              [(x0, h_low), (x1, h_low), (x1, h_low + rise)]
+        slab(tri, "xz", y0, y1 - y0, plaster)
     else:
-        tri = [(x0, h_low), (x1, h_low), (x1, h_low + rise)]
-    slab(tri, "xz", y0, y1 - y0, plaster)
-    return shed_roof(x0, x1, y0, y1, h_low + rise, low_side, overhang=0.07, pitch=pitch)
+        tri = [(y0, h_low), (y1, h_low), (y0, h_low + rise)] if low_side == "+y" else \
+              [(y0, h_low), (y1, h_low), (y1, h_low + rise)]
+        slab(tri, "yz", x0, x1 - x0, plaster)
+    shed_roof(x0, x1, y0, y1, h_low + rise, low_side, overhang=overhang, pitch=pitch, eave_overhang=eave_overhang)
+    return h_low + rise
 
 
 def open_shed(x0, x1, y0, y1, h, plaster=None):
@@ -645,6 +655,106 @@ def path(points, w=0.16):
             box((w * rnd.uniform(0.85, 1.1), w * rnd.uniform(0.7, 0.95), 0.02),
                 (xa + (xb - xa) * t + rnd.uniform(-0.02, 0.02), ya + (yb - ya) * t + rnd.uniform(-0.02, 0.02), 0.01),
                 rot=(0, 0, rnd.uniform(-12, 12)), material=LIME_DARK)
+
+
+# ---------------------------------------------------------------- Größere Häuser: Säulen, Läden, Atrium, Treppen
+
+
+def column(x, y, h, r=0.042):
+    """Säule aus Kalkstein mit Basis und Kapitell, Fuß bei z = 0."""
+    box((r * 3.2, r * 3.2, 0.05), (x, y, 0.025), material=LIME_DARK)
+    cyl(r, h - 0.11, (x, y, 0.05 + (h - 0.11) / 2), material=LIME, verts=10)
+    box((r * 3.4, r * 3.4, 0.06), (x, y, h - 0.03), material=LIME_DARK)
+
+
+def colonnade(p0, p1, count, h, beam=True):
+    """Säulenreihe von p0 nach p1 (beide Enden eingeschlossen) mit Gebälk darüber."""
+    (xa, ya), (xb, yb) = p0, p1
+    for k in range(count):
+        t = k / (count - 1) if count > 1 else 0.5
+        column(xa + (xb - xa) * t, ya + (yb - ya) * t, h)
+    if beam:
+        length = math.hypot(xb - xa, yb - ya) + 0.16
+        yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+        box((length, 0.12, 0.10), ((xa + xb) / 2, (ya + yb) / 2, h + 0.05), rot=(0, 0, yaw), material=LIME)
+
+
+def cornice(x0, x1, y0, y1, z, material=LIME_DARK):
+    """Gesimsband rund um einen Block."""
+    box((x1 - x0 + 0.05, y1 - y0 + 0.05, 0.05), ((x0 + x1) / 2, (y0 + y1) / 2, z), material=material)
+
+
+def shop_front(face, plane, u, w=0.56, h=0.62, goods=None, awning=None):
+    """Laden (Taberna) zur Straße: breite dunkle Öffnung mit Holzsturz, davor eine gemauerte Theke mit Waren,
+    darüber auf Wunsch eine gestreifte Markise (awning = (Farbe A, Farbe B))."""
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    z0 = 0.09
+    box(size(w, 0.012, h), at(u, 0.004, z0 + h / 2), material=DARK)
+    box(size(w + 0.10, 0.04, 0.07), at(u, 0.015, z0 + h + 0.03), material=WOOD_DARK)          # Sturz
+    for s in (-1, 1):
+        box(size(0.05, 0.03, h), at(u + s * (w / 2 + 0.02), 0.012, z0 + h / 2), material=LIME_DARK)
+    box(size(w * 0.8, 0.13, 0.30), at(u - w * 0.08, 0.075, 0.15), material=LIME_DARK)          # Theke
+    box(size(w * 0.84, 0.15, 0.03), at(u - w * 0.08, 0.075, 0.315), material=LIME)
+    top = 0.33
+    for k, kind in enumerate(goods or ("jug", "jug", "basket")):
+        p = at(u - w * 0.36 + k * w * 0.2, 0.075, top)
+        if kind == "jug":
+            jug(p[0], p[1], top, 0.028)
+        elif kind == "amphora":
+            amphora(p[0], p[1], top)
+        elif kind == "bread":
+            sphere(0.03, (p[0], p[1], top + 0.012), (1.0, 0.8, 0.5), WOOD, segs=8, rings=4)
+        else:
+            cyl(0.045, 0.04, (p[0], p[1], top + 0.02), material=STRAW, verts=8)
+            sphere(0.04, (p[0], p[1], top + 0.04), (1.0, 1.0, 0.4), LEAF if k % 2 else CLOTH_OCHRE, segs=6, rings=4)
+    if awning:
+        a, b = awning
+        depth, drop = 0.34, 0.10
+        stripes = max(3, int(w / 0.12))
+        sw = (w + 0.10) / stripes
+        tilt = math.degrees(math.atan2(drop, depth))
+        for k in range(stripes):
+            uu = u - (w + 0.10) / 2 + (k + 0.5) * sw
+            c = at(uu, depth / 2 + 0.02, z0 + h + 0.12 - drop / 2)
+            if ny != 0:
+                box((sw, depth, 0.012), c, rot=(-ny * tilt, 0, 0), material=a if k % 2 == 0 else b)
+            else:
+                box((depth, sw, 0.012), c, rot=(0, nx * tilt, 0), material=a if k % 2 == 0 else b)
+            edge = at(uu, depth + 0.02, z0 + h + 0.12 - drop - 0.03)
+            box(size(sw, 0.008, 0.06), edge, material=a if k % 2 == 0 else b)
+
+
+def stairs(x, y, yaw, height, width=0.26, step=0.16):
+    """Holztreppe mit Wange, steigt in Richtung yaw (Grad um z, 0 = +x) bis height."""
+    n = max(2, int(height / step))
+    run = n * 0.11
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for k in range(n):
+        d = (k + 0.5) * 0.11
+        box((0.11, width, 0.03), (x + c * d, y + s * d, (k + 1) * height / n - 0.015), rot=(0, 0, yaw), material=WOOD)
+    pitch = math.degrees(math.atan2(height, run))
+    L = math.hypot(height, run)
+    for side in (-1, 1):
+        ox, oy = -s * side * width / 2, c * side * width / 2
+        box((L, 0.025, 0.06), (x + c * run / 2 + ox, y + s * run / 2 + oy, height / 2), rot=(0, -pitch, yaw), material=WOOD_DARK)
+
+
+def impluvium(x, y, w, d):
+    """Wasserbecken im Atrium: flacher Steinrand mit Wasser."""
+    box((w, d, 0.06), (x, y, 0.03), material=LIME_DARK)
+    box((w - 0.08, d - 0.08, 0.01), (x, y, 0.062), material=WATER)
+
+
+def fountain_bowl(x, y, r=0.16):
+    """Brunnenschale auf Fuß mit Wasser (Gartenbrunnen)."""
+    cyl(r * 0.35, 0.22, (x, y, 0.11), material=LIME, verts=10)
+    cone(r * 0.4, r, 0.06, (x, y, 0.25), LIME, verts=12)
+    cyl(r * 0.9, 0.01, (x, y, 0.278), material=WATER, verts=12)
+
+
+def bush(x, y, r=0.12, leaves=LEAF):
+    """Runder Busch."""
+    sphere(r, (x, y, r * 0.8), (1.0, 1.0, 0.85), leaves, segs=8, rings=5)
 
 
 # ---------------------------------------------------------------- Varianten und Export
