@@ -157,6 +157,9 @@ namespace EpochCity
                 if (m.resource != null && !m.resource.isCurrency) Stock.Add(m.resource, -m.amount * count);
         }
 
+        /// <summary>Gibt Geld und Baumaterial eines Gebäudes zurück (Abriss einer Baustelle).</summary>
+        private void Refund(BuildingDefinition def) => Pay(-def.buildCost, def.materialCosts, -1f);
+
         /// <summary>Geld, das als Material eingetragen ist (Ressource mit isCurrency), zählt zur Stadtkasse.</summary>
         private static float CurrencyIn(ResourceAmount[] materials)
         {
@@ -244,7 +247,7 @@ namespace EpochCity
             {
                 int sum = baseStorageCapacity;
                 foreach (var b in Buildings)
-                    if (b.Definition.category == BuildingCategory.Storage && !b.IsPaused)
+                    if (b.Definition.category == BuildingCategory.Storage && !b.IsPaused && !b.UnderConstruction)
                         sum += b.Definition.GetCapacity(UnlockedTechnologies);
                 return sum;
             }
@@ -414,11 +417,23 @@ namespace EpochCity
         public bool TryRemove(BuildingInstance inst)
         {
             if (inst == null || inst.IsProtected) return false;
+            // Abriss einer Baustelle gibt die Baukosten ganz zurück (wie in Cities: Skylines); Zonengebäude waren kostenlos
+            if (inst.IsBuilding && inst.Definition.zone == null) Refund(inst.Definition);
             Grid.Remove(inst);
             Buildings.Remove(inst);
             if (inst.View != null) Destroy(inst.View);
             RefreshConnections();
             return true;
+        }
+
+        /// <summary>
+        /// Eine Baustelle ist fertig (EconomySimulation): Lager zählen erst jetzt als Knotenpunkt, Feuerwachen schützen
+        /// erst jetzt; beides hängt an der Anbindung, die hier neu berechnet wird.
+        /// </summary>
+        public void OnConstructionFinished(BuildingInstance inst)
+        {
+            if (inst.Definition.category == BuildingCategory.Storage || inst.Definition.fireProtectionRange > 0f)
+                RefreshConnections();
         }
 
         // ---------------------------------------------------------------- Straßen

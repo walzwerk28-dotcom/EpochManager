@@ -661,7 +661,7 @@ namespace EpochCity
                 // Baustellen: was der laufenden Bauphase noch fehlt
                 foreach (var b in city.Buildings)
                 {
-                    if (!b.UnderConstruction) continue;
+                    if (!b.UnderConstruction || !b.Definition.HasStages) continue;
                     var materials = b.Definition.stages[b.Stage].materials;
                     if (materials == null) continue;
                     foreach (var m in materials)

@@ -78,7 +78,7 @@ namespace EpochCity
 
             houses.Clear();
             foreach (var b in city.Buildings)
-                if (b.Definition.populationTier != null) houses.Add(b);
+                if (b.Definition.populationTier != null && !b.IsBuilding) houses.Add(b); // Baustellen bleiben leer
 
             PrepareGoods();
             serviceDistances.Clear();

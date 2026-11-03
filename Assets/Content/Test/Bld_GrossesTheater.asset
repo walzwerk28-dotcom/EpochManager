@@ -32,6 +32,7 @@ MonoBehaviour:
   buildCost: 1000
   materialCosts: []
   upkeepPerMonth: 15
+  buildSeconds: 0
   baseCapacity: 0
   baseFunctions: []
   layers: []

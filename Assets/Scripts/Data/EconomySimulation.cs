@@ -131,6 +131,11 @@ namespace EpochCity
                         : $"beschädigt (noch {Mathf.CeilToInt(building.FireTimer)} {(building.FireTimer > 1f ? "Monate" : "Monat")})";
                     continue;
                 }
+                if (building.IsBuilding)
+                {
+                    Construct(building, dt);
+                    continue;
+                }
                 if (building.UnderConstruction)
                 {
                     Build(building, dt);
@@ -205,6 +210,30 @@ namespace EpochCity
                     building.Progress[function] = progress;
                 }
             }
+        }
+
+        // ---------------------------------------------------------------- Baustellen
+
+        /// <summary>Eine Baustelle ist fertig (Bauzeit abgelaufen); das Gebäude arbeitet ab dem nächsten Schritt.</summary>
+        public event System.Action<BuildingInstance> ConstructionFinished;
+
+        /// <summary>
+        /// Baustelle eines gewöhnlichen Gebäudes (wie in Cities: Skylines): die Kosten sind beim Setzen bezahlt, es
+        /// zählt nur die Bauzeit; Straße und Lager braucht sie nicht. Danach meldet sie sich beim CityController, der
+        /// Lagerplatz und Anbindung neu berechnet.
+        /// </summary>
+        private void Construct(BuildingInstance building, float dt)
+        {
+            float total = building.Definition.buildSeconds;
+            building.BuildTimer = Mathf.Min(total, building.BuildTimer + dt);
+            if (building.IsBuilding)
+            {
+                building.Status = $"wird gebaut (noch {Mathf.CeilToInt(total - building.BuildTimer)} s)";
+                return;
+            }
+            building.Status = "";
+            city.OnConstructionFinished(building);
+            ConstructionFinished?.Invoke(building);
         }
 
         // ---------------------------------------------------------------- Großbauten

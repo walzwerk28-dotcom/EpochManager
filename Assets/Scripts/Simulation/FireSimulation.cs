@@ -202,7 +202,7 @@ namespace EpochCity
             scratch.Clear();
             foreach (var b in city.Buildings)
             {
-                if (b.Fire != FireState.None || b.Definition.fireRisk <= 0f) continue;
+                if (b.Fire != FireState.None || b.Definition.fireRisk <= 0f || b.UnderConstruction) continue; // Baustellen brennen nicht
                 float chance = factor * b.Definition.fireRisk * (1f - GetProtection(b));
                 if (random.NextDouble() < chance) scratch.Add(b);
             }

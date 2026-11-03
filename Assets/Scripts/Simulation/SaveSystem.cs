@@ -353,7 +353,8 @@ namespace EpochCity
                     fireTimer = b.FireTimer,
                     stage = b.Definition.HasStages ? b.Stage : -1,
                     stageMoney = b.StageMoney,
-                    stageTimer = b.StageTimer
+                    stageTimer = b.StageTimer,
+                    buildTimer = b.IsBuilding ? b.BuildTimer : -1f
                 };
                 foreach (var d in b.Delivered)
                     if (d.Key != null) entry.delivered.Add(new AmountEntry(ContentRegistry.IdOf(d.Key), d.Value));
@@ -431,6 +432,8 @@ namespace EpochCity
                     : def.HasStages ? def.stages.Length : 0;
                 b.StageMoney = entry.stageMoney;
                 b.StageTimer = entry.stageTimer;
+                // Baustelle ab Version 7; ältere Stände und −1: fertig
+                b.BuildTimer = entry.buildTimer >= 0f ? entry.buildTimer : def.buildSeconds;
                 foreach (var d in entry.delivered)
                     if (Resolve<ResourceDefinition>(d.id, out var resource)) b.Delivered[resource] = d.amount;
                 b.Residents = entry.residents;

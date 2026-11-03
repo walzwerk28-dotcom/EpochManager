@@ -141,6 +141,8 @@ namespace EpochCity
             {
                 var def = building.Definition;
                 string connection = $"Anbindung {building.Connection * 100f:0} %";
+                if (building.IsBuilding)
+                    return $"{def.displayName}  |  Baustelle, fertig in {Mathf.CeilToInt(def.buildSeconds - building.BuildTimer)} s";
                 if (def.populationTier != null)
                 {
                     string missing = string.IsNullOrEmpty(building.MissingNeeds) ? "" : $"  |  fehlt: {building.MissingNeeds}";
@@ -441,6 +443,8 @@ namespace EpochCity
             string materials = Amounts(def.materialCosts);
             sb.AppendLine($"{def.size.x} × {def.size.y} Felder  ·  {def.buildCost:0} {Currency()}" +
                           (materials != "" ? $" + {materials}" : "") + $"  ·  Unterhalt {def.upkeepPerMonth:0.#} pro Monat");
+            if (def.buildSeconds > 0f && !def.HasStages)
+                sb.AppendLine($"Bauzeit {def.buildSeconds:0} s (arbeitet erst danach)");
             foreach (var function in def.GetActiveFunctions(city.UnlockedTechnologies))
             {
                 if (function == null) continue;

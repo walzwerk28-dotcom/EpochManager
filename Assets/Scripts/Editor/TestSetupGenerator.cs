@@ -922,6 +922,19 @@ namespace EpochCity
                                 function.sales[i].price *= CommerceIncomeScale;
             }
 
+            // Bauen in Etappen (2026-11-03, wie die Bauzeit in Cities: Skylines): Baustelle nach Größe; Zonengebäude
+            // kürzer, Lager und Schreibschule schneller, damit der Start nicht zäh wird; Großbauten nutzen ihre Phasen
+            foreach (var entry in content)
+            {
+                if (!(entry is BuildingDefinition def)) continue;
+                int area = def.size.x * def.size.y;
+                if (def.HasStages) def.buildSeconds = 0f;
+                else if (def.zone != null) def.buildSeconds = 8f + area * 0.5f;          // 1 × 1: 8,5 s … 4 × 4: 16 s
+                else if (def == storage || def == school) def.buildSeconds = 12f;
+                else def.buildSeconds = area <= 1 ? 10f : area <= 4 ? 20f : 30f;
+                EditorUtility.SetDirty(def);
+            }
+
             // Inhaltsverzeichnis für Spielstände: alles, worauf ein Spielstand per Namen verweisen kann
             var registry = GetOrCreate<ContentRegistry>("ContentRegistry");
             registry.entries = content;

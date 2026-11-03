@@ -36,6 +36,7 @@ MonoBehaviour:
   - resource: {fileID: 11400000, guid: 72bdb6133f5f8fe438b697ef5b4e279c, type: 2}
     amount: 4
   upkeepPerMonth: 6
+  buildSeconds: 20
   baseCapacity: 0
   baseFunctions: []
   layers: []

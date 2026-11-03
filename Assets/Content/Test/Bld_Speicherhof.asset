@@ -32,6 +32,7 @@ MonoBehaviour:
   buildCost: 0
   materialCosts: []
   upkeepPerMonth: 0
+  buildSeconds: 12
   baseCapacity: 0
   baseFunctions:
   - label: Verkaufen

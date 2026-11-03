@@ -32,6 +32,7 @@ MonoBehaviour:
   buildCost: 60
   materialCosts: []
   upkeepPerMonth: 3
+  buildSeconds: 20
   baseCapacity: 0
   baseFunctions:
   - label: "B\xE4ume f\xE4llen"

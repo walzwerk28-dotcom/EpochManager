@@ -117,6 +117,22 @@ namespace EpochCity
                 return CategoryName(def.category) + built + protectedNote;
             });
 
+            // Baustelle: Bauzeit als Balken, verschwindet, sobald das Gebäude fertig ist
+            if (def.buildSeconds > 0f && !def.HasStages)
+            {
+                var site = UiFactory.CreateBar(content, "Bau", theme);
+                updaters.Add(() =>
+                {
+                    site.Root.SetActive(b.IsBuilding);
+                    if (b.IsBuilding)
+                        site.Set(b.BuildTimer / def.buildSeconds, theme.heading,
+                            $"{Mathf.FloorToInt(b.BuildTimer)} / {def.buildSeconds:0} s");
+                });
+                Line(theme.textMuted, () => b.IsBuilding
+                    ? "Baustelle: arbeitet erst, wenn sie fertig ist" + (def.zone == null ? " · Abriss erstattet die Baukosten" : "")
+                    : "");
+            }
+
             var connection = UiFactory.CreateBar(content, "Anbindung", theme);
             updaters.Add(() => connection.Set(b.Connection, UiFactory.QualityColor(b.Connection, theme),
                 $"{b.Connection * 100f:0} %"));
@@ -225,7 +241,7 @@ namespace EpochCity
                     return string.IsNullOrEmpty(inputs) ? $"ergibt {outputs}" : $"{inputs} → {outputs}";
                 });
             }
-            if (def.GetActiveFunctions(city.UnlockedTechnologies).Count > 0 || def.HasStages)
+            if (def.GetActiveFunctions(city.UnlockedTechnologies).Count > 0 || def.HasStages || def.buildSeconds > 0f)
                 Line(theme.text, () => string.IsNullOrEmpty(b.Status) ? "" : $"Status: {b.Status}");
 
             if (fire != null && (def.fireRisk > 0f || def.fireProtectionRange > 0f))

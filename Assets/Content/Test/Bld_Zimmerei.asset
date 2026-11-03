@@ -32,6 +32,7 @@ MonoBehaviour:
   buildCost: 100
   materialCosts: []
   upkeepPerMonth: 6
+  buildSeconds: 20
   baseCapacity: 0
   baseFunctions:
   - label: "Bretter s\xE4gen"

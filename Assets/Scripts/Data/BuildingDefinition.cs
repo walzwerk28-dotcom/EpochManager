@@ -54,6 +54,9 @@ namespace EpochCity
         public ResourceAmount[] materialCosts;
         [Tooltip("Unterhalt pro Spielmonat. Sollte über Epochen kaum wachsen.")]
         public float upkeepPerMonth = 1f;
+        [Tooltip("Bauzeit in Spielsekunden (wie in Cities: Skylines): so lange steht eine Baustelle, die nicht arbeitet; " +
+                 "0 = sofort fertig. Großbauten mit Bauphasen nutzen stattdessen ihre Phasen")]
+        [Min(0f)] public float buildSeconds;
 
         [Header("Grundfunktion & Kapazität")]
         [Tooltip("Wohnhäuser: Wohnplätze. Lager (Kategorie Storage): Lagerplatz je Ware.")]
