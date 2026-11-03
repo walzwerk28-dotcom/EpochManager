@@ -63,7 +63,7 @@ namespace EpochCity
                 b => House(b, "wall", 1, doorLeft: true, chimney: false, roof: "roof-high")));
             Assign("Bld_Laden", Make("Laden", 1, antique, Shop));
             // Markt: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Lager", Make("Lager", 2, antique, Storage));
+            // Lager: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
             Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
             Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
@@ -694,17 +694,6 @@ namespace EpochCity
             if (dir == Vector2Int.down && j == 0)
                 return level == 0 && door ? $"{wall}-door" : $"{wall}-window-shutters";
             return (i + j) % 2 == 0 ? $"{wall}-window-small" : wall;
-        }
-
-        /// <summary>Lager: Holzhalle 2 × 3 mit breitem Tor nach Süden, Karren daneben.</summary>
-        private static void Storage(Builder b)
-        {
-            const int w = 2, d = 3;
-            Walls(b, w, d, 0, (i, j, dir) =>
-                dir == Vector2Int.down ? (i == 0 ? "wall-wood-doorway-square-wide" : "wall-wood") :
-                j == 1 ? "wall-wood-window-small" : "wall-wood");
-            GableRoof(b, w, d, 1, "roof");
-            b.Put(FT + "cart", new Vector3(1.6f, 0f, -1.2f), 10f);
         }
 
         /// <summary>Bibliothek: Steinbau 2 × 2 mit Säulenvorhalle nach Süden, wie ein kleiner Tempel.</summary>
