@@ -57,10 +57,7 @@ namespace EpochCity
             grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
 
             // Antike: Kalkstein und Terrakotta-Dächer
-            Assign("Bld_Wohnhaus", Make("Wohnhaus", 1, antique,
-                b => House(b, "wall", 1, doorLeft: true, chimney: false, roof: "roof"),
-                b => House(b, "wall", 1, doorLeft: false, chimney: true, roof: "roof"),
-                b => House(b, "wall", 1, doorLeft: true, chimney: false, roof: "roof-high")));
+            // Wohnhaus und Schmalhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Laden", Make("Laden", 1, antique, Shop));
             // Markt: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Lager: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
@@ -98,9 +95,6 @@ namespace EpochCity
             Assign("Bld_Handelshaus", Make("Handelshaus", 4, antique, TradeHall, TradeCourt));
 
             // Rechteckige Zonengebäude (Breite × Tiefe, Vorderseite nach −z an der Schmalseite)
-            Assign("Bld_Schmalhaus", Make("Schmalhaus", new Vector2Int(1, 2), antique,
-                b => House(b, "wall", 2, doorLeft: true, chimney: true, roof: "roof", d: 4),
-                NarrowHouseGarden));
             Assign("Bld_Hofhaus", Make("Hofhaus", new Vector2Int(2, 3), antique, CourtHouseGarden,
                 b => Row(b, "wall", 6, 0f, (1, "roof", false), (2, "roof", true))));
             Assign("Bld_Langhaus", Make("Langhaus", new Vector2Int(2, 4), antique, LongHouseCourt, LongHouseGarden));
@@ -592,12 +586,6 @@ namespace EpochCity
 
         // ---------------------------------------------------------------- Rechteckige Zonengebäude
 
-        /// <summary>Schmalhaus 1 × 2: einstöckiges Haus an der Straße, Baum im Garten dahinter.</summary>
-        private static void NarrowHouseGarden(Builder b)
-        {
-            House(b.At(0f, -0.5f), "wall", 1, doorLeft: false, chimney: false, roof: "roof-high", d: 3);
-            b.Put(FT + "tree", new Vector3(0f, 0f, 1.6f), 30f);
-        }
 
         /// <summary>Hofhaus 2 × 3: zwei Häuser an der Straße, Garten dahinter.</summary>
         private static void CourtHouseGarden(Builder b)

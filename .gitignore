@@ -47,3 +47,6 @@ desktop.ini
 
 # Blender-Sicherungskopien
 *.blend1
+
+# Python-Zwischendateien der Blender-Scripts
+__pycache__/

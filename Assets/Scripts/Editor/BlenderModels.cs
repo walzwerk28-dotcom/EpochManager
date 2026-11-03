@@ -23,6 +23,8 @@ namespace EpochCity
         {
             public string fbx, prefab, building, ground;
             public Vector2Int cells;
+            /// <summary>Die FBX enthält je Variante ein Objekt (nach Namen sortiert); das Prefab bekommt RandomVariant.</summary>
+            public bool variants;
         }
 
         private static readonly Entry[] Models =
@@ -41,6 +43,16 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Lager.fbx", prefab = "Lager", building = "Bld_Lager",
                 cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Wohnhaus.fbx", prefab = "Wohnhaus", building = "Bld_Wohnhaus",
+                cells = new Vector2Int(1, 1), ground = "Mat_Boden_Kies", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Schmalhaus.fbx", prefab = "Schmalhaus", building = "Bld_Schmalhaus",
+                cells = new Vector2Int(1, 2), ground = "Mat_Boden_Kies", variants = true
             }
         };
 
@@ -58,12 +70,17 @@ namespace EpochCity
                 }
 
                 var root = new GameObject(e.prefab);
-                var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
-                instance.name = "Model";
-                // Blender baut mit der Vorderseite nach −Y; nach dem FBX-Import zeigt sie nach +z. Gebäude zeigen im
-                // Spiel mit der Vorderseite nach −z (zur Straße), daher eine halbe Drehung (keine Spiegelung).
-                instance.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                AddGroundPlate(root, e.cells, AssetDatabase.LoadAssetAtPath<Material>($"{Out}/{e.ground}.mat"));
+                var ground = AssetDatabase.LoadAssetAtPath<Material>($"{Out}/{e.ground}.mat");
+                if (e.variants) AddVariants(root, model, e.cells, ground);
+                else
+                {
+                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
+                    instance.name = "Model";
+                    // Blender baut mit der Vorderseite nach −Y; nach dem FBX-Import zeigt sie nach +z. Gebäude zeigen im
+                    // Spiel mit der Vorderseite nach −z (zur Straße), daher eine halbe Drehung (keine Spiegelung).
+                    instance.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                    AddGroundPlate(root, e.cells, ground);
+                }
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{Out}/{e.prefab}.prefab");
                 Object.DestroyImmediate(root);
 
@@ -78,6 +95,35 @@ namespace EpochCity
                           $"(Grundfläche {e.cells.x * CellSize:0} × {e.cells.y * CellSize:0} m)");
             }
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Je Objekt der FBX (nach Namen sortiert) ein Kind „Variant_i“ mit dem Modell (um 180° gedreht wie oben) und
+        /// einer eigenen Bodenplatte; RandomVariant zeigt beim Bau eine davon, der Spielstand merkt sich den Index.
+        /// </summary>
+        private static void AddVariants(GameObject root, GameObject model, Vector2Int cells, Material ground)
+        {
+            var parts = new System.Collections.Generic.List<Transform>();
+            foreach (Transform child in model.transform)
+                if (child.GetComponent<MeshFilter>() != null) parts.Add(child);
+            parts.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var variant = new GameObject($"Variant_{i}");
+                variant.transform.SetParent(root.transform, false);
+                var pivot = new GameObject("Model");
+                pivot.transform.SetParent(variant.transform, false);
+                pivot.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                var mesh = new GameObject(parts[i].name, typeof(MeshFilter), typeof(MeshRenderer));
+                mesh.transform.SetParent(pivot.transform, false);
+                mesh.transform.localPosition = parts[i].localPosition;
+                mesh.transform.localRotation = parts[i].localRotation;
+                mesh.transform.localScale = parts[i].localScale;
+                mesh.GetComponent<MeshFilter>().sharedMesh = parts[i].GetComponent<MeshFilter>().sharedMesh;
+                mesh.GetComponent<MeshRenderer>().sharedMaterials = parts[i].GetComponent<MeshRenderer>().sharedMaterials;
+                AddGroundPlate(variant, cells, ground);
+            }
+            if (parts.Count > 1) root.AddComponent<RandomVariant>();
         }
 
         /// <summary>Import wie bei Gebäuden üblich: 1 Einheit = 1 m, keine Kameras, Lichter oder Animation.</summary>
