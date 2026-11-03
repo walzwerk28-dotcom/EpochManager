@@ -353,12 +353,13 @@ namespace EpochCity
             /// <summary>Lager: bei „Lager voll“ oder schlecht angebundenen Betrieben ein weiteres in deren Nähe.</summary>
             private bool EnsureStorage()
             {
-                // Höchstens 2 Lager plus eines je 60 Einwohner
-                if (Recently("Lager", 3) || Count("Lager") >= 2 + population.TotalResidents / 60) return false;
+                // Höchstens 2 Lager plus eines je 60 Einwohner (alle Lagerstufen zusammen)
+                int storages = city.Buildings.Count(b => b.Definition.category == BuildingCategory.Storage);
+                if (Recently("Lager", 3) || storages >= 2 + population.TotalResidents / 60) return false;
                 // Lager voll nur bei Waren, die gebraucht werden (Überproduktion braucht kein Lager)
                 if (city.Buildings.Any(b => b.Status.StartsWith("Lager voll") &&
                                             goods.Any(g => b.Status.Contains(g.displayName) && MonthlyNeed(g) > 0f)))
-                    return Build("Lager", Center);
+                    return BuildStorage(Center);
                 var far = city.Buildings.Where(b => b.Definition.category != BuildingCategory.Storage &&
                                                     b.ConnectionIssue == "zu weit vom Lager").ToList();
                 if (far.Count >= 3)
@@ -368,8 +369,23 @@ namespace EpochCity
                     // Nur, wenn dort noch kein Lager steht
                     if (city.Buildings.Any(b => b.Definition.category == BuildingCategory.Storage &&
                                                 (b.Origin - c).sqrMagnitude < 64)) return false;
-                    return Build("Lager", c);
+                    return BuildStorage(c);
                 }
+                return false;
+            }
+
+            /// <summary>Baut das größte freigeschaltete Lager, das sich bezahlen lässt (Lagerstufen wie in Anno).</summary>
+            private bool BuildStorage(Vector2Int near)
+            {
+                var options = placer.hotbar.Where(d => d != null && d.category == BuildingCategory.Storage &&
+                                                       city.IsAvailable(d) && city.GetPlacementLock(d) == null)
+                                           .OrderByDescending(d => d.baseCapacity);
+                foreach (var def in options)
+                    if (Build(def.displayName, near))
+                    {
+                        MarkRecent("Lager");
+                        return true;
+                    }
                 return false;
             }
 

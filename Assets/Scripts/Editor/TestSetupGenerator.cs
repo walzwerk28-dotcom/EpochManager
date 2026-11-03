@@ -868,6 +868,18 @@ namespace EpochCity
             };
             theater.prefab = KeepModel(theater.prefab, () => CreatePrefab("Prefab_GrossesTheater", theater.size, 2.5f, new Color(0.9f, 0.86f, 0.75f)));
 
+            // Lagerstufen (2026-11-03, wie die Lagerhäuser in Anno, die mit den Bevölkerungsstufen besser werden): eigene
+            // Gebäude mit mehr Lagerplatz und Einzugsweite, freigeschaltet über Einwohner der Stufe (GetPlacementLock)
+            var storageMedium = StorageBuilding("Bld_LagerMittel", "Mittleres Lager", antike, new Vector2Int(2, 3),
+                300f, 4f, 100, 28f, artisans, 3, artisans, 50, new Color(0.55f, 0.42f, 0.28f));
+            storageMedium.materialCosts = Cost((boards, 10f), (stone, 8f));
+            var storageLarge = StorageBuilding("Bld_LagerGross", "Großes Lager", antike, new Vector2Int(3, 3),
+                600f, 7f, 180, 36f, artisans, 4, scholars, 40, new Color(0.60f, 0.46f, 0.31f));
+            storageLarge.materialCosts = Cost((boards, 16f), (stone, 20f), (ceramics, 10f));
+            storageMedium.menuTier = artisans;
+            storageLarge.menuTier = scholars;
+            storageMedium.layers = storageLarge.layers = storage.layers;
+
             foreach (var def in new[] { woodcutter, woodChopper, carpentry, forester })
                 def.fireRisk = 1.5f;
             foreach (var def in new[] { temple, academy, library, school, quarry, fireStation, field, oilPress, winePress, theater })
@@ -906,7 +918,8 @@ namespace EpochCity
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
-                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater
+                grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater,
+                storageMedium, storageLarge
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten
@@ -931,6 +944,7 @@ namespace EpochCity
                 if (def.HasStages) def.buildSeconds = 0f;
                 else if (def.zone != null) def.buildSeconds = 8f + area * 0.5f;          // 1 × 1: 8,5 s … 4 × 4: 16 s
                 else if (def == storage || def == school) def.buildSeconds = 12f;
+                else if (def == storageMedium) def.buildSeconds = 20f;
                 else def.buildSeconds = area <= 1 ? 10f : area <= 4 ? 20f : 30f;
                 EditorUtility.SetDirty(def);
             }
@@ -979,6 +993,33 @@ namespace EpochCity
         /// <summary>
         /// Einzeln gesetzter Produktionsbetrieb (2 × 2) mit einer Funktion: Eingang (oder keiner) → Ausgang je Zyklus.
         /// </summary>
+        /// <summary>Lager einer Stufe: Lagerplatz je Ware, Einzugsweite, Arbeitskräfte, frei ab so vielen Einwohnern einer Stufe.</summary>
+        private static BuildingDefinition StorageBuilding(string assetName, string displayName, EpochDefinition epoch,
+            Vector2Int size, float cost, float upkeep, int capacity, float catchment, PopulationTierDefinition workerTier,
+            int workers, PopulationTierDefinition requiredTier, int requiredResidents, Color placeholderColor)
+        {
+            var def = GetOrCreate<BuildingDefinition>(assetName);
+            def.displayName = displayName;
+            def.epoch = epoch;
+            def.category = BuildingCategory.Storage;
+            def.size = size;
+            def.buildCost = cost;
+            def.upkeepPerMonth = upkeep;
+            def.baseCapacity = capacity;
+            def.baseFunctions = new BuildingFunction[0];
+            def.layers = new BuildingLayer[0];
+            def.catchmentRange = catchment;
+            def.efficiencyByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.25f);
+            def.minEfficiency = 0.25f;
+            def.workerTier = workerTier;
+            def.workers = workers;
+            def.requiredTier = requiredTier;
+            def.requiredTierResidents = requiredResidents;
+            def.prefab = KeepModel(def.prefab,
+                () => CreatePrefab("Prefab_" + assetName.Substring(4), def.size, 1.8f, placeholderColor));
+            return def;
+        }
+
         private static BuildingDefinition ProductionBuilding(string assetName, string displayName, EpochDefinition epoch,
             float cost, float upkeep, string label, ResourceDefinition input, float inputAmount,
             ResourceDefinition output, float outputAmount, float cycleSeconds, Color placeholderColor)
