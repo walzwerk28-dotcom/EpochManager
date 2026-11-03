@@ -806,6 +806,65 @@ def atrium_roof(x0, x1, y0, y1, ox0, ox1, oy0, oy1, z_out, z_in, spout=TERRACOTT
         rod((mx - nx * 0.02, my - ny * 0.02, z_in - 0.01), (mx + nx * 0.16, my + ny * 0.16, z_in - 0.05), 0.025, spout, verts=6)
 
 
+def brick_bands(x0, x1, y0, y1, zs, faces=("-y", "+y", "-x", "+x")):
+    """Ziegelbänder im Kalkstein (Opus mixtum) auf den genannten Seiten eines Blocks."""
+    for z in zs:
+        if "-y" in faces:
+            box((x1 - x0, 0.012, 0.05), ((x0 + x1) / 2, y0 - 0.006, z), material=TILE_DARK)
+        if "+y" in faces:
+            box((x1 - x0, 0.012, 0.05), ((x0 + x1) / 2, y1 + 0.006, z), material=TILE_DARK)
+        if "-x" in faces:
+            box((0.012, y1 - y0, 0.05), (x0 - 0.006, (y0 + y1) / 2, z), material=TILE_DARK)
+        if "+x" in faces:
+            box((0.012, y1 - y0, 0.05), (x1 + 0.006, (y0 + y1) / 2, z), material=TILE_DARK)
+
+
+def buttress(face, plane, u, h, depth=0.16, width=0.16, material=LIME_DARK):
+    """Strebepfeiler an einer Wand: steht um depth vor, oben schräg zur Wand hin."""
+    nx, ny = FACES[face]
+    top_out, top_in = h * 0.72, h
+    if ny != 0:
+        pts = [(0.0, 0.0), (depth, 0.0), (depth, top_out), (0.0, top_in)]
+        pts = [(plane + ny * a, z) for a, z in pts]
+        slab(pts, "yz", u - width / 2, width, material)
+    else:
+        pts = [(0.0, 0.0), (depth, 0.0), (depth, top_out), (0.0, top_in)]
+        pts = [(plane + nx * a, z) for a, z in pts]
+        slab(pts, "xz", u - width / 2, width, material)
+
+
+def slit(face, plane, u, z, h=0.30):
+    """Schmaler Lüftungsschlitz mit Bank und Ziegelsturz (Speicherbauten)."""
+    at, size, _, _ = face_frame(face, plane)
+    box(size(0.05, 0.012, h), at(u, 0.004, z + h / 2), material=DARK)
+    box(size(0.11, 0.02, 0.04), at(u, 0.008, z + h + 0.02), material=TILE_DARK)
+    box(size(0.10, 0.03, 0.025), at(u, 0.012, z - 0.012), material=LIME)
+
+
+def barrel(x, y, z0=0.0, r=0.07, lying=False, yaw=0.0):
+    """Fass aus Dauben mit dunklen Reifen; stehend oder liegend (um yaw gedreht)."""
+    h = r * 2.6
+    if lying:
+        cyl(r, h, (x, y, z0 + r), rot=(0, 90, yaw), material=WOOD, verts=10)
+        c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        for k in (-0.32, 0.32):
+            cyl(r * 1.04, 0.012, (x + c * k * h, y + s * k * h, z0 + r), rot=(0, 90, yaw), material=WOOD_DARK, verts=10)
+    else:
+        cyl(r, h, (x, y, z0 + h / 2), material=WOOD, verts=10)
+        for k in (0.18, 0.82):
+            cyl(r * 1.04, 0.012, (x, y, z0 + h * k), material=WOOD_DARK, verts=10)
+        cyl(r * 0.92, 0.005, (x, y, z0 + h + 0.002), material=WOOD_DARK, verts=10)
+
+
+def hoist(x, y_wall, z, reach=0.45):
+    """Kranbalken aus der Giebelwand nach -y mit Rolle, Seil und hängendem Sack."""
+    box((0.06, reach + 0.10, 0.06), (x, y_wall - reach / 2 + 0.05, z), material=WOOD_DARK)
+    box((0.04, 0.30, 0.04), (x, y_wall - 0.14, z - 0.13), rot=(45, 0, 0), material=WOOD_DARK)
+    cyl(0.035, 0.03, (x, y_wall - reach + 0.03, z - 0.05), rot=(0, 90, 0), material=WOOD, verts=10)
+    box((0.008, 0.008, z - 0.75), (x, y_wall - reach + 0.03, (z + 0.70) / 2), material=SACK)
+    sack(x, y_wall - reach + 0.03, 0.42, 0.06)
+
+
 def impluvium(x, y, w, d):
     """Wasserbecken im Atrium: flacher Steinrand mit Wasser."""
     box((w, d, 0.06), (x, y, 0.03), material=LIME_DARK)

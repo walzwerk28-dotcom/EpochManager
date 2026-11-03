@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Mittleres Lager
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 4
-  prefab: {fileID: 8887079266260856575, guid: f2a8281fe3d4079428d351e8885664ca, type: 3}
+  prefab: {fileID: 5964276377724445896, guid: 0181f85055930b2408f77802de3ab1ef, type: 3}
   size: {x: 2, y: 3}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

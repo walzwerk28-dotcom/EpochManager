@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "Gro\xDFes Lager"
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 4
-  prefab: {fileID: 2043451702496934018, guid: 2125ab7f4d77fa14ea7031ed9e72d406, type: 3}
+  prefab: {fileID: 1925834795665165866, guid: f6d19efd75f9dfb44878c2456c4243d2, type: 3}
   size: {x: 3, y: 3}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
