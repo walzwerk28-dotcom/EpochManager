@@ -37,6 +37,15 @@ namespace EpochCity
         /// <summary>Anteil des nötigen Rohstoff-Vorkommens im Umkreis (0–1, 1 ohne Bedarf); berechnet von CityController.RefreshConnections.</summary>
         public float DepositFactor { get; set; } = 1f;
 
+        /// <summary>
+        /// Nur Holzfäller und Förster (BuildingDefinition.HasWorkArea): Felder, auf denen gefällt bzw. gepflanzt wird
+        /// (absolute Rasterfelder); sonst null. Gesetzt von CityController (Standard = Grundfläche plus Umkreis).
+        /// </summary>
+        public HashSet<Vector2Int> WorkArea { get; set; }
+
+        /// <summary>Faktor auf die Arbeitsgeschwindigkeit durch den Weg zur Mitte des Arbeitsbereichs (1 = nah).</summary>
+        public float TravelFactor { get; set; } = 1f;
+
         /// <summary>Grund für einen DepositFactor unter 1, z. B. „wenig Wald“.</summary>
         public string DepositIssue { get; set; } = "";
 

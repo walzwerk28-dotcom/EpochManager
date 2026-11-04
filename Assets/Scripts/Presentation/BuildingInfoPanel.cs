@@ -157,7 +157,7 @@ namespace EpochCity
                 var deposit = UiFactory.CreateBar(content, def.requiredDeposit.displayName, theme);
                 updaters.Add(() =>
                 {
-                    city.GetDepositFactor(def, b.Origin, b.Footprint, out int count);
+                    city.GetDepositFactor(b, out int count);
                     deposit.Set(b.DepositFactor, UiFactory.QualityColor(b.DepositFactor, theme),
                         $"{count} / {def.depositCellsForFull}");
                 });
@@ -165,7 +165,7 @@ namespace EpochCity
                 if (def.fellsDeposit)
                     Line(theme.textMuted, () =>
                     {
-                        int young = city.Grid.CountYoung(def.requiredDeposit, b.Origin, b.Footprint, def.depositRange);
+                        int young = CountInArea(b, def.requiredDeposit, true);
                         return young > 0 ? $"{young} Felder wachsen nach" : "nichts wächst nach";
                     });
             }
@@ -173,9 +173,13 @@ namespace EpochCity
             // Förster: Pflanzumkreis mit Wald und jungen Feldern
             if (def.plantsDeposit != null)
                 Line(theme.textMuted, () =>
-                    $"Pflanzt {def.plantsDeposit.displayName} im Umkreis {def.depositRange}: " +
-                    $"{city.Grid.CountDeposit(def.plantsDeposit, b.Origin, b.Footprint, def.depositRange)} ausgewachsen, " +
-                    $"{city.Grid.CountYoung(def.plantsDeposit, b.Origin, b.Footprint, def.depositRange)} jung");
+                    $"Pflanzt {def.plantsDeposit.displayName} im Arbeitsbereich: " +
+                    $"{CountInArea(b, def.plantsDeposit, false)} ausgewachsen, " +
+                    $"{CountInArea(b, def.plantsDeposit, true)} jung");
+
+            // Weg zum Arbeitsbereich (Holzfäller, Förster): nur wenn er Zeit kostet
+            if (def.HasWorkArea)
+                Line(theme.textMuted, () => b.TravelFactor < 0.995f ? $"Weg zum Arbeitsbereich {b.TravelFactor * 100f:0} %" : "");
 
             // Großbau: Bauphase mit dem Gelieferten, danach die Wirkung
             if (def.HasStages)
@@ -346,6 +350,16 @@ namespace EpochCity
             return fire.GetProtection(b) > 0f
                 ? $"Brennt! Die Feuerwehr löscht (Brandschutz {fire.GetProtection(b) * 100f:0} %)"
                 : $"Brennt! Ohne Löschen in {Mathf.CeilToInt(b.FireTimer)} s {outcome} – Feuerwache bauen";
+        }
+
+        /// <summary>Felder des Vorkommens im Arbeitsbereich: ausgewachsene oder junge.</summary>
+        private int CountInArea(BuildingInstance b, DepositDefinition deposit, bool young)
+        {
+            int n = 0;
+            if (b.WorkArea == null) return n;
+            foreach (var c in b.WorkArea)
+                if (city.Grid.GetDeposit(c) == deposit && city.Grid.IsYoung(c) == young) n++;
+            return n;
         }
 
         /// <summary>Textzeile, die sich bei jeder Aktualisierung neu füllt und bei leerem Text verschwindet.</summary>

@@ -48,6 +48,19 @@ namespace EpochCity
                  "depositRange; junge Felder dort wachsen in DepositDefinition.regrowMonthsTended Monaten nach")]
         public DepositDefinition plantsDeposit;
 
+        /// <summary>Hat einen frei wählbaren Arbeitsbereich: fällt oder pflanzt ein Vorkommen (Holzfäller, Förster).</summary>
+        public bool HasWorkArea => fellsDeposit || plantsDeposit != null;
+
+        [Header("Arbeitsbereich (Holzfäller, Förster)")]
+        [Tooltip("Frei wählbare Felder, auf denen gefällt bzw. gepflanzt wird (wie in Manor Lords); größter Abstand " +
+                 "eines Felds von der Grundfläche in Feldern")]
+        [Min(1)] public int workAreaMaxDistance = 12;
+        [Tooltip("Höchstzahl der Felder des Arbeitsbereichs")]
+        [Min(1)] public int workAreaMaxCells = 64;
+        [Tooltip("Faktor auf die Arbeitsgeschwindigkeit, wenn die Mitte des Bereichs workAreaMaxDistance entfernt liegt " +
+                 "(dazwischen linear): weite Wege kosten Zeit")]
+        [Range(0f, 1f)] public float workAreaFarFactor = 0.6f;
+
         [Header("Kosten")]
         public float buildCost = 100f;
         [Tooltip("Baumaterial aus dem Lager zusätzlich zum Geld (Zonengebäude wachsen trotzdem kostenlos)")]

@@ -354,7 +354,8 @@ namespace EpochCity
                     stage = b.Definition.HasStages ? b.Stage : -1,
                     stageMoney = b.StageMoney,
                     stageTimer = b.StageTimer,
-                    buildTimer = b.IsBuilding ? b.BuildTimer : -1f
+                    buildTimer = b.IsBuilding ? b.BuildTimer : -1f,
+                    workArea = EncodeWorkArea(b)
                 };
                 foreach (var d in b.Delivered)
                     if (d.Key != null) entry.delivered.Add(new AmountEntry(ContentRegistry.IdOf(d.Key), d.Value));
@@ -446,6 +447,17 @@ namespace EpochCity
                 for (int i = 0; i < functions.Count && i < entry.progress.Count; i++)
                     if (functions[i] != null) b.Progress[functions[i]] = entry.progress[i];
                 SetVariant(b, entry.variant);
+                // Arbeitsbereich ab Version 8; ältere Stände und leer: Standardbereich (schon gesetzt)
+                if (def.HasWorkArea && entry.workArea != null && entry.workArea.Length >= 2)
+                {
+                    var area = new HashSet<Vector2Int>();
+                    for (int i = 0; i + 1 < entry.workArea.Length; i += 2)
+                    {
+                        var c = new Vector2Int(b.Origin.x + entry.workArea[i], b.Origin.y + entry.workArea[i + 1]);
+                        if (city.Grid.InBounds(c)) area.Add(c);
+                    }
+                    if (area.Count > 0) b.WorkArea = area;
+                }
             }
             city.RefreshConnections();
 
@@ -480,6 +492,19 @@ namespace EpochCity
         }
 
         // Die Modellvariante ist reine Optik, wird aber mitgespeichert, damit die Stadt nach dem Laden gleich aussieht
+        /// <summary>Arbeitsbereich als Paare x, y relativ zum Ursprung; null beim Standardbereich (und ohne Bereich).</summary>
+        private int[] EncodeWorkArea(BuildingInstance b)
+        {
+            if (b.WorkArea == null || city.IsDefaultWorkArea(b)) return null;
+            var list = new List<int>(b.WorkArea.Count * 2);
+            foreach (var c in b.WorkArea)
+            {
+                list.Add(c.x - b.Origin.x);
+                list.Add(c.y - b.Origin.y);
+            }
+            return list.ToArray();
+        }
+
         private static int GetVariant(BuildingInstance b)
         {
             var variant = b.View != null ? b.View.GetComponent<RandomVariant>() : null;

@@ -279,6 +279,7 @@ namespace EpochCity
             ClearDeposits(GridMap.RectCells(origin, origin + footprint - Vector2Int.one));
             Grid.Place(placed);
             Buildings.Add(placed);
+            if (def.HasWorkArea) placed.WorkArea = GetDefaultWorkArea(placed);
 
             if (def.prefab != null)
                 placed.View = Instantiate(def.prefab, GetFootprintCenter(footprint, origin),
@@ -591,7 +592,8 @@ namespace EpochCity
         {
             foreach (var b in Buildings)
             {
-                b.DepositFactor = GetDepositFactor(b.Definition, b.Origin, b.Footprint, out _);
+                b.DepositFactor = GetDepositFactor(b, out _);
+                b.TravelFactor = GetTravelFactor(b);
                 var deposit = b.Definition.requiredDeposit;
                 b.DepositIssue = deposit == null || b.DepositFactor >= 1f ? ""
                     : b.DepositFactor <= 0f ? $"kein {deposit.displayName}" : $"wenig {deposit.displayName}";
@@ -616,6 +618,105 @@ namespace EpochCity
             if (def == null || def.requiredDeposit == null) return 1f;
             count = Grid.CountDeposit(def.requiredDeposit, origin, footprint, def.depositRange);
             return Mathf.Clamp01(count / (float)Mathf.Max(1, def.depositCellsForFull));
+        }
+
+        /// <summary>
+        /// Anteil des nötigen Vorkommens eines Gebäudes: bei Holzfäller und Förster zählen die ausgewachsenen Felder
+        /// im Arbeitsbereich, sonst Grundfläche und Umkreis (wie die Überladung ohne Instanz).
+        /// </summary>
+        public float GetDepositFactor(BuildingInstance b, out int count)
+        {
+            var def = b.Definition;
+            count = 0;
+            if (def.requiredDeposit == null) return 1f;
+            if (b.WorkArea == null) return GetDepositFactor(def, b.Origin, b.Footprint, out count);
+            foreach (var c in b.WorkArea)
+                if (Grid.GetDeposit(c) == def.requiredDeposit && !Grid.IsYoung(c)) count++;
+            return Mathf.Clamp01(count / (float)Mathf.Max(1, def.depositCellsForFull));
+        }
+
+        // ---------------------------------------------------------------- Arbeitsbereich
+
+        /// <summary>Wird ausgelöst, wenn sich der Arbeitsbereich eines Gebäudes geändert hat.</summary>
+        public event Action<BuildingInstance> WorkAreaChanged;
+
+        /// <summary>Standardbereich: Grundfläche plus quadratischer Umkreis depositRange, soweit auf der Karte.</summary>
+        public HashSet<Vector2Int> GetDefaultWorkArea(BuildingInstance b) =>
+            new HashSet<Vector2Int>(RangeCells(b, b.Definition.depositRange));
+
+        /// <summary>Entspricht der Arbeitsbereich dem Standardbereich (oder gibt es keinen)?</summary>
+        public bool IsDefaultWorkArea(BuildingInstance b) =>
+            b.WorkArea == null || b.WorkArea.SetEquals(GetDefaultWorkArea(b));
+
+        /// <summary>Größter Abstand (Chebyshev) eines Felds von der Grundfläche des Gebäudes; 0 innerhalb.</summary>
+        public static int DistanceToBuilding(BuildingInstance b, Vector2Int c)
+        {
+            int dx = Mathf.Max(b.Origin.x - c.x, 0, c.x - (b.Origin.x + b.Footprint.x - 1));
+            int dy = Mathf.Max(b.Origin.y - c.y, 0, c.y - (b.Origin.y + b.Footprint.y - 1));
+            return Mathf.Max(dx, dy);
+        }
+
+        /// <summary>
+        /// Setzt den Arbeitsbereich (Holzfäller, Förster). Abgelehnt, wenn leer, ein Feld außerhalb der Karte oder weiter
+        /// als workAreaMaxDistance von der Grundfläche liegt oder mehr als workAreaMaxCells Felder gewählt sind.
+        /// Mehrere Gebäude dürfen sich Felder teilen.
+        /// </summary>
+        public bool TrySetWorkArea(BuildingInstance b, IEnumerable<Vector2Int> cells, out string issue)
+        {
+            issue = null;
+            if (b == null || !b.Definition.HasWorkArea) { issue = "kein Arbeitsbereich"; return false; }
+            var def = b.Definition;
+            var area = new HashSet<Vector2Int>();
+            foreach (var c in cells)
+            {
+                if (!Grid.InBounds(c)) { issue = "außerhalb der Karte"; return false; }
+                if (DistanceToBuilding(b, c) > def.workAreaMaxDistance)
+                {
+                    issue = $"zu weit vom Gebäude (max. {def.workAreaMaxDistance} Felder)";
+                    return false;
+                }
+                area.Add(c);
+            }
+            if (area.Count == 0) { issue = "leer"; return false; }
+            if (area.Count > def.workAreaMaxCells) { issue = $"zu groß (max. {def.workAreaMaxCells} Felder)"; return false; }
+            b.WorkArea = area;
+            AfterWorkAreaChanged(b);
+            return true;
+        }
+
+        /// <summary>Stellt den Standardbereich wieder her.</summary>
+        public void ResetWorkArea(BuildingInstance b)
+        {
+            if (b == null || !b.Definition.HasWorkArea) return;
+            b.WorkArea = GetDefaultWorkArea(b);
+            AfterWorkAreaChanged(b);
+        }
+
+        private void AfterWorkAreaChanged(BuildingInstance b)
+        {
+            RefreshDepositFactors();
+            WorkAreaChanged?.Invoke(b);
+            DepositsChanged?.Invoke();
+        }
+
+        public bool IsInWorkArea(BuildingInstance b, Vector2Int c) =>
+            b != null && (b.WorkArea != null ? b.WorkArea.Contains(c)
+                : c.x >= b.Origin.x - b.Definition.depositRange && c.x < b.Origin.x + b.Footprint.x + b.Definition.depositRange &&
+                  c.y >= b.Origin.y - b.Definition.depositRange && c.y < b.Origin.y + b.Footprint.y + b.Definition.depositRange);
+
+        /// <summary>
+        /// Wegfaktor: Mitte des Bereichs (Mittelwert, gerundet) im Abstand d von der Grundfläche →
+        /// lerp(1, workAreaFarFactor, d / workAreaMaxDistance). Standardbereich: Mitte in der Grundfläche → 1.
+        /// </summary>
+        public float GetTravelFactor(BuildingInstance b)
+        {
+            if (b.WorkArea == null || b.WorkArea.Count == 0) return 1f;
+            float sx = 0f, sy = 0f;
+            foreach (var c in b.WorkArea) { sx += c.x; sy += c.y; }
+            var center = new Vector2Int(Mathf.RoundToInt(sx / b.WorkArea.Count), Mathf.RoundToInt(sy / b.WorkArea.Count));
+            var def = b.Definition;
+            float t = Mathf.Clamp01(DistanceToBuilding(b, center) / (float)Mathf.Max(1, def.workAreaMaxDistance));
+            return Mathf.Lerp(1f, def.workAreaFarFactor, t);
         }
 
         /// <summary>Kein Feld der Grundfläche trägt ein Vorkommen, das Bauen verhindert – außer dem, das das Gebäude braucht.</summary>
@@ -677,6 +778,10 @@ namespace EpochCity
                 }
         }
 
+        /// <summary>Felder, auf denen das Gebäude arbeitet: sein Arbeitsbereich, sonst der Standardumkreis.</summary>
+        private IEnumerable<Vector2Int> WorkCells(BuildingInstance building) =>
+            building.WorkArea ?? (IEnumerable<Vector2Int>)RangeCells(building, building.Definition.depositRange);
+
         private static float DistanceSq(BuildingInstance building, Vector2Int c) =>
             ((Vector2)c + Vector2.one * 0.5f - ((Vector2)building.Origin + (Vector2)building.Footprint * 0.5f)).sqrMagnitude;
 
@@ -690,7 +795,7 @@ namespace EpochCity
             if (deposit == null) return false;
             Vector2Int best = default;
             float bestDistance = -1f;
-            foreach (var c in RangeCells(building, building.Definition.depositRange))
+            foreach (var c in WorkCells(building))
             {
                 if (Grid.GetDeposit(c) != deposit || Grid.IsYoung(c)) continue;
                 float d = DistanceSq(building, c);
@@ -716,7 +821,7 @@ namespace EpochCity
             Vector2Int best = default;
             bool found = false, bestNext = false;
             float bestDistance = 0f;
-            foreach (var c in RangeCells(building, building.Definition.depositRange))
+            foreach (var c in WorkCells(building))
             {
                 if (Grid.GetAt(c) != null || Grid.HasRoad(c) || Grid.GetZone(c) != null || Grid.GetDeposit(c) != null) continue;
                 bool next = false;
@@ -742,9 +847,7 @@ namespace EpochCity
             {
                 var def = b.Definition;
                 if (def.plantsDeposit != deposit || b.IsOutOfService) continue;
-                if (c.x >= b.Origin.x - def.depositRange && c.x < b.Origin.x + b.Footprint.x + def.depositRange &&
-                    c.y >= b.Origin.y - def.depositRange && c.y < b.Origin.y + b.Footprint.y + def.depositRange)
-                    return true;
+                if (IsInWorkArea(b, c)) return true;
             }
             return false;
         }

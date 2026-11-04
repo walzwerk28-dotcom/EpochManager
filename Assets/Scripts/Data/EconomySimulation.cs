@@ -154,7 +154,7 @@ namespace EpochCity
                 string workforceIssue = building.WorkforceFactor < 1f
                     ? $"zu wenig {workerTier.GetName(city.currentEpoch)}" : null;
                 string issue = string.Join(", ", System.Array.FindAll(
-                    new[] { building.ConnectionIssue, building.DepositIssue, workforceIssue,
+                    new[] { building.ConnectionIssue, building.DepositIssue, building.TravelFactor < 0.95f ? "weiter Weg" : null, workforceIssue,
                             upkeepUnpaid ? "Unterhalt nicht bezahlt" : null },
                     s => !string.IsNullOrEmpty(s)));
                 if (functions.Count == 0) building.Status = "";
@@ -383,8 +383,9 @@ namespace EpochCity
             city.FellDeposit(building);
         }
 
-        /// <summary>Anbindung × Anteil des nötigen Vorkommens, beides berechnet von CityController.RefreshConnections.</summary>
-        private float GetEfficiency(BuildingInstance building) => building.Connection * building.DepositFactor;
+        /// <summary>Anbindung × Anteil des nötigen Vorkommens × Weg zum Arbeitsbereich, alles berechnet von CityController.RefreshConnections.</summary>
+        private float GetEfficiency(BuildingInstance building) =>
+            building.Connection * building.DepositFactor * building.TravelFactor;
 
         /// <summary>Passt die ganze Ausgabe eines Zyklus noch ins Lager (StorageCapacity je Ware)?</summary>
         private bool HasRoom(ResourceAmount[] outputs, float multiplier, out string full)
