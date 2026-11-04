@@ -62,7 +62,7 @@ for k in range(1, n):
     gh = (ridge - BH - 0.05) * (1 - abs(x - xc) / half)
     if gh > 0.06:
         box((0.008, 0.006, gh), (x, BY0 - 0.003, BH + gh / 2), material=WOOD_DARK)
-# breites, halb offenes Tor: links ein Flügel nach außen aufgeschwenkt, rechts geschlossen mit Zierstrebe
+# breites Tor mit zwei geschlossenen Bohlenflügeln, Zierstreben und Riegelbalken
 GW, GH, GZ = 0.56, 0.84, 0.09
 gu = xc
 box((GW, 0.012, GH), (gu, BY0 + 0.004 - 0.0, GZ + GH / 2), material=DARK)
@@ -70,20 +70,16 @@ for s in (-1, 1):
     box((0.05, 0.03, GH + 0.02), (gu + s * (GW / 2 + 0.025), BY0 - 0.012, GZ + GH / 2), material=WOOD_DARK)
 box((GW + 0.14, 0.035, 0.06), (gu, BY0 - 0.015, GZ + GH + 0.02), material=WOOD_DARK)
 box((GW + 0.08, 0.09, 0.04), (gu, BY0 - 0.045, 0.02), material=STONE)
-box((GW / 2 - 0.01, 0.02, GH - 0.01), (gu + GW / 4, BY0 - 0.012, GZ + GH / 2), material=WOOD)       # rechter Flügel zu
-bar((gu + 0.02, BY0 - 0.026, GZ + 0.04), (gu + GW / 2 - 0.02, BY0 - 0.026, GZ + GH - 0.04), 0.022, WOOD_DARK)
-for z in (GZ + 0.16, GZ + GH - 0.16):
-    box((GW / 2 - 0.04, 0.006, 0.022), (gu + GW / 4, BY0 - 0.025, z), material=IRON)
-a = math.radians(72)                                                    # linker Flügel offen
-hinge = (gu - GW / 2, BY0 - 0.012)
-d = (math.cos(a), -math.sin(a))
-c = (hinge[0] + d[0] * GW / 4, hinge[1] + d[1] * GW / 4)
-box((GW / 2 - 0.01, 0.02, GH - 0.01), (c[0], c[1], GZ + GH / 2), rot=(0, 0, math.degrees(math.atan2(d[1], d[0]))),
-    material=WOOD)
-# Heu quillt flach aus dem offenen Flügel
-for dx, dy, r, sz in ((-0.12, 0.02, 0.15, 0.40), (-0.05, -0.07, 0.13, 0.32), (-0.16, -0.11, 0.10, 0.28),
-                      (0.00, -0.14, 0.08, 0.25)):
-    sphere(r, (gu + dx, BY0 + dy, GZ + r * sz * 0.6), (1.25, 1.0, sz), STRAW, segs=10, rings=5, rot=(0, 0, dx * 300))
+for s in (-1, 1):                                                       # beide Flügel zu, Streben gespiegelt
+    box((GW / 2 - 0.01, 0.02, GH - 0.01), (gu + s * GW / 4, BY0 - 0.012, GZ + GH / 2), material=WOOD)
+    bar((gu + s * 0.02, BY0 - 0.026, GZ + 0.04), (gu + s * (GW / 2 - 0.02), BY0 - 0.026, GZ + GH - 0.04), 0.022,
+        WOOD_DARK)
+    for z in (GZ + 0.16, GZ + GH - 0.16):
+        box((GW / 2 - 0.04, 0.006, 0.022), (gu + s * GW / 4, BY0 - 0.025, z), material=IRON)
+box((0.006, 0.006, GH - 0.03), (gu, BY0 - 0.023, GZ + GH / 2), material=DARK)    # Fuge zwischen den Flügeln
+box((0.22, 0.03, 0.035), (gu, BY0 - 0.040, GZ + GH * 0.52), material=WOOD_DARK)  # Riegelbalken
+for s in (-1, 1):
+    box((0.025, 0.035, 0.06), (gu + s * 0.13, BY0 - 0.035, GZ + GH * 0.52), material=IRON)
 # Heugabel an den geschlossenen Torflügel gelehnt, Zinken nach oben
 fx, fy = gu + 0.17, BY0 - 0.05
 rod((fx, fy - 0.12, 0.0), (fx, fy, 0.56), 0.008, WOOD, verts=5)
