@@ -1,7 +1,7 @@
 """
 Heiliger Hain (Antike), 2 x 2 Felder (4 x 4 m): Hain aus Oliven, Lorbeer und Zypressen im Kreis um eine Lichtung.
 In der Mitte ein kleiner Altar aus Kalkstein auf zwei Stufen mit Opferschale und Girlande, davor eine Steinbank;
-niedrige Steinmauer mit Durchgang zur Straße (-Y), Trittplatten vom Eingang zum Altar, Blumenbeete, Büsche, Blumen
+Trockenmauer aus grauen Bruchsteinen mit Lücken (Büsche) und Durchgang zur Straße (-Y) zwischen zwei Steinpfosten, Trittplatten vom Eingang zum Altar, Blumenbeete, Büsche, Blumen
 am Fuß der Bäume und eine Herme in der vorderen Ecke.
 
 Aufruf (ohne Fenster):
@@ -20,28 +20,22 @@ random.seed(9)
 
 AX, AY = 0.0, 0.10                       # Altar in der Mitte der Lichtung
 
-# ---------------------------------------------------------------- niedrige Steinmauer mit Durchgang
-E = 1.70
+# ---------------------------------------------------------------- niedrige Trockenmauer, an mehreren Stellen offen
+E = 1.62
 GATE = 0.34
-
-
-def wall_piece(xa, ya, xb, yb):
-    length = math.hypot(xb - xa, yb - ya)
-    yaw = math.degrees(math.atan2(yb - ya, xb - xa))
-    mx, my = (xa + xb) / 2, (ya + yb) / 2
-    box((length, 0.12, 0.22), (mx, my, 0.11), rot=(0, 0, yaw), material=STONE)
-    box((length + 0.01, 0.16, 0.04), (mx, my, 0.24), rot=(0, 0, yaw), material=LIME)
-
-
-wall_piece(-E, -E, -GATE, -E)
-wall_piece(GATE, -E, E, -E)
-wall_piece(-E, E, E, E)
-wall_piece(-E, -E, -E, E)
-wall_piece(E, -E, E, E)
-for s in (-1, 1):                                       # Torpfeiler mit Deckplatte
-    box((0.18, 0.18, 0.46), (s * (GATE + 0.02), -E, 0.23), material=LIME)
-    box((0.24, 0.24, 0.05), (s * (GATE + 0.02), -E, 0.485), material=LIME_DARK)
-    cone(0.07, 0.0, 0.10, (s * (GATE + 0.02), -E, 0.56), LIME, verts=4, rot=(0, 0, 45))
+dry_stone_wall((-E, -E), (-GATE - 0.12, -E), seed=1)
+dry_stone_wall((GATE + 0.12, -E), (E, -E), gaps=[(0.55, 0.78)], seed=2)
+dry_stone_wall((-E, E), (E, E), gaps=[(0.66, 0.84)], seed=3)
+dry_stone_wall((-E, -E), (-E, E), gaps=[(0.46, 0.62), (0.80, 0.90)], seed=4)
+dry_stone_wall((E, -E), (E, E), gaps=[(0.24, 0.40)], seed=5)
+stone_post(-GATE - 0.04, -E, 0.36)
+stone_post(GATE + 0.04, -E, 0.36)
+# Büsche in den Lücken und davor
+bush(1.10, 1.64, 0.17, LEAF)
+bush(-1.64, 0.30, 0.17, LEAF_DARK)
+bush(-1.66, 1.20, 0.14, LAUREL)
+bush(1.66, -1.00, 0.16, LEAF)
+bush(1.36, -1.64, 0.13, LAUREL)
 
 # ---------------------------------------------------------------- Altar auf zwei Stufen
 box((1.00, 1.00, 0.06), (AX, AY, 0.03), material=LIME_DARK)
@@ -103,7 +97,7 @@ flower_bed(0.30, 0.80, -1.30, -1.00, bloom=LAVENDER, foliage=HERB_GREY, seed=12,
 bush(-1.52, 1.48, 0.17, LEAF)
 bush(1.52, 1.48, 0.17, LEAF_DARK)
 bush(0.0, 1.58, 0.16, LAUREL)
-bush(1.55, -1.40, 0.13, LEAF)
+
 herm(-1.50, -1.32, h=0.46)
 pot_plant(-0.30, -1.45, 0.06, leaves=LAUREL)
 pot_plant(0.30, -1.45, 0.06, leaves=LAUREL)

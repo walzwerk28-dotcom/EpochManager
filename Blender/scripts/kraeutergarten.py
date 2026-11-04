@@ -1,6 +1,6 @@
 """
 Kräutergarten (Antike), 1 x 1 Feld (2 x 2 m): kleiner römischer Nutz- und Ziergarten.
-Niedrige Steinkante rundum mit Eingang zur Straße (-Y), Kiesweg in Kreuzform, vier Kräuterbeete in verschiedenen
+Niedriger Flechtzaun rundum mit kleinem Holztor zur Straße (-Y), Kiesweg in Kreuzform, vier Kräuterbeete mit Holzkante in verschiedenen
 Grüntönen (Lavendel, Gelb, Weiß), in der Wegmitte eine kleine Sonnenuhr, hinten eine Laube mit Steinbank und
 Rankpflanzen, Amphoren und Topfpflanzen in den Ecken.
 
@@ -18,22 +18,26 @@ from roemisch import *  # noqa: E402,F401,F403
 
 random.seed(5)
 
-# ---------------------------------------------------------------- Einfassung mit Eingang vorn
+# ---------------------------------------------------------------- Flechtzaun mit kleinem Holztor vorn
 E = 0.86
 GATE = 0.17
-for (xa, xb) in ((-E, -GATE), (GATE, E)):
-    cx = (xa + xb) / 2
-    box((xb - xa, 0.08, 0.12), (cx, -E, 0.06), material=LIME_DARK)
-    box((xb - xa + 0.01, 0.10, 0.025), (cx, -E, 0.1325), material=LIME)
-box((2 * E, 0.08, 0.12), (0, E, 0.06), material=LIME_DARK)
-box((2 * E + 0.01, 0.10, 0.025), (0, E, 0.1325), material=LIME)
-for s in (-1, 1):
-    box((0.08, 2 * E - 0.08, 0.12), (s * E, 0, 0.06), material=LIME_DARK)
-    box((0.10, 2 * E - 0.08, 0.025), (s * E, 0, 0.1325), material=LIME)
-for s in (-1, 1):                                       # Torpfosten mit Topfpflanze obenauf
-    box((0.09, 0.09, 0.26), (s * (GATE + 0.02), -E, 0.13), material=LIME)
-    box((0.11, 0.11, 0.03), (s * (GATE + 0.02), -E, 0.275), material=LIME_DARK)
-    pot_plant(s * (GATE + 0.02), -E, 0.032, leaves=LEAF)
+wattle_fence([(-E, -E), (-GATE - 0.02, -E)])
+wattle_fence([(GATE + 0.02, -E), (E, -E), (E, E), (-E, E), (-E, -E)])
+for sx in (-1, 1):                                      # Torpfosten: etwas höher als der Zaun, mit Kappe
+    px = sx * (GATE + 0.02)
+    box((0.05, 0.05, 0.32), (px, -E, 0.16), material=WOOD_DARK)
+    box((0.065, 0.065, 0.025), (px, -E, 0.332), material=WOOD)
+# Lattentür, links angeschlagen und 70 Grad nach innen aufgeschwenkt
+hx, hy = -(GATE + 0.02) + 0.02, -E
+yaw = 70
+dx, dy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+LEAF_W = 0.28
+for z in (0.07, 0.24):
+    box((LEAF_W, 0.02, 0.025), (hx + dx * LEAF_W / 2, hy + dy * LEAF_W / 2, z), rot=(0, 0, yaw), material=WOOD_DARK)
+for k in range(6):
+    d = 0.02 + k * (LEAF_W - 0.03) / 5
+    box((0.028, 0.014, 0.23), (hx + dx * d, hy + dy * d, 0.155), rot=(0, 0, yaw), material=WOOD)
+bar((hx + dx * 0.02, hy + dy * 0.02, 0.07), (hx + dx * (LEAF_W - 0.01), hy + dy * (LEAF_W - 0.01), 0.24), 0.018, WOOD_DARK)
 
 # ---------------------------------------------------------------- Wege: Kreuz aus Trittplatten
 CX, CY = 0.0, -0.21
@@ -41,10 +45,10 @@ path([(0.0, -0.84), (0.0, 0.50)], w=0.15)
 path([(-0.80, CY), (0.80, CY)], w=0.15)
 
 # ---------------------------------------------------------------- vier Kräuterbeete
-flower_bed(-0.80, -0.11, -0.80, -0.31, bloom=LAVENDER, foliage=HERB_GREY, seed=1, step=0.19)
-flower_bed(0.11, 0.80, -0.80, -0.31, bloom=BLOOM_YELLOW, foliage=LEAF, seed=2, step=0.19)
-flower_bed(-0.80, -0.11, -0.11, 0.38, bloom=BLOOM_WHITE, foliage=HERB_LIGHT, seed=3, step=0.19)
-flower_bed(0.11, 0.80, -0.11, 0.38, bloom=LAVENDER, foliage=LEAF_DARK, seed=4, step=0.19)
+flower_bed(-0.80, -0.11, -0.80, -0.31, bloom=LAVENDER, foliage=HERB_GREY, seed=1, step=0.21, edge=WOOD_DARK)
+flower_bed(0.11, 0.80, -0.80, -0.31, bloom=BLOOM_YELLOW, foliage=LEAF, seed=2, step=0.21, edge=WOOD_DARK)
+flower_bed(-0.80, -0.11, -0.11, 0.38, bloom=BLOOM_WHITE, foliage=HERB_LIGHT, seed=3, step=0.21, edge=WOOD_DARK)
+flower_bed(0.11, 0.80, -0.11, 0.38, bloom=LAVENDER, foliage=LEAF_DARK, seed=4, step=0.21, edge=WOOD_DARK)
 
 # ---------------------------------------------------------------- Sonnenuhr in der Wegmitte
 cyl(0.05, 0.05, (CX, CY, 0.025), material=LIME_DARK, verts=10)

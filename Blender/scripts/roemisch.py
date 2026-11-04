@@ -1074,6 +1074,76 @@ def herm(x, y, yaw=0.0, h=0.40):
     sphere(0.045, (x, y, h + 0.07), (1.0, 1.0, 1.1), MARBLE, segs=8, rings=5)
 
 
+ROCK_A = mat("FelsGrauA", (0.50, 0.49, 0.47), rough=0.95)
+ROCK_B = mat("FelsGrauB", (0.61, 0.60, 0.57), rough=0.95)
+ROCK_C = mat("FelsGrauC", (0.41, 0.40, 0.39), rough=0.95)
+WICKER = mat("Weide", (0.70, 0.54, 0.32))
+WICKER_DARK = mat("WeideDunkel", (0.50, 0.37, 0.22))
+
+
+def dry_stone_wall(p0, p1, h=0.15, gaps=(), seed=0):
+    """Niedrige Trockenmauer aus rauen Bruchsteinen (Quader, leicht gekippt, drei Grautöne) in zwei Lagen mit wellig
+    unregelmäßiger Oberkante. gaps = Liste von (t0, t1) mit Anteilen 0..1 der Strecke, an denen sie unterbrochen ist."""
+    rnd = random.Random(seed)
+    (xa, ya), (xb, yb) = p0, p1
+    length = math.hypot(xb - xa, yb - ya)
+    yaw0 = math.degrees(math.atan2(yb - ya, xb - xa))
+    ux, uy = (xb - xa) / length, (yb - ya) / length
+    mats = (ROCK_A, ROCK_B, ROCK_C)
+    for row in range(2):
+        z_base = 0.0 if row == 0 else h * 0.52
+        s = 0.07 + (0.0 if row == 0 else 0.08)
+        while s < length - 0.05:
+            w = rnd.uniform(0.12, 0.20)
+            t = (s + w / 2) / length
+            ok = not any(g0 <= t <= g1 for g0, g1 in gaps)
+            if ok:
+                hh = (h * 0.55 if row == 0 else h * 0.48) * rnd.uniform(0.85, 1.15) + (0.02 * math.sin(s * 9) if row else 0)
+                d = rnd.uniform(0.11, 0.15)
+                cx, cy = xa + ux * (s + w / 2), ya + uy * (s + w / 2)
+                off = rnd.uniform(-0.012, 0.012)
+                box((w, d, hh), (cx - uy * off, cy + ux * off, z_base + hh / 2),
+                    rot=(rnd.uniform(-5, 5), rnd.uniform(-5, 5), yaw0 + rnd.uniform(-9, 9)), material=rnd.choice(mats))
+            s += w + 0.012
+
+
+def stone_post(x, y, h=0.34, yaw=0.0):
+    """Kleiner rauer Steinpfosten: übereinandergesetzte, leicht verdrehte graue Blöcke mit Deckstein."""
+    rnd = random.Random(int(x * 91 + y * 37) + 5)
+    z = 0.0
+    n = 3
+    for i in range(n):
+        hh = (h - 0.05) / n
+        w = 0.16 - 0.012 * i + rnd.uniform(-0.01, 0.01)
+        box((w, w, hh), (x, y, z + hh / 2), rot=(0, 0, yaw + rnd.uniform(-12, 12)), material=(ROCK_A, ROCK_B, ROCK_C)[i % 3])
+        z += hh
+    box((0.17, 0.15, 0.05), (x, y, z + 0.025), rot=(rnd.uniform(-4, 4), rnd.uniform(-4, 4), yaw + 8), material=ROCK_B)
+
+
+def wattle_fence(points, h=0.20, spacing=0.30):
+    """Flechtzaun: Holzpfosten alle spacing m, dazwischen waagerechte Weidenruten, die abwechselnd vor und hinter den
+    Pfosten laufen (dünne Stäbe in zwei Holzfarben)."""
+    for (xa, ya), (xb, yb) in zip(points, points[1:]):
+        length = math.hypot(xb - xa, yb - ya)
+        n = max(1, round(length / spacing))
+        ux, uy = (xb - xa) / length, (yb - ya) / length
+        yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+        for k in range(n):
+            t0, t1 = k * length / n, (k + 1) * length / n
+            cx, cy = xa + ux * (t0 + t1) / 2, ya + uy * (t0 + t1) / 2
+            for r, z in enumerate((0.055, 0.105, 0.155)):
+                side = 0.014 if (k + r) % 2 == 0 else -0.014
+                box((t1 - t0 + 0.012, 0.016, 0.020), (cx - uy * side, cy + ux * side, z), rot=(0, 0, yaw),
+                    material=WICKER if (k + r) % 3 else WICKER_DARK)
+    for (xa, ya), (xb, yb) in zip(points, points[1:]):
+        length = math.hypot(xb - xa, yb - ya)
+        n = max(1, round(length / spacing))
+        for k in range(n + 1):
+            if k == 0 and (xa, ya) != points[0]:
+                continue
+            box((0.032, 0.032, h + 0.04), (xa + (xb - xa) * k / n, ya + (yb - ya) * k / n, (h + 0.04) / 2), material=WOOD_DARK)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 
