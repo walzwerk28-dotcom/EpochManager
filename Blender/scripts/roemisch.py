@@ -856,13 +856,14 @@ def barrel(x, y, z0=0.0, r=0.07, lying=False, yaw=0.0):
         cyl(r * 0.92, 0.005, (x, y, z0 + h + 0.002), material=WOOD_DARK, verts=10)
 
 
-def hoist(x, y_wall, z, reach=0.45):
-    """Kranbalken aus der Giebelwand nach -y mit Rolle, Seil und hängendem Sack."""
+def hoist(x, y_wall, z, reach=0.45, sack_z=0.42):
+    """Kranbalken aus der Giebelwand nach -y mit Rolle, Seil und hängendem Sack (Unterkante sack_z)."""
     box((0.06, reach + 0.10, 0.06), (x, y_wall - reach / 2 + 0.05, z), material=WOOD_DARK)
     box((0.04, 0.30, 0.04), (x, y_wall - 0.14, z - 0.13), rot=(45, 0, 0), material=WOOD_DARK)
     cyl(0.035, 0.03, (x, y_wall - reach + 0.03, z - 0.05), rot=(0, 90, 0), material=WOOD, verts=10)
-    box((0.008, 0.008, z - 0.75), (x, y_wall - reach + 0.03, (z + 0.70) / 2), material=SACK)
-    sack(x, y_wall - reach + 0.03, 0.42, 0.06)
+    rope = sack_z + 0.305                                                      # Seil endet am Hals des Sacks
+    box((0.008, 0.008, z - rope), (x, y_wall - reach + 0.03, (z + rope) / 2), material=SACK)
+    sack(x, y_wall - reach + 0.03, sack_z, 0.06)
 
 
 def impluvium(x, y, w, d):
@@ -881,6 +882,52 @@ def fountain_bowl(x, y, r=0.16):
 def bush(x, y, r=0.12, leaves=LEAF):
     """Runder Busch."""
     sphere(r, (x, y, r * 0.8), (1.0, 1.0, 0.85), leaves, segs=8, rings=5)
+
+
+def plank_wall(x0, x1, y0, y1, h, faces=("-y", "+y", "-x", "+x"), step=0.10):
+    """Bohlenwand (Scheune, Schuppen): Holzblock auf Bruchsteinsockel mit senkrechten Fugen zwischen den Bohlen auf den
+    genannten Seiten, Eckpfosten und einem Rähm oben."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, y1 - y0, h), (cx, cy, h / 2), material=WOOD)
+    box((x1 - x0 + 0.04, y1 - y0 + 0.04, 0.12), (cx, cy, 0.06), material=STONE)
+    box((x1 - x0 + 0.03, y1 - y0 + 0.03, 0.04), (cx, cy, h - 0.02), material=WOOD_DARK)     # Rähm
+    for face in faces:
+        plane = {"-y": y0, "+y": y1, "-x": x0, "+x": x1}[face]
+        at, size, _, _ = face_frame(face, plane)
+        lo, hi = (x0, x1) if face in ("-y", "+y") else (y0, y1)
+        n = int((hi - lo) / step)
+        for k in range(1, n):
+            box(size(0.008, 0.006, h - 0.20), at(lo + k * (hi - lo) / n, 0.003, 0.12 + (h - 0.20) / 2), material=WOOD_DARK)
+    for x, y in ((x0, y0), (x1, y0), (x0, y1), (x1, y1)):
+        box((0.06, 0.06, h - 0.10), (x, y, 0.12 + (h - 0.10) / 2), material=WOOD_DARK)
+
+
+def sheaf(x, y, lean=0.0, yaw=0.0):
+    """Garbe (Getreidebündel, etwa 45 cm hoch): unten breit, oben mit einem Band zusammengebunden, oben die Ähren;
+    lean = Neigung in Grad nach der Richtung yaw (0 = nach +y)."""
+    a, l = math.radians(yaw), math.radians(lean)
+    dx, dy = -math.sin(a) * math.sin(l), math.cos(a) * math.sin(l)
+    tilt = (lean * math.cos(a) * -1, lean * math.sin(a) * -1, 0.0)
+    k = 0.62                                                                   # kleiner als echt, wie die Häuser
+    cone(0.085 * k, 0.04 * k, 0.34 * k, (x + dx * 0.17 * k, y + dy * 0.17 * k, 0.17 * k), STRAW, verts=8, rot=tilt)
+    cyl(0.05 * k, 0.03 * k, (x + dx * 0.27 * k, y + dy * 0.27 * k, 0.27 * k), material=WOOD_DARK, verts=8, rot=tilt)
+    cone(0.06 * k, 0.0, 0.12 * k, (x + dx * 0.40 * k, y + dy * 0.40 * k, 0.40 * k), STRAW, verts=8, rot=tilt)
+
+
+def plough(x, y, yaw=0.0):
+    """Hakenpflug (Ard) im Maßstab der übrigen Geräte: Sohle mit eiserner Schar, Grindel zum Joch hin ansteigend,
+    Stütze, Sterz mit Griff und Querjoch; Zugrichtung = yaw (0 = +x)."""
+    at = placed((x, y), yaw)
+
+    def P(lx, ly, lz):
+        return at((lx * S, ly * S, lz * S))
+    bar(P(-0.15, 0, 0.07), P(0.45, 0, 0.07), 0.08 * S, WOOD_DARK)                       # Sohle
+    bar(P(0.45, 0, 0.065), P(0.62, 0, 0.045), 0.07 * S, IRON)                           # Schar
+    bar(P(-0.05, 0, 0.12), P(1.15, 0, 0.55), 0.075 * S, WOOD)                           # Grindel
+    bar(P(0.20, 0, 0.07), P(0.30, 0, 0.25), 0.065 * S, WOOD_DARK)                       # Stütze
+    bar(P(-0.12, 0, 0.07), P(-0.45, 0, 0.62), 0.065 * S, WOOD_DARK)                     # Sterz
+    bar(P(-0.45, -0.07, 0.62), P(-0.45, 0.07, 0.62), 0.06 * S, WOOD)                    # Griff
+    bar(P(1.15, -0.22, 0.55), P(1.15, 0.22, 0.55), 0.07 * S, WOOD)                      # Joch
 
 
 # ---------------------------------------------------------------- Varianten und Export

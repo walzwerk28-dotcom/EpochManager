@@ -88,6 +88,11 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/LagerGross.fbx", prefab = "LagerGross", building = "Bld_LagerGross",
                 cells = new Vector2Int(3, 3), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Gutshof.fbx", prefab = "Gutshof", building = "Bld_Gutshof",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
             }
         };
 

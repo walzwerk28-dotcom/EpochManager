@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Gutshof
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 2
-  prefab: {fileID: 7475772317357210213, guid: ab4bd9c904e57aa4abdb17c70afb9b78, type: 3}
+  prefab: {fileID: 3956050030075255606, guid: a81f44fb628e9ef419b27f1cc9d3f94b, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
