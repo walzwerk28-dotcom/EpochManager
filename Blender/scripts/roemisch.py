@@ -72,6 +72,7 @@ LEAF = mat("Laub", (0.38, 0.55, 0.26))
 LEAF_DARK = mat("LaubDunkel", (0.27, 0.42, 0.20))
 OLIVE_LEAF = mat("Olivenlaub", (0.52, 0.58, 0.40))
 STRAW = mat("Stroh", (0.86, 0.74, 0.46))
+GRAIN = mat("Korn", (0.78, 0.60, 0.30))
 FEATHER = mat("Federn", (0.94, 0.92, 0.86))
 COMB = mat("Kamm", (0.78, 0.18, 0.14))
 SACK = mat("Sack", (0.80, 0.72, 0.56))
@@ -903,15 +904,27 @@ def plank_wall(x0, x1, y0, y1, h, faces=("-y", "+y", "-x", "+x"), step=0.10):
 
 
 def sheaf(x, y, lean=0.0, yaw=0.0):
-    """Garbe (Getreidebündel, etwa 45 cm hoch): unten breit, oben mit einem Band zusammengebunden, oben die Ähren;
-    lean = Neigung in Grad nach der Richtung yaw (0 = nach +y)."""
+    """Garbe (Getreidebündel, etwa 45 cm hoch): unten die Halme leicht gespreizt, in der Mitte das Band, oben fächern
+    die Ähren auf und enden in einem runden Schopf; lean = Neigung in Grad nach der Richtung yaw (0 = nach +y)."""
     a, l = math.radians(yaw), math.radians(lean)
     dx, dy = -math.sin(a) * math.sin(l), math.cos(a) * math.sin(l)
     tilt = (lean * math.cos(a) * -1, lean * math.sin(a) * -1, 0.0)
     k = 0.62                                                                   # kleiner als echt, wie die Häuser
-    cone(0.085 * k, 0.04 * k, 0.34 * k, (x + dx * 0.17 * k, y + dy * 0.17 * k, 0.17 * k), STRAW, verts=8, rot=tilt)
-    cyl(0.05 * k, 0.03 * k, (x + dx * 0.27 * k, y + dy * 0.27 * k, 0.27 * k), material=WOOD_DARK, verts=8, rot=tilt)
-    cone(0.06 * k, 0.0, 0.12 * k, (x + dx * 0.40 * k, y + dy * 0.40 * k, 0.40 * k), STRAW, verts=8, rot=tilt)
+
+    def at(h):
+        return (x + dx * h * k, y + dy * h * k, h * math.cos(l) * k)
+
+    cone(0.062 * k, 0.040 * k, 0.24 * k, at(0.12), STRAW, verts=8, rot=tilt)            # Halme
+    cyl(0.044 * k, 0.03 * k, at(0.24), material=WOOD_DARK, verts=8, rot=tilt)            # Band
+    cone(0.040 * k, 0.078 * k, 0.14 * k, at(0.32), GRAIN, verts=8, rot=tilt)            # Ähren fächern auf
+    sphere(0.078 * k, at(0.39), (1.0, 1.0, 0.45), GRAIN, segs=8, rings=4, rot=tilt)       # runder Schopf
+
+
+def stook(x, y, n=5, yaw=0.0):
+    """Hocke: n Garben im Kreis gegeneinander gelehnt, wie sie auf dem Feld oder am Dreschplatz trocknen."""
+    for i in range(n):
+        t = math.radians(yaw + i * 360.0 / n)
+        sheaf(x + 0.035 * math.cos(t), y + 0.035 * math.sin(t), lean=14, yaw=math.degrees(t) + 90)
 
 
 def plough(x, y, yaw=0.0):

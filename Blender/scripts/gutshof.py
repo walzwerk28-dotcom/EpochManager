@@ -3,7 +3,7 @@ Gutshof (Antike), 2 x 2 Felder (4 x 4 m): kleine Villa rustica, mehr Hof und Lan
 Hinten links das Wohnhaus des Verwalters (ocker, einstöckig mit niedrigem Obergeschoss, Ziegel-Satteldach, kurzer
 Säulengang mit zwei Säulen, Tür, Fenster mit offenen Läden); rechts die hohe Scheune (Bohlenwände auf Bruchsteinsockel,
 Giebel zur Straße mit halb offenem Tor, Heu und Säcken, darüber Ladeluke mit Kranbalken); in der Mitte der Hof, zur
-Straße offen mit Hoftor und niedriger Hofmauer: Dreschplatz aus gestampfter Erde mit Garben, Zisterne, Karren mit
+Straße offen mit Hoftor und niedriger Hofmauer: Dreschplatz aus gestampfter Erde mit ausgebreitetem Stroh, Dreschschlitten, Kornhaufen, Korb und Worfelgabel, Garben in Hocken am Rand, Zisterne, Karren mit
 Getreidesäcken, Hühner, Fässer und Amphoren; hinten rechts ein offener Schuppen mit Pflug und Geräten, daneben
 Brennholz und ein Gemüsebeet, dazu ein Oliven- und ein Feigenbaum.
 
@@ -103,18 +103,35 @@ for k in range(16):                              # Randsteine
     t = math.radians(k * 360 / 16)
     box((0.11, 0.05, 0.035), (CX + 0.64 * math.cos(t), CY + 0.64 * math.sin(t), 0.017),
         rot=(0, 0, math.degrees(t) + 90), material=LIME_DARK)
-# Garben: stehende Ringe um die Mitte, ein paar liegende, ein Haufen am Rand
-for k in range(8):
-    t = math.radians(k * 45 + 10)
-    sheaf(CX + 0.34 * math.cos(t), CY + 0.34 * math.sin(t), lean=8, yaw=math.degrees(t) - 90)
-for k, (dx, dy, yw) in enumerate(((0.05, 0.10, 20), (-0.12, -0.05, 100), (0.08, -0.12, 150))):
-    box((0.36, 0.10, 0.045), (CX + dx, CY + dy, 0.045), rot=(0, 0, yw), material=STRAW)
-    box((0.03, 0.11, 0.05), (CX + dx, CY + dy, 0.048), rot=(0, 0, yw), material=WOOD_DARK)
-for dx, dy, yw in ((0.0, 0.0, 10), (0.10, 0.02, 80), (-0.08, 0.05, 140)):                  # Strohhaufen in der Mitte
-    box((0.40, 0.12, 0.05), (CX + dx, CY + dy, 0.075), rot=(0, 0, yw), material=STRAW)
-sheaf(0.05, -1.25, lean=0, yaw=0)
-sheaf(0.14, -1.18, lean=10, yaw=90)
-sheaf(0.00, -1.12, lean=-8, yaw=0)
+# ausgebreitetes Stroh: flache, unregelmäßige Lagen, in der Mitte dichter
+for dx, dy, r, z in ((0.02, 0.03, 0.44, 0.027), (-0.10, -0.06, 0.30, 0.031), (0.12, -0.10, 0.22, 0.033),
+                     (-0.05, 0.14, 0.20, 0.033)):
+    cyl(r, 0.006, (CX + dx, CY + dy, z), material=STRAW, verts=12)
+# Dreschschlitten (Tribulum): Brett mit Steinen als Gewicht, Zugseil nach vorn
+TYAW = 25
+tb = math.radians(TYAW)
+box((0.36, 0.20, 0.025), (CX - 0.12, CY + 0.04, 0.048), rot=(0, 0, TYAW), material=WOOD)
+box((0.04, 0.22, 0.035), (CX - 0.12 - 0.17 * math.cos(tb), CY + 0.04 - 0.17 * math.sin(tb), 0.05),
+    rot=(0, 0, TYAW), material=WOOD_DARK)                                          # aufgebogene Vorderkante
+for sx, sy in ((-0.06, -0.04), (0.05, 0.05), (0.08, -0.05)):
+    px = CX - 0.12 + sx * math.cos(tb) - sy * math.sin(tb)
+    py = CY + 0.04 + sx * math.sin(tb) + sy * math.cos(tb)
+    sphere(0.035, (px, py, 0.075), (1.0, 0.8, 0.55), STONE, segs=6, rings=4)
+front = (CX - 0.12 - 0.19 * math.cos(tb), CY + 0.04 - 0.19 * math.sin(tb), 0.055)
+rod(front, (front[0] - 0.22, front[1] - 0.18, 0.032), 0.006, WOOD_DARK, verts=5)
+# gedroschenes Korn: Haufen am Rand, Korb und Worfelgabel daneben
+cone(0.13, 0.02, 0.07, (CX + 0.30, CY - 0.22, 0.062), GRAIN, verts=12)
+cyl(0.055, 0.06, (CX + 0.44, CY - 0.02, 0.055), material=WOOD, verts=10)          # Korb
+cyl(0.048, 0.005, (CX + 0.44, CY - 0.02, 0.086), material=GRAIN, verts=10)
+fork = ((CX + 0.10, CY - 0.42, 0.032), (CX + 0.40, CY - 0.36, 0.034))
+rod(fork[0], fork[1], 0.008, WOOD, verts=5)
+for off in (-0.025, 0.0, 0.025):
+    rod((fork[1][0], fork[1][1] + off, 0.034), (fork[1][0] + 0.08, fork[1][1] + off * 1.6, 0.034), 0.005, WOOD,
+        verts=4)
+# Garben in Hocken am Rand des Platzes
+stook(-1.36, -0.50, n=5, yaw=10)
+stook(-0.02, -1.20, n=5, yaw=40)
+stook(-1.22, 0.10, n=4, yaw=0)
 # Zisterne, Karren, Fässer, Amphoren, Hühner
 cistern(-1.50, -1.05)
 cart(0.28, -0.35, yaw=90, load="sacks")
@@ -142,7 +159,6 @@ for s, x in ((-1, -0.97), (1, -0.33)):                  # Torflügel nach innen 
     box((0.28, 0.025, 0.40), (cxl, cyl_, 0.28), rot=(0, 0, yaw), material=WOOD)
     for z in (0.16, 0.40):
         box((0.28, 0.03, 0.025), (cxl, cyl_, z), rot=(0, 0, yaw), material=WOOD_DARK)
-path([(-0.65, -1.45), (-0.80, -1.25)])
 
 # ---------------------------------------------------------------- Schuppen, Beet, Holz, Bäume hinten rechts
 SX0, SX1, SY0, SY1 = 0.62, 1.72, 0.95, 1.70
