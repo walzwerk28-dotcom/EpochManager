@@ -3,7 +3,7 @@ Säulengarten (Antike), 2 x 2 Felder (4 x 4 m): Peristyl-Garten.
 Säulengang an drei Seiten (links, rechts, hinten) mit Gebälk und Ziegelpultdach (Tegulae, Imbrices, Stirnziegel an der
 Traufe, 20 Grad Neigung nach innen), das an den hinteren Ecken in Graten mit Gratziegeln zusammentrifft und vorn mit
 Stirnbrettern endet; dahinter die verputzte Außenwand mit roter Sockelzone. Vorn zur Straße (-Y) offen zwischen zwei
-Torpfeilern mit niedrigen Mauern. In der Mitte ein kleines Wasserbecken mit Brunnenschale, breite Kieswege in Kreuzform,
+Torpfeilern mit niedrigen Mauern. In der Mitte ein winziger Brunnen mit Brunnenschale, breite Kieswege in Kreuzform,
 vier Beete mit geschnittenen Hecken und Blumen, zwei Bänke, eine Statue auf Sockel hinten und zwei Zypressen vorn.
 
 Aufruf (ohne Fenster):
@@ -146,22 +146,21 @@ for s in (-1, 1):
 pot_plant(-0.30, FRONT + 0.10, 0.05, leaves=LAUREL)
 pot_plant(0.30, FRONT + 0.10, 0.05, leaves=LAUREL)
 
-# ---------------------------------------------------------------- kleines Wasserbecken mit Brunnenschale (rund 0,8 m)
-cyl(0.40, 0.13, (0, 0, 0.065), material=LIME, verts=14)
-cyl(0.40, 0.02, (0, 0, 0.14), material=LIME_DARK, verts=14)
-cyl(0.33, 0.02, (0, 0, 0.145), material=WATER, verts=14)
-cyl(0.055, 0.24, (0, 0, 0.25), material=LIME, verts=10)
-cone(0.07, 0.17, 0.06, (0, 0, 0.40), LIME, verts=14)
-cyl(0.15, 0.012, (0, 0, 0.436), material=WATER, verts=14)
-for k in range(4):                                                     # Wasserstrahlen
-    a = math.radians(45 + k * 90)
-    cone(0.010, 0.004, 0.12, (0.13 * math.cos(a), 0.13 * math.sin(a), 0.22), WATER, verts=5)
+# ---------------------------------------------------------------- winziger Brunnen (Becken rund 0,45 m, höchstens 0,35 m hoch)
+cyl(0.225, 0.08, (0, 0, 0.04), material=LIME, verts=12)
+cyl(0.225, 0.012, (0, 0, 0.086), material=LIME_DARK, verts=12)
+cyl(0.185, 0.012, (0, 0, 0.088), material=WATER, verts=12)
+cyl(0.022, 0.17, (0, 0, 0.165), material=LIME, verts=8)
+cone(0.03, 0.08, 0.04, (0, 0, 0.26), LIME, verts=10)
+cyl(0.068, 0.008, (0, 0, 0.282), material=WATER, verts=10)
+cone(0.008, 0.003, 0.05, (0, 0, 0.30), WATER, verts=5)
+
 
 # ---------------------------------------------------------------- Wege in Kreuzform (breiter)
-path([(0.0, -1.62), (0.0, -0.52)], w=0.26)
-path([(0.0, 0.52), (0.0, 1.02)], w=0.26)
-path([(-1.24, 0.0), (-0.52, 0.0)], w=0.26)
-path([(0.52, 0.0), (1.24, 0.0)], w=0.26)
+path([(0.0, -1.62), (0.0, -0.30)], w=0.26)
+path([(0.0, 0.30), (0.0, 1.02)], w=0.26)
+path([(-1.24, 0.0), (-0.30, 0.0)], w=0.26)
+path([(0.30, 0.0), (1.24, 0.0)], w=0.26)
 
 
 # ---------------------------------------------------------------- vier Beete mit Heckenrahmen
