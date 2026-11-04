@@ -102,6 +102,9 @@ namespace EpochCity
         public BuildingDefinition BoostSource { get; set; }
         /// <summary>Wohnhaus: Zufriedenheitsbonus durch einen Wunderbau im Umkreis (im letzten Monat).</summary>
         public float WonderBonus { get; set; }
+        /// <summary>Wohnhaus: Zufriedenheitsbonus durch einen Park im Umkreis (im letzten Monat) und der Park dazu.</summary>
+        public float ParkBonus { get; set; }
+        public BuildingDefinition ParkSource { get; set; }
 
         public BuildingInstance(BuildingDefinition definition, Vector2Int origin, EpochDefinition builtIn, float facing = 0f)
         {

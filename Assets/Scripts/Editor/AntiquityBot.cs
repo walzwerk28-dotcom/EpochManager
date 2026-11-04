@@ -173,7 +173,32 @@ namespace EpochCity
                 if (EnsureStorage()) return;
                 if (EnsureForesters()) return;
                 if (EnsureEstates()) return;
+                if (EnsureParks()) return;
                 EnsureCommerce();
+            }
+
+            /// <summary>
+            /// Parks (2026-11-04): ab 6 bewohnten Wohnhäusern ohne Parkbonus, die nah beieinander liegen, der größte baubare
+            /// Park in der Mitte der größten solchen Gruppe (halber Umkreis); höchstens einer pro Entscheidung.
+            /// </summary>
+            private bool EnsureParks()
+            {
+                var park = placer.hotbar
+                    .Where(d => d != null && d.category == BuildingCategory.Park && city.IsAvailable(d) &&
+                                city.GetPlacementLock(d) == null && city.CanAfford(d))
+                    .OrderByDescending(d => d.satisfactionBonus).FirstOrDefault();
+                if (park == null || Recently("Park", 3)) return false;
+                var bare = Houses().Where(h => h.Residents > 0 && h.ParkBonus <= 0f).ToList();
+                if (bare.Count < 6) return false;
+                float radius = park.bonusRange * 0.5f;
+                var group = bare
+                    .Select(seed => bare.Where(h => Vector2Int.Distance(h.Origin, seed.Origin) <= radius).ToList())
+                    .OrderByDescending(g => g.Count).First();
+                if (group.Count < 6) return false;
+                var center = new Vector2Int(Mathf.RoundToInt((float)group.Average(h => h.Origin.x)),
+                                            Mathf.RoundToInt((float)group.Average(h => h.Origin.y)));
+                MarkRecent("Park");
+                return Build(park.displayName, center);
             }
 
             /// <summary>Gutshof (und andere Boni im Umkreis): wo mindestens 4 Ziele ohne Bonus beieinander liegen.</summary>

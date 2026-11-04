@@ -194,6 +194,34 @@ namespace EpochCity
                 Line(theme.textMuted, () =>
                     $"Wirkung{(b.UnderConstruction ? " (wenn fertig)" : "")}: +{def.satisfactionBonus * 100f:0} % " +
                     $"Zufriedenheit für Wohnhäuser im Umkreis von {def.bonusRange:0} Straßenfeldern");
+            if (def.satisfactionBonus > 0f)
+            {
+                // Wie viele Wohnhäuser der Bonus erreicht: Straßenentfernung, höchstens einmal je Sekunde berechnet
+                int reached = 0;
+                float reachedAt = -10f;
+                Line(theme.textMuted, () =>
+                {
+                    if (b.UnderConstruction) return "";
+                    if (Time.unscaledTime - reachedAt >= 1f)
+                    {
+                        reachedAt = Time.unscaledTime;
+                        var distances = ConnectionMap.ShortestDistances(city.Grid,
+                            new List<Vector2Int>(city.Grid.GetAdjacentCells(b)));
+                        reached = 0;
+                        foreach (var h in city.Buildings)
+                        {
+                            if (h.Definition.populationTier == null) continue;
+                            foreach (var c in city.Grid.GetAdjacentCells(h))
+                                if (distances.TryGetValue(c, out float d) && d <= def.bonusRange)
+                                {
+                                    reached++;
+                                    break;
+                                }
+                        }
+                    }
+                    return $"Erreicht {reached} Wohnhäuser";
+                });
+            }
 
             if (def.populationTier != null)
             {
@@ -210,6 +238,8 @@ namespace EpochCity
                     $"{b.Satisfaction * 100f:0} %"));
                 Line(theme.danger, () => string.IsNullOrEmpty(b.MissingNeeds) ? "" : $"Fehlt: {b.MissingNeeds}");
                 Line(theme.positive, () => b.WonderBonus > 0f ? $"Wunderbau in der Nähe: +{b.WonderBonus * 100f:0} % Zufriedenheit" : "");
+                Line(theme.positive, () => b.ParkBonus > 0f && b.ParkSource != null
+                    ? $"{b.ParkSource.displayName} in der Nähe: +{b.ParkBonus * 100f:0} % Zufriedenheit" : "");
                 Line(theme.textMuted, () => TierLine(b));
             }
 
@@ -396,6 +426,7 @@ namespace EpochCity
                 case BuildingCategory.Service: return "Dienste";
                 case BuildingCategory.Storage: return "Lager";
                 case BuildingCategory.Wonder: return "Wunderbau";
+                case BuildingCategory.Park: return "Park";
                 default: return "Denkmal";
             }
         }

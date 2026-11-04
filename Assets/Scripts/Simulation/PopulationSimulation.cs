@@ -194,8 +194,10 @@ namespace EpochCity
             // Bedürfnisse ergeben die Grundzufriedenheit, der Steuersatz drückt sie über eine weiche Kurve
             var tier = house.Tier;
             float needs = weightSum > 0f ? fulfilled / weightSum : 1f;
-            house.WonderBonus = GetWonderBonus(house);
-            house.Satisfaction = Mathf.Min(1f, needs * tier.TaxFactor(GetTaxRate(tier)) + house.WonderBonus);
+            house.WonderBonus = GetBonus(house, true, out _);
+            house.ParkBonus = GetBonus(house, false, out var park);
+            house.ParkSource = park;
+            house.Satisfaction = Mathf.Min(1f, needs * tier.TaxFactor(GetTaxRate(tier)) + house.WonderBonus + house.ParkBonus);
             house.MissingNeeds = missing.ToString();
 
             int capacity = house.Definition.GetCapacity(city.UnlockedTechnologies);
@@ -323,10 +325,13 @@ namespace EpochCity
         /// <summary>Bester Abdeckungswert über die Straßenfelder am Haus; Entfernungen werden pro Monat zwischengespeichert.</summary>
         // ---------------------------------------------------------------- Wunderbauten
 
-        private readonly List<(float bonus, float range, Dictionary<Vector2Int, float> distances)> wonders =
-            new List<(float, float, Dictionary<Vector2Int, float>)>();
+        private readonly List<(float bonus, float range, Dictionary<Vector2Int, float> distances, BuildingDefinition def, bool wonder)> wonders =
+            new List<(float, float, Dictionary<Vector2Int, float>, BuildingDefinition, bool)>();
 
-        /// <summary>Fertige Wunderbauten mit Bonus (nicht brennend oder beschädigt): Entfernungen über das Straßennetz.</summary>
+        /// <summary>
+        /// Fertige Gebäude mit Zufriedenheits-Bonus (Wunderbauten und Parks; nicht brennend, beschädigt oder im Bau):
+        /// Entfernungen über das Straßennetz.
+        /// </summary>
         private void PrepareWonders()
         {
             wonders.Clear();
@@ -335,24 +340,28 @@ namespace EpochCity
                 if (b.Definition.satisfactionBonus <= 0f || b.IsOutOfService) continue;
                 var starts = new List<Vector2Int>(city.Grid.GetAdjacentCells(b));
                 wonders.Add((b.Definition.satisfactionBonus, b.Definition.bonusRange,
-                    ConnectionMap.ShortestDistances(city.Grid, starts)));
+                    ConnectionMap.ShortestDistances(city.Grid, starts), b.Definition,
+                    b.Definition.category == BuildingCategory.Wonder));
             }
         }
 
         /// <summary>
-        /// Bonus wie die einzigartigen Gebäude in Cities: Skylines: der größte Bonus eines fertigen Wunderbaus, in dessen
-        /// Umkreis (Straßenfelder) das Haus liegt; mehrere Wunderbauten addieren sich nicht.
+        /// Bonus wie die einzigartigen Gebäude und Parks in Cities: Skylines: der größte Bonus eines fertigen Wunderbaus
+        /// (wonder) bzw. Parks (!wonder), in dessen Umkreis (Straßenfelder) das Haus liegt; mehrere Quellen derselben
+        /// Art addieren sich nicht, Wunderbau und Park schon.
         /// </summary>
-        private float GetWonderBonus(BuildingInstance house)
+        private float GetBonus(BuildingInstance house, bool wonder, out BuildingDefinition source)
         {
             float best = 0f;
+            source = null;
             foreach (var w in wonders)
             {
-                if (w.bonus <= best) continue;
+                if (w.wonder != wonder || w.bonus <= best) continue;
                 foreach (var c in city.Grid.GetAdjacentCells(house))
                     if (w.distances.TryGetValue(c, out float d) && d <= w.range)
                     {
                         best = w.bonus;
+                        source = w.def;
                         break;
                     }
             }

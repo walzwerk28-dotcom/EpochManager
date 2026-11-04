@@ -50,6 +50,7 @@ namespace EpochCity
                 case BuildingCategory.Storage: return storage;
                 case BuildingCategory.Housing: return housing;
                 case BuildingCategory.Wonder: return wonder;
+                case BuildingCategory.Park: return service;
                 default: return monument;
             }
         }

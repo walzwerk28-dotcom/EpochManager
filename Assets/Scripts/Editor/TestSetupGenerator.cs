@@ -901,6 +901,17 @@ namespace EpochCity
             estate.boostRadius = 4;
             estate.prefab = KeepModel(estate.prefab, () => CreatePrefab("Prefab_Gutshof", estate.size, 1.4f, new Color(0.78f, 0.62f, 0.38f)));
 
+            // Parks (2026-11-04, wie Parks in Cities: Skylines und Ornamente in Anno): kleiner Bonus auf die Zufriedenheit
+            // der Wohnhäuser im Umkreis (Straßenfelder); der beste Park zählt, mehrere addieren sich nicht
+            var herbGarden = Park("Bld_Kraeutergarten", "Kräutergarten", antike, null, new Vector2Int(1, 1), 40f, 1f,
+                0.03f, 6f, farmers, new Color(0.45f, 0.7f, 0.35f));
+            var sacredGrove = Park("Bld_HeiligerHain", "Heiliger Hain", antike, cults, new Vector2Int(2, 2), 120f, 2f,
+                0.05f, 10f, artisans, new Color(0.3f, 0.55f, 0.3f));
+            sacredGrove.materialCosts = Cost((boards, 2f), (stone, 2f));
+            var columnGarden = Park("Bld_Saeulengarten", "Säulengarten", antike, philosophy, new Vector2Int(2, 2), 300f, 4f,
+                0.07f, 14f, scholars, new Color(0.8f, 0.85f, 0.75f));
+            columnGarden.materialCosts = Cost((stone, 6f), (ceramics, 4f));
+
             foreach (var def in new[] { woodcutter, woodChopper, carpentry, forester })
                 def.fireRisk = 1.5f;
             foreach (var def in new[] { temple, academy, library, school, quarry, fireStation, field, oilPress, winePress, theater })
@@ -940,7 +951,7 @@ namespace EpochCity
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
                 grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater,
-                storageMedium, storageLarge, estate
+                storageMedium, storageLarge, estate, herbGarden, sacredGrove, columnGarden
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten
@@ -1015,6 +1026,32 @@ namespace EpochCity
         /// Einzeln gesetzter Produktionsbetrieb (2 × 2) mit einer Funktion: Eingang (oder keiner) → Ausgang je Zyklus.
         /// </summary>
         /// <summary>Lager einer Stufe: Lagerplatz je Ware, Einzugsweite, Arbeitskräfte, frei ab so vielen Einwohnern einer Stufe.</summary>
+        private static BuildingDefinition Park(string assetName, string displayName, EpochDefinition epoch,
+            TechnologyDefinition tech, Vector2Int size, float cost, float upkeep, float bonus, float range,
+            PopulationTierDefinition menuTier, Color color)
+        {
+            var def = GetOrCreate<BuildingDefinition>(assetName);
+            def.displayName = displayName;
+            def.epoch = epoch;
+            def.requiredTechnology = tech;
+            def.category = BuildingCategory.Park;
+            def.size = size;
+            def.buildCost = cost;
+            def.materialCosts = new ResourceAmount[0];
+            def.upkeepPerMonth = upkeep; // ×3 (UpkeepScale) am Ende
+            def.baseCapacity = 0;
+            def.baseFunctions = new BuildingFunction[0];
+            def.layers = new BuildingLayer[0];
+            def.workerTier = null;
+            def.workers = 0;
+            def.menuTier = menuTier;
+            def.fireRisk = 0.3f;
+            def.satisfactionBonus = bonus;
+            def.bonusRange = range;
+            def.prefab = KeepModel(def.prefab, () => CreatePrefab("Prefab_" + assetName.Substring(4), def.size, 0.4f, color));
+            return def;
+        }
+
         private static BuildingDefinition StorageBuilding(string assetName, string displayName, EpochDefinition epoch,
             Vector2Int size, float cost, float upkeep, int capacity, float catchment, PopulationTierDefinition workerTier,
             int workers, PopulationTierDefinition requiredTier, int requiredResidents, Color placeholderColor)

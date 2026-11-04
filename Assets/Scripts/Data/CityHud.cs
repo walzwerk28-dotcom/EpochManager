@@ -476,7 +476,7 @@ namespace EpochCity
                 }
             }
             if (def.satisfactionBonus > 0f)
-                sb.AppendLine($"Fertig: +{def.satisfactionBonus * 100f:0} % Zufriedenheit für Wohnhäuser im Umkreis von " +
+                sb.AppendLine($"{(def.HasStages ? "Fertig: +" : "+")}{def.satisfactionBonus * 100f:0} % Zufriedenheit für Wohnhäuser im Umkreis von " +
                               $"{def.bonusRange:0} Straßenfeldern");
             if (def.HasBoost)
                 sb.AppendLine($"+{(def.boostMultiplier - 1f) * 100f:0} % Ertrag für " +

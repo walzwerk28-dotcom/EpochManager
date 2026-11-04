@@ -112,7 +112,8 @@ namespace EpochCity
                 case BuildingCategory.Production: return 0;
                 case BuildingCategory.Storage:
                 case BuildingCategory.Commerce: return 1;
-                case BuildingCategory.Service: return 2;
+                case BuildingCategory.Service:
+                case BuildingCategory.Park: return 2;
                 default: return 3;
             }
         }

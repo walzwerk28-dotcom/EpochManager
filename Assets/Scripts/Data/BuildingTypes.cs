@@ -5,7 +5,7 @@ namespace EpochCity
 {
     public enum BuildingCategory
     {
-        Housing, Commerce, Production, Service, Storage, Wonder, Monument
+        Housing, Commerce, Production, Service, Storage, Wonder, Monument, Park
     }
 
     [Serializable]
