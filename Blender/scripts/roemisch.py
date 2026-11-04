@@ -563,6 +563,58 @@ def cart(x, y, yaw=0.0, load="sacks"):
         sphere(0.20 * S, (p[0], p[1], 0.47 * S), (1.3, 1.9, 0.8), STRAW, segs=8, rings=5, rot=(0, 0, yaw))
 
 
+def lying_sack(x, y, z0=0.0, yaw=0.0, r=0.045, length=0.16):
+    """Liegender, länglicher Getreidesack (Länge entlang yaw, 0 = +x), an einem Ende zugebunden."""
+    a = math.radians(yaw)
+    sphere(r, (x, y, z0 + r * 0.8), (length / (2 * r), 1.0, 0.75), SACK, segs=10, rings=6, rot=(0, 0, yaw))
+    ex, ey = x + math.cos(a) * length * 0.5, y + math.sin(a) * length * 0.5
+    cyl(r * 0.30, r * 0.25, (ex, ey, z0 + r * 0.8), rot=(0, 90, yaw), material=WOOD_DARK, verts=6)
+    cone(r * 0.35, r * 0.10, r * 0.45, (ex + math.cos(a) * r * 0.30, ey + math.sin(a) * r * 0.30, z0 + r * 0.8),
+         SACK, verts=6, rot=(0, 90, yaw))
+
+
+def ox_cart(x, y, yaw=0.0, load="sacks"):
+    """Ochsenkarren (Plaustrum): zwei Scheibenräder aus Bohlen mit Querleiste und Eisenreif, Kasten mit Lattenwänden,
+    lange Deichsel nach -y (vor der Drehung) mit Joch, das vorn auf einem Bock ruht; Ladung 'sacks' oder None."""
+    at = placed((x, y), yaw)
+    W, L, Z = 0.34, 0.62, 0.20                                                 # Kasten: Breite, Länge, Boden
+    box((W, L, 0.025), at((0.0, 0.0, Z + 0.012)), rot=(0, 0, yaw), material=WOOD)
+    for sx in (-1, 1):                                                         # Langbäume unter dem Boden
+        box((0.03, L + 0.06, 0.03), at((sx * (W / 2 - 0.03), -0.02, Z - 0.012)), rot=(0, 0, yaw), material=WOOD_DARK)
+    # Lattenwände: Pfosten und zwei Riegel je Seite, niedrige Bretter vorn und hinten
+    for sx in (-1, 1):
+        for py in (-L / 2 + 0.02, -0.10, 0.10, L / 2 - 0.02):
+            box((0.018, 0.018, 0.13), at((sx * (W / 2 - 0.01), py, Z + 0.09)), rot=(0, 0, yaw), material=WOOD_DARK)
+        for pz in (0.07, 0.14):
+            box((0.012, L, 0.014), at((sx * (W / 2 - 0.01), 0.0, Z + pz)), rot=(0, 0, yaw), material=WOOD)
+    for py in (-L / 2 + 0.01, L / 2 - 0.01):
+        box((W - 0.02, 0.014, 0.07), at((0.0, py, Z + 0.05)), rot=(0, 0, yaw), material=WOOD)
+    # Räder an einer Achse etwas hinter der Mitte
+    ay, R = 0.06, 0.165
+    cyl(0.018, W + 0.16, at((0.0, ay, R)), rot=(0, 90, yaw), material=WOOD_DARK, verts=6)
+    for sx in (-1, 1):
+        wx = sx * (W / 2 + 0.05)
+        cyl(R + 0.006, 0.026, at((wx, ay, R)), rot=(0, 90, yaw), material=IRON, verts=16)
+        cyl(R, 0.036, at((wx, ay, R)), rot=(0, 90, yaw), material=WOOD, verts=16)
+        for dz in (-0.07, 0.07):                                               # Bohlenfugen
+            box((0.038, 2 * math.sqrt(R * R - dz * dz) - 0.01, 0.006), at((wx, ay, R + dz)), rot=(0, 0, yaw),
+                material=WOOD_DARK)
+        box((0.040, 0.035, 2 * R - 0.02), at((wx, ay, R)), rot=(0, 0, yaw), material=WOOD_DARK)   # Querleiste
+        cyl(0.035, 0.05, at((wx + sx * 0.01, ay, R)), rot=(0, 90, yaw), material=WOOD_DARK, verts=8)  # Nabe
+    # Deichsel mit Joch auf einem Bock
+    front = at((0.0, -L / 2, Z - 0.01))
+    tip = at((0.0, -L / 2 - 0.52, 0.12))
+    rod(front, tip, 0.016, WOOD_DARK, verts=6)
+    box((0.40, 0.035, 0.03), at((0.0, -L / 2 - 0.50, 0.135)), rot=(0, 0, yaw), material=WOOD)
+    for sx in (-1, 1):
+        rod(at((sx * 0.05, -L / 2 - 0.47, 0.0)), at((0.0, -L / 2 - 0.47, 0.11)), 0.009, WOOD_DARK, verts=5)
+    if load == "sacks":
+        for ly, turn in ((-0.14, 90), (0.13, -90)):                         # zwei Lagen längs, Bänder außen
+            for sx in (-1, 1):
+                lying_sack(*at((sx * 0.075, ly, 0.0))[:2], z0=Z + 0.025, yaw=yaw + turn + sx * 3, r=0.05, length=0.22)
+        lying_sack(*at((0.0, -0.02, 0.0))[:2], z0=Z + 0.10, yaw=yaw + 93, r=0.05, length=0.22)
+
+
 def cistern(x, y):
     """Zisterne im Hof: runder Steinrand mit dunklem Wasser, Holzgestell mit Welle, Seil und Eimer."""
     cyl(0.15, 0.22, (x, y, 0.11), material=LIME_DARK, verts=12)

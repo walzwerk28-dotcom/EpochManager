@@ -3,7 +3,7 @@ Gutshof (Antike), 2 x 2 Felder (4 x 4 m): kleine Villa rustica, mehr Hof und Lan
 Hinten links das Wohnhaus des Verwalters (ocker, einstöckig mit niedrigem Obergeschoss, Ziegel-Satteldach, kurzer
 Säulengang mit zwei Säulen, Tür, Fenster mit offenen Läden); rechts die hohe Scheune (Bohlenwände auf Bruchsteinsockel,
 Giebel zur Straße mit halb offenem Tor, Heu und Säcken, darüber Ladeluke mit Kranbalken); in der Mitte der Hof, zur
-Straße offen mit Hoftor und niedriger Hofmauer: Dreschplatz aus gestampfter Erde mit ausgebreitetem Stroh, Dreschschlitten, Kornhaufen, Korb und Worfelgabel, Garben in Hocken am Rand, Zisterne, Karren mit
+Straße offen mit Hoftor und niedriger Hofmauer: Dreschplatz aus gestampfter Erde mit ausgebreitetem Stroh, Dreschschlitten, Kornhaufen, Korb und Worfelgabel, Garben in Hocken am Rand, Zisterne, Ochsenkarren mit
 Getreidesäcken, Hühner, Fässer und Amphoren; hinten rechts ein offener Schuppen mit Pflug und Geräten, daneben
 Brennholz und ein Gemüsebeet, dazu ein Oliven- und ein Feigenbaum.
 
@@ -80,11 +80,20 @@ d = (math.cos(a), -math.sin(a))
 c = (hinge[0] + d[0] * GW / 4, hinge[1] + d[1] * GW / 4)
 box((GW / 2 - 0.01, 0.02, GH - 0.01), (c[0], c[1], GZ + GH / 2), rot=(0, 0, math.degrees(math.atan2(d[1], d[0]))),
     material=WOOD)
-# Heu und Säcke im Tor
-hay(gu - 0.10, BY0 - 0.02, 0.13)
-hay(gu + 0.04, BY0 - 0.01, 0.10)
-sack(gu + 0.17, BY0 - 0.06, GZ, 0.055)
-sack(gu - 0.20, BY0 - 0.07, GZ, 0.05)
+# Heu quillt flach aus dem offenen Flügel
+for dx, dy, r, sz in ((-0.12, 0.02, 0.15, 0.40), (-0.05, -0.07, 0.13, 0.32), (-0.16, -0.11, 0.10, 0.28),
+                      (0.00, -0.14, 0.08, 0.25)):
+    sphere(r, (gu + dx, BY0 + dy, GZ + r * sz * 0.6), (1.25, 1.0, sz), STRAW, segs=10, rings=5, rot=(0, 0, dx * 300))
+# Heugabel an den geschlossenen Torflügel gelehnt, Zinken nach oben
+fx, fy = gu + 0.17, BY0 - 0.05
+rod((fx, fy - 0.12, 0.0), (fx, fy, 0.56), 0.008, WOOD, verts=5)
+for off in (-0.022, 0.0, 0.022):
+    rod((fx + off, fy, 0.56), (fx + off * 1.4, fy + 0.012, 0.66), 0.004, IRON, verts=4)
+box((0.06, 0.010, 0.010), (fx, fy, 0.56), material=IRON)
+# Getreidesäcke längs an der Wand rechts vom Tor, einer darauf
+lying_sack(1.60, BY0 - 0.07, 0.0, yaw=2, r=0.05, length=0.20)
+lying_sack(1.60, BY0 - 0.17, 0.0, yaw=-4, r=0.05, length=0.20)
+lying_sack(1.61, BY0 - 0.12, 0.075, yaw=5, r=0.048, length=0.19)
 # Ladeluke oben mit Kranbalken, Seil und Sack
 door("-y", BY0, gu, w=0.36, h=0.34, z0=1.00, leaf=WOOD_DARK)
 hoist(gu, BY0, 1.50, reach=0.24, sack_z=1.04)
@@ -134,7 +143,7 @@ stook(-0.02, -1.20, n=5, yaw=40)
 stook(-1.22, 0.10, n=4, yaw=0)
 # Zisterne, Karren, Fässer, Amphoren, Hühner
 cistern(-1.50, -1.05)
-cart(0.28, -0.35, yaw=90, load="sacks")
+ox_cart(0.33, -0.12, yaw=0, load="sacks")
 barrel(-1.57, -0.15, r=0.075)
 barrel(-1.57, 0.05, r=0.075)
 barrel(-1.45, -0.02, 0.0, r=0.075, lying=True, yaw=90)
