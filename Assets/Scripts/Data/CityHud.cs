@@ -118,6 +118,23 @@ namespace EpochCity
         {
             if (!placer.TryGetHover(out var cell)) return "";
 
+            // Arbeitsbereich zeichnen: Feld im Bereich, zu weit oder frei, mit Wald-Status
+            var editing = placer.WorkAreaEditing;
+            if (editing != null)
+            {
+                var d = editing.Definition;
+                var forest = d.requiredDeposit != null ? d.requiredDeposit : d.plantsDeposit;
+                string state = CityController.DistanceToBuilding(editing, cell) > d.workAreaMaxDistance
+                    ? $"zu weit vom Gebäude (max. {d.workAreaMaxDistance} Felder)"
+                    : city.IsInWorkArea(editing, cell) ? "im Arbeitsbereich" : "nicht im Arbeitsbereich";
+                string ground = "";
+                var dep = city.Grid.GetDeposit(cell);
+                if (dep != null && dep == forest)
+                    ground = city.Grid.IsYoung(cell) ? $"  |  {dep.displayName} (jung)" : $"  |  {dep.displayName}";
+                else if (forest != null) ground = $"  |  kein {forest.displayName}";
+                return $"{d.displayName}  |  {state}{ground}  |  {editing.WorkArea?.Count ?? 0} / {d.workAreaMaxCells} Felder";
+            }
+
             // Mit gewähltem Gebäude: was zum Bau noch fehlt
             var selected = placer.SelectedBuilding;
             if (selected != null && city.IsAvailable(selected))

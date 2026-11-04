@@ -37,6 +37,8 @@ namespace EpochCity
         private Button protectButton;
         private TextMeshProUGUI protectLabel;
         private Button demolishButton;
+        private GameObject workAreaRow;
+        private Button drawButton, doneButton, resetAreaButton;
         private readonly List<Action> updaters = new List<Action>();
         private BuildingInstance shown;
         private int shownFunctions;
@@ -87,6 +89,12 @@ namespace EpochCity
 
         private void RefreshButtons(BuildingInstance b)
         {
+            bool hasArea = b.Definition.HasWorkArea;
+            bool editing = placer.WorkAreaEditing == b;
+            workAreaRow.SetActive(hasArea);
+            drawButton.gameObject.SetActive(hasArea && !editing);
+            doneButton.gameObject.SetActive(hasArea && editing);
+            resetAreaButton.gameObject.SetActive(hasArea && editing);
             bool canPause = CityController.CanPause(b.Definition);
             pauseButton.gameObject.SetActive(canPause);
             pauseLabel.text = b.IsPaused ? "Fortsetzen" : "Stilllegen";
@@ -179,7 +187,10 @@ namespace EpochCity
 
             // Weg zum Arbeitsbereich (Holzfäller, Förster): nur wenn er Zeit kostet
             if (def.HasWorkArea)
+            {
+                Line(theme.text, () => WorkAreaLine(b));
                 Line(theme.textMuted, () => b.TravelFactor < 0.995f ? $"Weg zum Arbeitsbereich {b.TravelFactor * 100f:0} %" : "");
+            }
 
             // Großbau: Bauphase mit dem Gelieferten, danach die Wirkung
             if (def.HasStages)
@@ -352,6 +363,27 @@ namespace EpochCity
                 : $"Brennt! Ohne Löschen in {Mathf.CeilToInt(b.FireTimer)} s {outcome} – Feuerwache bauen";
         }
 
+        /// <summary>
+        /// „Arbeitsbereich: 16 Felder · Wald 14 / 16“, beim Standard „Arbeitsbereich: Umkreis (64 Felder)“,
+        /// beim Zeichnen die Feldzahl gegen das Maximum.
+        /// </summary>
+        private string WorkAreaLine(BuildingInstance b)
+        {
+            var def = b.Definition;
+            int total = b.WorkArea != null ? b.WorkArea.Count : 0;
+            if (placer.WorkAreaEditing == b)
+                return $"Arbeitsbereich zeichnen: {total} / {def.workAreaMaxCells} Felder";
+            if (city.IsDefaultWorkArea(b)) return $"Arbeitsbereich: Umkreis ({total} Felder)";
+            var deposit = def.requiredDeposit != null ? def.requiredDeposit : def.plantsDeposit;
+            int forest = 0;
+            if (deposit != null && b.WorkArea != null)
+                foreach (var c in b.WorkArea)
+                    if (city.Grid.GetDeposit(c) == deposit) forest++;
+            return deposit != null
+                ? $"Arbeitsbereich: {total} Felder · {deposit.displayName} {forest} / {total}"
+                : $"Arbeitsbereich: {total} Felder";
+        }
+
         /// <summary>Felder des Vorkommens im Arbeitsbereich: ausgewachsene oder junge.</summary>
         private int CountInArea(BuildingInstance b, DepositDefinition deposit, bool young)
         {
@@ -467,10 +499,31 @@ namespace EpochCity
             content = (RectTransform)contentGo.transform;
             UiFactory.AddColumn(contentGo, 0, 6f);
 
+            // Arbeitsbereich (Holzfäller, Förster): zeichnen starten bzw. beenden und zurücksetzen
+            var icons = theme.icons;
+            var areaRow = new GameObject("WorkAreaActions", typeof(RectTransform));
+            areaRow.transform.SetParent(panel, false);
+            UiFactory.AddRow(areaRow, TextAnchor.MiddleLeft, 0, 10f);
+            workAreaRow = areaRow;
+            drawButton = UiFactory.CreateButton(areaRow.transform, "DrawArea", "Arbeitsbereich zeichnen",
+                new Vector2(250f, 44f), theme.smallSize + 1f, theme.button, theme.text,
+                () => { if (placer.Inspected != null) placer.BeginWorkAreaEdit(placer.Inspected); },
+                icons != null ? icons.zones : null);
+            Tooltip.Attach(drawButton.gameObject, () =>
+                "<b>Arbeitsbereich zeichnen</b>\nLinke Maustaste ziehen: Felder hinzufügen · rechte Maustaste ziehen: " +
+                "Felder entfernen · Esc oder Fertig: beenden");
+            doneButton = UiFactory.CreateButton(areaRow.transform, "AreaDone", "Fertig",
+                new Vector2(120f, 44f), theme.smallSize + 1f, theme.accent, theme.text, () => placer.EndWorkAreaEdit(),
+                icons != null ? icons.done : null);
+            resetAreaButton = UiFactory.CreateButton(areaRow.transform, "AreaReset", "Zurücksetzen",
+                new Vector2(150f, 44f), theme.smallSize + 1f, theme.button, theme.text,
+                () => { if (placer.WorkAreaEditing != null) city.ResetWorkArea(placer.WorkAreaEditing); });
+            Tooltip.Attach(resetAreaButton.gameObject, () => "<b>Zurücksetzen</b>\nWieder der Umkreis um das Gebäude.");
+            areaRow.SetActive(false);
+
             var actions = new GameObject("Actions", typeof(RectTransform));
             actions.transform.SetParent(panel, false);
             UiFactory.AddRow(actions, TextAnchor.MiddleLeft, 0, 10f);
-            var icons = theme.icons;
             pauseButton = UiFactory.CreateButton(actions.transform, "Pause", "Stilllegen",
                 new Vector2(136f, 48f), theme.smallSize + 1f, theme.button, theme.text, TogglePause,
                 icons != null ? icons.pause : null);

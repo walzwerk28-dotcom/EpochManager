@@ -42,7 +42,7 @@ namespace EpochCity
         [Range(0.1f, 1f)] public float ghostAlpha = 0.55f;
 
         /// <summary>Ist gerade ein Baumodus aktiv (Gebäude, Straße, Zone oder Abriss)?</summary>
-        public bool IsBuildMode => selected != null || roadMode || zoneMode || demolishMode;
+        public bool IsBuildMode => selected != null || roadMode || zoneMode || demolishMode || workAreaEdit != null;
 
         private BuildingDefinition selected;
         private bool demolishMode;
@@ -60,6 +60,7 @@ namespace EpochCity
         private readonly CellGhostPool zoneGhosts = new CellGhostPool();
         // Umkreis von Betrieben, die ein Vorkommen brauchen: zählende Felder grün, der Rest blass
         private readonly CellGhostPool depositGhosts = new CellGhostPool();
+        private readonly CellGhostPool workAreaGhosts = new CellGhostPool();
         private readonly CellGhostPool fireRangeGhosts = new CellGhostPool();
         private readonly List<Vector2Int> fireRangeCells = new List<Vector2Int>();
         private Vector2Int fireRangeOrigin = new Vector2Int(int.MinValue, 0);
@@ -85,7 +86,16 @@ namespace EpochCity
             hasHover = TryGetHoverCell(mouse, out hoverCell);
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-            if (demolishMode || roadMode || zoneMode) depositGhosts.Hide();
+            // Arbeitsbereich zeichnen: endet, wenn das Gebäude weg ist oder das Infofenster ein anderes zeigt
+            if (workAreaEdit != null && (!city.Buildings.Contains(workAreaEdit) || Inspected != workAreaEdit))
+                EndWorkAreaEdit();
+
+            if (demolishMode || roadMode || zoneMode || workAreaEdit != null) depositGhosts.Hide();
+            if (workAreaEdit != null)
+            {
+                HandleWorkAreaEdit(mouse, overUi);
+                return;
+            }
             if (demolishMode)
                 HandleDemolish(mouse, overUi);
             else if (roadMode)
@@ -158,7 +168,13 @@ namespace EpochCity
                     if (key.wasPressedThisFrame) Select(list[i]);
                 }
             }
-            if (kb.escapeKey.wasPressedThisFrame) ClearSelection();
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                // Beim Zeichnen beendet Esc nur das Zeichnen, das Infofenster bleibt
+                if (workAreaEdit != null) EndWorkAreaEdit();
+                else ClearSelection();
+            }
+            if (workAreaEdit != null) return;
             if (kb.xKey.wasPressedThisFrame) ToggleDemolish();
             if (kb.rKey.wasPressedThisFrame) SelectRoad();
             if (kb.zKey.wasPressedThisFrame && residentialZone != null) SelectZone(residentialZone);
@@ -380,6 +396,109 @@ namespace EpochCity
                 Debug.Log($"{target.Definition.displayName} steht unter Denkmalschutz und lässt sich nicht abreißen.");
         }
 
+        // ---------------------------------------------------------------- Arbeitsbereich zeichnen
+
+        private BuildingInstance workAreaEdit;
+        private bool workAreaAdd = true; // Zug mit linker (hinzufügen) oder rechter Maustaste (entfernen)
+        private Toasts toasts;
+
+        /// <summary>Gebäude, dessen Arbeitsbereich gerade gezeichnet wird, sonst null.</summary>
+        public BuildingInstance WorkAreaEditing => workAreaEdit;
+
+        /// <summary>Letzte Ablehnung beim Zeichnen („Arbeitsbereich zu groß (max. 64 Felder)“), für Tests.</summary>
+        public string LastWorkAreaMessage { get; private set; }
+
+        /// <summary>Beginnt das Zeichnen des Arbeitsbereichs (nur Holzfäller und Förster); das Gebäude bleibt inspiziert.</summary>
+        public void BeginWorkAreaEdit(BuildingInstance b)
+        {
+            if (b == null || !b.Definition.HasWorkArea) return;
+            ClearSelection();
+            Inspected = b;
+            workAreaEdit = b;
+            LastWorkAreaMessage = null;
+        }
+
+        public void EndWorkAreaEdit()
+        {
+            workAreaEdit = null;
+            dragging = false;
+            workAreaGhosts.Hide();
+        }
+
+        private void HandleWorkAreaEdit(Mouse mouse, bool overUi)
+        {
+            if (!dragging && !overUi && hasHover)
+            {
+                if (mouse.leftButton.wasPressedThisFrame) { dragging = true; workAreaAdd = true; dragStart = hoverCell; }
+                else if (mouse.rightButton.wasPressedThisFrame) { dragging = true; workAreaAdd = false; dragStart = hoverCell; }
+            }
+
+            var tile = residentialZone != null ? residentialZone.tilePrefab : null;
+            if ((!hasHover && !dragging) || tile == null)
+            {
+                workAreaGhosts.Hide();
+                return;
+            }
+
+            ShowWorkAreaPreview(dragging ? GridMap.RectCells(dragStart, hoverCell) : new List<Vector2Int> { hoverCell },
+                workAreaAdd);
+
+            bool released = workAreaAdd ? mouse.leftButton.wasReleasedThisFrame : mouse.rightButton.wasReleasedThisFrame;
+            if (dragging && released)
+            {
+                dragging = false;
+                ApplyWorkAreaRect(dragStart, hoverCell, workAreaAdd);
+            }
+        }
+
+        /// <summary>
+        /// Vorschau des gezogenen Rechtecks: beim Hinzufügen grün = wird übernommen, rot = zu weit vom Gebäude; beim
+        /// Entfernen orange = Feld liegt im Bereich, rot = nicht im Bereich. Auch für Tests.
+        /// </summary>
+        public void ShowWorkAreaPreview(IReadOnlyList<Vector2Int> cells, bool add)
+        {
+            var tile = residentialZone != null ? residentialZone.tilePrefab : null;
+            var b = workAreaEdit;
+            if (tile == null || b == null) return;
+            int max = b.Definition.workAreaMaxDistance;
+            workAreaGhosts.Show(city, tile, cells,
+                c => add ? CityController.DistanceToBuilding(b, c) <= max : b.WorkArea != null && b.WorkArea.Contains(c),
+                GhostColor(add ? validColor : new Color(1f, 0.6f, 0.2f, 1f)), GhostColor(invalidColor));
+        }
+
+        /// <summary>
+        /// Wendet ein Rechteck auf den Arbeitsbereich an wie ein Mauszug: hinzufügen (nur Felder bis workAreaMaxDistance
+        /// vom Gebäude) oder entfernen. Zu groß oder leer wird abgelehnt (Meldung, Bereich unverändert); Übernahme über
+        /// TrySetWorkArea. Gibt zurück, ob sich der Bereich geändert hat.
+        /// </summary>
+        public bool ApplyWorkAreaRect(Vector2Int a, Vector2Int b2, bool add)
+        {
+            var b = workAreaEdit;
+            if (b == null) return false;
+            var def = b.Definition;
+            var old = b.WorkArea != null ? b.WorkArea : city.GetDefaultWorkArea(b);
+            var area = new HashSet<Vector2Int>(old);
+            foreach (var c in GridMap.RectCells(a, b2))
+            {
+                if (add)
+                {
+                    if (city.Grid.InBounds(c) && CityController.DistanceToBuilding(b, c) <= def.workAreaMaxDistance) area.Add(c);
+                }
+                else area.Remove(c);
+            }
+            if (area.SetEquals(old)) return false;
+
+            string message = null;
+            if (area.Count > def.workAreaMaxCells) message = $"Arbeitsbereich zu groß (max. {def.workAreaMaxCells} Felder)";
+            else if (area.Count == 0) message = "Arbeitsbereich darf nicht leer sein";
+            else if (!city.TrySetWorkArea(b, area, out var issue)) message = "Arbeitsbereich " + issue;
+            LastWorkAreaMessage = message;
+            if (message == null) return true;
+            if (toasts == null) toasts = FindAnyObjectByType<Toasts>();
+            if (toasts != null) toasts.Warn(message);
+            return false;
+        }
+
         private bool TryGetHoverCell(Mouse mouse, out Vector2Int cell)
         {
             cell = default;
@@ -472,6 +591,8 @@ namespace EpochCity
             selectedZone = null;
             Inspected = null;
             dragging = false;
+            workAreaEdit = null;
+            workAreaGhosts.Hide();
             DestroyGhost();
             roadGhosts.Hide();
             zoneGhosts.Hide();

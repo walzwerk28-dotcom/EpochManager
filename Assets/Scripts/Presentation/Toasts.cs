@@ -129,6 +129,9 @@ namespace EpochCity
         private void OnTechnologyUnlocked(TechnologyDefinition tech) =>
             Show($"Erforscht: {tech.displayName}", theme.positive, Icon(i => i.research));
 
+        /// <summary>Warnmeldung in der Warnfarbe (z. B. abgelehnte Eingabe).</summary>
+        public void Warn(string message) => Show(message, theme.danger, Icon(i => i.warning));
+
         private Sprite Icon(System.Func<UiIcons, Sprite> pick) => theme.icons != null ? pick(theme.icons) : null;
 
         /// <summary>Eine Meldung pro Monat: wie viele Häuser auf- bzw. abgestiegen sind.</summary>

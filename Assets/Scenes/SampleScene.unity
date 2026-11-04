@@ -668,6 +668,7 @@ GameObject:
   - component: {fileID: 1216388727}
   - component: {fileID: 1216388728}
   - component: {fileID: 1216388729}
+  - component: {fileID: 1216388730}
   m_Layer: 0
   m_Name: BuildingPlacer
   m_TagString: Untagged
@@ -798,6 +799,27 @@ MonoBehaviour:
   levelHeight: 0.5
   postSpacing: 1
   clearance: 0.1
+--- !u!114 &1216388730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1216388724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 882d204bbc9872a41ad895ae2743f083, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.WorkAreaVisuals
+  city: {fileID: 440537052}
+  placer: {fileID: 1216388725}
+  forestColor: {r: 0.15, g: 0.75, b: 0.2, a: 0.55}
+  youngColor: {r: 0.6, g: 0.95, b: 0.45, a: 0.5}
+  otherColor: {r: 0.95, g: 0.9, b: 0.5, a: 0.22}
+  outlineColor: {r: 1, g: 0.82, b: 0.2, a: 0.95}
+  limitColor: {r: 1, g: 1, b: 1, a: 0.45}
+  outlineWidth: 0.14
+  linkWidth: 0.22
 --- !u!1 &1598712634
 GameObject:
   m_ObjectHideFlags: 0
