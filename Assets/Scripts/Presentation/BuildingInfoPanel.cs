@@ -259,8 +259,18 @@ namespace EpochCity
             Line(theme.text, () =>
             {
                 var sb = new StringBuilder();
-                float multiplier = city.GetMultiplier(b);
-                if (multiplier > 1f) sb.AppendLine($"Technologie-Bonus ×{multiplier:0.##}");
+                float tech = def.GetOutputMultiplier(city.UnlockedTechnologies);
+                if (tech > 1f) sb.AppendLine($"Technologie-Bonus ×{tech:0.##}");
+                if (b.BoostSource != null)
+                    sb.AppendLine($"{b.BoostSource.displayName} in der Nähe: +{(b.Boost - 1f) * 100f:0} %" +
+                                  (tech > 1f ? $"  ·  zusammen ×{tech * b.Boost:0.##}" : ""));
+                if (def.HasBoost)
+                {
+                    int count = city.GetBoostTargets(def, b.Origin, b.Footprint).Count;
+                    string names = string.Join(", ", System.Array.ConvertAll(def.boostTargets, t => t != null ? t.displayName : "?"));
+                    sb.AppendLine($"Verbessert {count} × {names} im Umkreis {def.boostRadius} um +{(def.boostMultiplier - 1f) * 100f:0} %" +
+                                  (b.IsOutOfService ? " (wirkt gerade nicht)" : ""));
+                }
                 if (def.category == BuildingCategory.Storage)
                 {
                     sb.AppendLine($"Lagerplatz +{def.GetCapacity(city.UnlockedTechnologies)} je Ware" +

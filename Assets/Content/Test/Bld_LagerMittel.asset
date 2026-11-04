@@ -72,6 +72,9 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  boostTargets: []
+  boostMultiplier: 1
+  boostRadius: 0
   isUnique: 0
   stages: []
   requiredTier: {fileID: 11400000, guid: e32230e9d8097ee4a84e1e68b6108583, type: 2}

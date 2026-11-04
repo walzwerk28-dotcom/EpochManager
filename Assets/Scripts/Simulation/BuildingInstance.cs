@@ -96,6 +96,10 @@ namespace EpochCity
         public bool IsBuilding => !Definition.HasStages && BuildTimer < Definition.buildSeconds;
         /// <summary>Baustelle oder Großbau, der noch nicht fertig ist: arbeitet nicht, bietet keine Dienste und keinen Bonus.</summary>
         public bool UnderConstruction => IsBuilding || (Definition.HasStages && Stage < Definition.stages.Length);
+        /// <summary>Faktor auf den Ertrag durch ein Gebäude im Umkreis (Gutshof), 1 ohne; CityController.RefreshBoosts.</summary>
+        public float Boost { get; set; } = 1f;
+        /// <summary>Gebäude, das den Bonus gibt (für die Anzeige), sonst null.</summary>
+        public BuildingDefinition BoostSource { get; set; }
         /// <summary>Wohnhaus: Zufriedenheitsbonus durch einen Wunderbau im Umkreis (im letzten Monat).</summary>
         public float WonderBonus { get; set; }
 

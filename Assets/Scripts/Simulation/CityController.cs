@@ -764,7 +764,56 @@ namespace EpochCity
 
         /// <summary>Multiplikator, den dieses Gebäude durch die aktuellen Technologien hat.</summary>
         public float GetMultiplier(BuildingInstance inst) =>
-            inst.Definition.GetOutputMultiplier(UnlockedTechnologies);
+            inst.Definition.GetOutputMultiplier(UnlockedTechnologies) * inst.Boost;
+
+        /// <summary>
+        /// Bonus durch Gebäude im Umkreis (Gutshof → Felder, wie Einflussbereiche in Anno): jedes Ziel bekommt den besten
+        /// Faktor eines arbeitenden Gebäudes, dessen quadratischer Umkreis um die Grundfläche es berührt; mehrere Quellen
+        /// addieren sich nicht. Wird je Wirtschaftsschritt neu berechnet (EconomySimulation).
+        /// </summary>
+        public void RefreshBoosts()
+        {
+            foreach (var b in Buildings)
+            {
+                b.Boost = 1f;
+                b.BoostSource = null;
+            }
+            foreach (var source in Buildings)
+            {
+                var def = source.Definition;
+                if (!def.HasBoost || source.IsOutOfService) continue;
+                foreach (var target in Buildings)
+                {
+                    if (target.Boost >= def.boostMultiplier || !InBoostRange(source, target)) continue;
+                    if (System.Array.IndexOf(def.boostTargets, target.Definition) < 0) continue;
+                    target.Boost = def.boostMultiplier;
+                    target.BoostSource = def;
+                }
+            }
+        }
+
+        /// <summary>Liegt das Ziel (ganz oder teilweise) im Umkreis der Quelle?</summary>
+        public static bool InBoostRange(BuildingInstance source, BuildingInstance target) =>
+            InBoostRange(source.Definition, source.Origin, source.Footprint, target.Origin, target.Footprint);
+
+        public static bool InBoostRange(BuildingDefinition def, Vector2Int origin, Vector2Int footprint,
+            Vector2Int targetOrigin, Vector2Int targetFootprint)
+        {
+            int r = def.boostRadius;
+            return targetOrigin.x < origin.x + footprint.x + r && targetOrigin.x + targetFootprint.x > origin.x - r &&
+                   targetOrigin.y < origin.y + footprint.y + r && targetOrigin.y + targetFootprint.y > origin.y - r;
+        }
+
+        /// <summary>Gebäude, die eine Quelle verbessern würde (für Infofenster und Vorschau).</summary>
+        public List<BuildingInstance> GetBoostTargets(BuildingDefinition def, Vector2Int origin, Vector2Int footprint)
+        {
+            var list = new List<BuildingInstance>();
+            if (def == null || !def.HasBoost) return list;
+            foreach (var b in Buildings)
+                if (System.Array.IndexOf(def.boostTargets, b.Definition) >= 0 &&
+                    InBoostRange(def, origin, footprint, b.Origin, b.Footprint)) list.Add(b);
+            return list;
+        }
 
         [ContextMenu("Debug: Platzieren")]
         private void DebugPlace()

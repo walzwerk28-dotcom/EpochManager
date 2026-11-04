@@ -172,7 +172,24 @@ namespace EpochCity
                 if (EnsureResearchBuildings()) return;
                 if (EnsureStorage()) return;
                 if (EnsureForesters()) return;
+                if (EnsureEstates()) return;
                 EnsureCommerce();
+            }
+
+            /// <summary>Gutshof (und andere Boni im Umkreis): wo mindestens 4 Ziele ohne Bonus beieinander liegen.</summary>
+            private bool EnsureEstates()
+            {
+                foreach (var def in placer.hotbar.Where(d => d != null && d.HasBoost && city.IsAvailable(d)))
+                {
+                    if (Recently(def.displayName, 4)) continue;
+                    foreach (var target in city.Buildings.Where(b => b.BoostSource == null &&
+                                                                     System.Array.IndexOf(def.boostTargets, b.Definition) >= 0))
+                    {
+                        int near = city.GetBoostTargets(def, target.Origin, def.size).Count(b => b.BoostSource == null);
+                        if (near >= 4) return Build(def.displayName, target.Origin);
+                    }
+                }
+                return false;
             }
 
             private void ChooseResearch()

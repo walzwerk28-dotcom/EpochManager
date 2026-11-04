@@ -478,6 +478,10 @@ namespace EpochCity
             if (def.satisfactionBonus > 0f)
                 sb.AppendLine($"Fertig: +{def.satisfactionBonus * 100f:0} % Zufriedenheit für Wohnhäuser im Umkreis von " +
                               $"{def.bonusRange:0} Straßenfeldern");
+            if (def.HasBoost)
+                sb.AppendLine($"+{(def.boostMultiplier - 1f) * 100f:0} % Ertrag für " +
+                              string.Join(", ", System.Array.ConvertAll(def.boostTargets, t => t != null ? t.displayName : "?")) +
+                              $" im Umkreis {def.boostRadius} (mehrere Quellen addieren sich nicht)");
             int capacity = def.GetCapacity(city.UnlockedTechnologies);
             if (def.category == BuildingCategory.Storage)
             {

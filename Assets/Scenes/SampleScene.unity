@@ -691,6 +691,7 @@ MonoBehaviour:
   cam: {fileID: 330585545}
   hotbar:
   - {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
+  - {fileID: 11400000, guid: d2aa19a2337dea4408dcdabd143c993d, type: 2}
   - {fileID: 11400000, guid: 972329bce9a46bf48969b65af4bd1add, type: 2}
   - {fileID: 11400000, guid: 066d121d90d288948b30c42d1adef6b5, type: 2}
   - {fileID: 11400000, guid: 3ab191100e4e440448315d3500a3fa18, type: 2}

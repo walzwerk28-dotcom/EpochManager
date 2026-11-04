@@ -209,6 +209,11 @@ namespace EpochCity
         /// </summary>
         private void ShowDepositRange()
         {
+            if (selected.HasBoost)
+            {
+                ShowBoostRange();
+                return;
+            }
             var deposit = selected.requiredDeposit != null ? selected.requiredDeposit : selected.plantsDeposit;
             bool planting = selected.requiredDeposit == null;
             if (deposit == null || deposit.tilePrefab == null)
@@ -228,6 +233,37 @@ namespace EpochCity
                 c => city.Grid.GetDeposit(c) == deposit && (planting || !city.Grid.IsYoung(c)),
                 GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
         }
+
+        /// <summary>
+        /// Gutshof und andere Boni im Umkreis: der quadratische Umkreis um die Grundfläche, Felder unter Gebäuden, die
+        /// der Bonus verbessern würde, grün, die übrigen blass (gleicher Pool wie die Vorkommen).
+        /// </summary>
+        private void ShowBoostRange()
+        {
+            var tile = residentialZone != null ? residentialZone.tilePrefab : null;
+            if (tile == null)
+            {
+                depositGhosts.Hide();
+                return;
+            }
+            int range = selected.boostRadius;
+            depositCells.Clear();
+            for (int x = hoverCell.x - range; x < hoverCell.x + selected.size.x + range; x++)
+                for (int y = hoverCell.y - range; y < hoverCell.y + selected.size.y + range; y++)
+                {
+                    var c = new Vector2Int(x, y);
+                    if (city.Grid.InBounds(c)) depositCells.Add(c);
+                }
+            var targets = selected.boostTargets;
+            depositGhosts.Show(city, tile, depositCells,
+                c => city.Grid.GetAt(c) is BuildingInstance b && System.Array.IndexOf(targets, b.Definition) >= 0,
+                GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
+        }
+
+        /// <summary>Gebäude, die der gewählte Bonus an dieser Stelle verbessern würde (für Tests).</summary>
+        public int BoostPreviewCount =>
+            selected != null && selected.HasBoost && hasHover
+                ? city.GetBoostTargets(selected, hoverCell, selected.size).Count : 0;
 
         /// <summary>
         /// Feuerwache und Wunderbau: Straßenfelder in Reichweite des Brandschutzes bzw. des Zufriedenheitsbonus, über das

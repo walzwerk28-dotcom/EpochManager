@@ -62,6 +62,9 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  boostTargets: []
+  boostMultiplier: 1
+  boostRadius: 0
   isUnique: 1
   stages:
   - name: Fundament

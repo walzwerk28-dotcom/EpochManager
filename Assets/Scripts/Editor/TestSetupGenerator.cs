@@ -880,6 +880,27 @@ namespace EpochCity
             storageLarge.menuTier = scholars;
             storageMedium.layers = storageLarge.layers = storage.layers;
 
+            // Gutshof (2026-11-04, Idee des Entwicklers, wie Einflussbereiche in Anno): +25 % Ertrag für Felder im Umkreis 4
+            var estate = GetOrCreate<BuildingDefinition>("Bld_Gutshof");
+            estate.displayName = "Gutshof";
+            estate.epoch = antike;
+            estate.requiredTechnology = irrigation;
+            estate.category = BuildingCategory.Production;
+            estate.size = new Vector2Int(2, 2);
+            estate.buildCost = 200f;
+            estate.materialCosts = Cost((boards, 6f), (stone, 4f));
+            estate.upkeepPerMonth = 3f; // ×3 (UpkeepScale) = 9
+            estate.baseCapacity = 0;
+            estate.baseFunctions = new BuildingFunction[0];
+            estate.layers = new BuildingLayer[0];
+            estate.workerTier = farmers;
+            estate.workers = 3;
+            estate.menuTier = farmers;
+            estate.boostTargets = new[] { field };
+            estate.boostMultiplier = 1.25f;
+            estate.boostRadius = 4;
+            estate.prefab = KeepModel(estate.prefab, () => CreatePrefab("Prefab_Gutshof", estate.size, 1.4f, new Color(0.78f, 0.62f, 0.38f)));
+
             foreach (var def in new[] { woodcutter, woodChopper, carpentry, forester })
                 def.fireRisk = 1.5f;
             foreach (var def in new[] { temple, academy, library, school, quarry, fireStation, field, oilPress, winePress, theater })
@@ -919,7 +940,7 @@ namespace EpochCity
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
                 grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater,
-                storageMedium, storageLarge
+                storageMedium, storageLarge, estate
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten

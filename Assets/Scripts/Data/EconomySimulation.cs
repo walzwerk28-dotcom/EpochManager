@@ -107,6 +107,7 @@ namespace EpochCity
             bool unpaid = city.Money < 0f;
             reserves.Clear();
             reservesReady = false;
+            city.RefreshBoosts(); // Gutshof und andere Boni im Umkreis
 
             // Arbeitskräfte je Stufe einmal pro Schritt
             workforce.Clear();

@@ -74,6 +74,15 @@ namespace EpochCity
         [Tooltip("Brandschutz über die Entfernung: x = 0 an der Wache bis 1 an der Reichweite, y = Schutz")]
         public AnimationCurve fireProtectionByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0.4f);
 
+        [Header("Bonus für Gebäude im Umkreis (z. B. Gutshof)")]
+        [Tooltip("Gebäude, deren Ertrag dieses Gebäude im Umkreis erhöht (wie Einflussbereiche in Anno); leer = keine")]
+        public BuildingDefinition[] boostTargets;
+        [Tooltip("Faktor auf den Ertrag der Gebäude im Umkreis (1,25 = +25 %); mehrere Quellen addieren sich nicht")]
+        [Min(1f)] public float boostMultiplier = 1f;
+        [Tooltip("Umkreis in Feldern rund um die Grundfläche (quadratisch wie beim Vorkommen)")]
+        [Min(0)] public int boostRadius;
+        public bool HasBoost => boostTargets != null && boostTargets.Length > 0 && boostMultiplier > 1f;
+
         [Header("Wunderbau und Großbauten")]
         [Tooltip("Nur einmal in der Stadt baubar (Wunderbauten, entschieden: einmalig pro Spiel)")]
         public bool isUnique;
