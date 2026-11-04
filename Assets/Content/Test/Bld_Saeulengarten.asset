@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "S\xE4ulengarten"
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 7
-  prefab: {fileID: 493665136393918138, guid: 1297dcb3349d72842bf8598ad7e8e80c, type: 3}
+  prefab: {fileID: 1891822161728410564, guid: a1afd267219d7e94f9673e3321c2b80a, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

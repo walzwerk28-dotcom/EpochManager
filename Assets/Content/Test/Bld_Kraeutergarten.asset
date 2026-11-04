@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "Kr\xE4utergarten"
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 7
-  prefab: {fileID: 820077144786650236, guid: 2119f320aa7049f489e889c69c027938, type: 3}
+  prefab: {fileID: 3380356888683997360, guid: a182b6b7324a4964dbe22d666bce7248, type: 3}
   size: {x: 1, y: 1}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

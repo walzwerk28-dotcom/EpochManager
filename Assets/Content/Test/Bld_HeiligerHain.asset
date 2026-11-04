@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Heiliger Hain
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 7
-  prefab: {fileID: 3358252398713703472, guid: 8f46118d0f8076b40b7508339331bae7, type: 3}
+  prefab: {fileID: 6894567576884018267, guid: 8a7e980aec9748b4596e7b4823e2d3e8, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

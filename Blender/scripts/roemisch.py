@@ -995,6 +995,85 @@ def plough(x, y, yaw=0.0):
     bar(P(1.15, -0.22, 0.55), P(1.15, 0.22, 0.55), 0.07 * S, WOOD)                      # Joch
 
 
+# ---------------------------------------------------------------- Grünanlagen (Parks)
+
+CYPRESS = mat("Zypresse", (0.14, 0.30, 0.19))
+LAUREL = mat("Lorbeer", (0.22, 0.46, 0.26))
+HEDGE = mat("Hecke", (0.20, 0.42, 0.22))
+HERB_LIGHT = mat("KrautHell", (0.55, 0.72, 0.34))
+HERB_GREY = mat("KrautGrau", (0.56, 0.66, 0.52))
+LAVENDER = mat("Lavendel", (0.58, 0.44, 0.78))
+BLOOM_YELLOW = mat("BlueteGelb", (0.96, 0.82, 0.22))
+BLOOM_RED = mat("BlueteRot", (0.86, 0.22, 0.20))
+BLOOM_WHITE = mat("BlueteWeiss", (0.96, 0.95, 0.90))
+BLOOM_PINK = mat("BlueteRosa", (0.92, 0.52, 0.66))
+MARBLE = mat("Marmor", (0.94, 0.93, 0.89), rough=0.5)
+
+
+def cypress(x, y, h=0.9, r=0.11):
+    """Schlanke dunkle Zypresse: kurzer Stamm, vier gestufte Kegel, Spitze."""
+    cyl(0.018, 0.10, (x, y, 0.05), material=WOOD_DARK, verts=6)
+    n = 4
+    for i in range(n):
+        z0 = 0.08 + (h - 0.08) * i / n * 0.9
+        seg = (h - 0.08) / n * 1.35
+        rb = r * (1.0 - 0.18 * i)
+        cone(rb, rb * 0.45, seg, (x, y, z0 + seg / 2), CYPRESS, verts=8)
+    cone(r * 0.35, 0.0, h * 0.18, (x, y, h - h * 0.09), CYPRESS, verts=8)
+
+
+def laurel_tree(x, y, size=1.0):
+    """Lorbeerbaum: dünner Stamm, runde dichte Krone aus zwei Büscheln."""
+    cyl(0.025 * size, 0.40 * size, (x, y, 0.20 * size), rot=(3, 2, 0), material=WOOD_DARK, verts=6)
+    sphere(0.22 * size, (x, y, 0.58 * size), (1.0, 1.0, 0.95), LAUREL, segs=9, rings=6)
+    sphere(0.14 * size, (x + 0.10 * size, y + 0.04 * size, 0.70 * size), material=LEAF, segs=7, rings=5)
+
+
+def hedge(x0, x1, y0, y1, h=0.22):
+    """Geschnittene Hecke als Quader mit etwas helleren Triebspitzen obenauf."""
+    box((x1 - x0, y1 - y0, h), ((x0 + x1) / 2, (y0 + y1) / 2, h / 2), material=HEDGE)
+    box((x1 - x0 - 0.03, y1 - y0 - 0.03, 0.03), ((x0 + x1) / 2, (y0 + y1) / 2, h + 0.012), material=LEAF)
+
+
+def flower_bed(x0, x1, y0, y1, bloom=BLOOM_YELLOW, foliage=LEAF, seed=1, edge=LIME_DARK, step=0.10):
+    """Blumenbeet: Steinkante, Erde, grüne Polster und Blütenköpfchen (kräftige Farbe)."""
+    rnd = random.Random(seed)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, y1 - y0, 0.03), (cx, cy, 0.015), material=SOIL)
+    for x in (x0, x1):
+        box((0.035, y1 - y0 + 0.035, 0.07), (x, cy, 0.035), material=edge)
+    for y in (y0, y1):
+        box((x1 - x0, 0.035, 0.07), (cx, y, 0.035), material=edge)
+    nx, ny = max(2, round((x1 - x0) / step)), max(2, round((y1 - y0) / step))
+    for i in range(nx):
+        for j in range(ny):
+            x = x0 + (i + 0.5) * (x1 - x0) / nx + rnd.uniform(-0.015, 0.015)
+            y = y0 + (j + 0.5) * (y1 - y0) / ny + rnd.uniform(-0.015, 0.015)
+            sphere(step * 0.42, (x, y, 0.06), (1.0, 1.0, 0.65), foliage, segs=5, rings=3)
+            for _ in range(2):
+                sphere(0.022, (x + rnd.uniform(-0.04, 0.04) * step / 0.1, y + rnd.uniform(-0.04, 0.04) * step / 0.1, 0.09 + rnd.uniform(0, 0.035)), material=bloom, segs=4, rings=2)
+
+
+def statue(x, y, yaw=0.0, h=0.55):
+    """Marmorstatue auf Sockel: Gewandfigur mit erhobenem Arm."""
+    box((0.16, 0.16, 0.05), (x, y, 0.025), material=LIME_DARK)
+    box((0.12, 0.12, h * 0.38), (x, y, 0.05 + h * 0.19), material=LIME)
+    box((0.15, 0.15, 0.03), (x, y, 0.05 + h * 0.38 + 0.015), material=LIME_DARK)
+    z0 = 0.05 + h * 0.38 + 0.03
+    cone(0.055, 0.032, h * 0.32, (x, y, z0 + h * 0.16), MARBLE, verts=10)
+    sphere(0.032, (x, y, z0 + h * 0.32 + 0.025), material=MARBLE, segs=8, rings=5)
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    bar((x - s * 0.03, y + c * 0.03, z0 + h * 0.26), (x - s * 0.06, y + c * 0.06, z0 + h * 0.38), 0.014, MARBLE)
+
+
+def herm(x, y, yaw=0.0, h=0.40):
+    """Herme: Pfeiler mit Kopf und Gesimsplatte."""
+    box((0.09, 0.09, h), (x, y, h / 2), material=LIME)
+    box((0.12, 0.12, 0.03), (x, y, 0.015), material=LIME_DARK)
+    box((0.11, 0.11, 0.025), (x, y, h + 0.012), material=LIME_DARK)
+    sphere(0.045, (x, y, h + 0.07), (1.0, 1.0, 1.1), MARBLE, segs=8, rings=5)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 

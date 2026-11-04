@@ -93,6 +93,21 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Gutshof.fbx", prefab = "Gutshof", building = "Bld_Gutshof",
                 cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Kraeutergarten.fbx", prefab = "Kraeutergarten", building = "Bld_Kraeutergarten",
+                cells = new Vector2Int(1, 1), ground = "Mat_Boden_Kies"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/HeiligerHain.fbx", prefab = "HeiligerHain", building = "Bld_HeiligerHain",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Saeulengarten.fbx", prefab = "Saeulengarten", building = "Bld_Saeulengarten",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Kies"
             }
         };
 
