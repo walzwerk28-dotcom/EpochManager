@@ -135,6 +135,11 @@ namespace EpochCity
                 return $"{d.displayName}  |  {state}{ground}  |  {editing.WorkArea?.Count ?? 0} / {d.workAreaMaxCells} Felder";
             }
 
+            // Straße ziehen: Kosten der Strecke inklusive Brücken
+            if (placer.RoadMode && placer.road != null && placer.RoadPreviewPath != null &&
+                city.CanBuildRoad(placer.road, placer.RoadPreviewPath, out float roadCost, out float roadUnits, out int bridges))
+                return RoadCostInfo(placer.road, roadCost, roadUnits, bridges);
+
             // Mit gewähltem Gebäude: was zum Bau noch fehlt
             var selected = placer.SelectedBuilding;
             if (selected != null && city.IsAvailable(selected))
@@ -173,8 +178,11 @@ namespace EpochCity
 
             var road = city.Grid.GetRoad(cell);
             if (road != null)
+            {
+                string roadName = city.IsBridge(cell) ? $"Brücke ({road.displayName})" : road.displayName;
                 return fire != null && fire.GetProtectionAt(cell) > 0f
-                    ? $"{road.displayName}  |  Brandschutz {fire.GetProtectionAt(cell) * 100f:0} %" : road.displayName;
+                    ? $"{roadName}  |  Brandschutz {fire.GetProtectionAt(cell) * 100f:0} %" : roadName;
+            }
 
             var zone = city.Grid.GetZone(cell);
             var deposit = city.Grid.GetDeposit(cell);
@@ -183,9 +191,25 @@ namespace EpochCity
             if (deposit != null && city.Grid.YoungDeposits.TryGetValue(cell, out int age))
                 parts.Add($"{deposit.displayName} (jung, {age} / " +
                           $"{(city.IsTended(cell, deposit) ? Mathf.Min(deposit.regrowMonthsTended, deposit.regrowMonths) : deposit.regrowMonths)} Monate)");
+            else if (deposit != null && deposit.isWater) parts.Add($"{deposit.displayName} – nicht bebaubar");
             else if (deposit != null) parts.Add(deposit.displayName);
             if (zone != null) parts.Add($"{zone.displayName} (frei)");
             return string.Join("  |  ", parts);
+        }
+
+        /// <summary>Kosten der gezogenen Strecke: „Pflasterstraße  |  Kosten 45 Drachmen + 2 Stein  |  davon 3 Brückenfelder“.</summary>
+        private string RoadCostInfo(RoadDefinition road, float money, float units, int bridges)
+        {
+            var parts = new List<string>();
+            if (money > 0f) parts.Add($"{money:0.#} {Currency()}");
+            if (road.materialCostsPerCell != null)
+                foreach (var m in road.materialCostsPerCell)
+                    if (m.resource != null && !m.resource.isCurrency && m.amount * units > 0f)
+                        parts.Add($"{m.amount * units:0.##} {m.resource.displayName}");
+            string text = $"{road.displayName}  |  Kosten {(parts.Count > 0 ? string.Join(" + ", parts) : "keine")}";
+            if (bridges > 0) text += $"  |  davon {bridges} Brückenfelder";
+            string lack = city.GetMissingCost(money, road.materialCostsPerCell, units);
+            return lack != null ? text + $"  |  fehlt: {lack}" : text;
         }
 
         /// <summary>Brandzustand für Wohnhäuser (ihr Status steht nicht in der Zeile): „  |  brennt“.</summary>
@@ -327,6 +351,7 @@ namespace EpochCity
                             () => $"<b>{road.displayName}</b>\n{road.costPerCell:0.#} {Currency()}" +
                                   (roadMaterials != "" ? $" + {roadMaterials}" : "") + " pro Feld, " +
                                   $"Unterhalt {road.upkeepPerCellPerMonth:0.##} pro Feld und Monat\n" +
+                                  $"Brücken über Wasser: Kosten ×{city.bridgeCostFactor:0.#}, Unterhalt ×{city.bridgeUpkeepFactor:0.#}\n" +
                                   $"Qualität {road.quality:0.#}: Wege zum Lager zählen {(1f / road.quality) * 100f:0} %\n" +
                                   (city.IsAvailable(road) ? MissingLine(road.costPerCell, road.materialCostsPerCell) : "") +
                                   (LockReason(road.epoch, road.requiredTechnology) ??

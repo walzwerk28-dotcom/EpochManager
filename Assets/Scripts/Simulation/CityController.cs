@@ -450,37 +450,67 @@ namespace EpochCity
 
         private readonly Dictionary<Vector2Int, GameObject> roadViews = new Dictionary<Vector2Int, GameObject>();
 
+        /// <summary>Faktor auf Geld und Material je Straßenfeld über Wasser (Brücke).</summary>
+        [Min(1f)] public float bridgeCostFactor = 4f;
+        /// <summary>Faktor auf den Unterhalt je Brückenfeld.</summary>
+        [Min(1f)] public float bridgeUpkeepFactor = 2f;
+
+        /// <summary>Liegt auf diesem Feld Wasser?</summary>
+        public bool IsWater(Vector2Int c)
+        {
+            var d = Grid.GetDeposit(c);
+            return d != null && d.isWater;
+        }
+
+        /// <summary>Straße auf Wasser?</summary>
+        public bool IsBridge(Vector2Int c) => Grid.HasRoad(c) && IsWater(c);
+
+        /// <summary>Geldkosten eines neuen Straßenfelds (Brückenfelder × bridgeCostFactor).</summary>
+        public float GetRoadCellCost(RoadDefinition road, Vector2Int cell) =>
+            road == null ? 0f : road.costPerCell * (IsWater(cell) ? bridgeCostFactor : 1f);
+
+        /// <summary>Unterhalt eines Straßenfelds pro Monat (Brückenfelder × bridgeUpkeepFactor).</summary>
+        public float GetRoadCellUpkeep(RoadDefinition road, Vector2Int cell) =>
+            road == null ? 0f : road.upkeepPerCellPerMonth * (IsWater(cell) ? bridgeUpkeepFactor : 1f);
+
         /// <summary>
         /// Prüft eine Strecke: alle Felder im Raster und ohne Gebäude, Epoche erreicht, genug Geld und Material.
-        /// Felder mit vorhandener Straße kosten nichts.
+        /// Felder mit vorhandener Straße kosten nichts, Felder auf Wasser (Brücken) das Vierfache.
         /// </summary>
         public bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost) =>
-            CanBuildRoad(road, path, out cost, out int newCells) &&
-            GetMissingCost(cost, road.materialCostsPerCell, newCells) == null;
+            CanBuildRoad(road, path, out cost, out float units, out _) &&
+            GetMissingCost(cost, road.materialCostsPerCell, units) == null;
 
-        /// <summary>Wie CanBuildRoad, aber ohne Kostenprüfung; liefert Geldkosten und Anzahl neuer Felder.</summary>
-        private bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost, out int newCells)
+        /// <summary>
+        /// Wie CanBuildRoad, aber ohne Kostenprüfung: Geldkosten, Materialeinheiten (Brückenfelder zählen mehrfach)
+        /// und Anzahl neuer Brückenfelder. False nur bei unmöglicher Strecke.
+        /// </summary>
+        public bool CanBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path, out float cost, out float materialUnits,
+            out int bridgeCells)
         {
             cost = 0f;
-            newCells = 0;
+            materialUnits = 0f;
+            bridgeCells = 0;
             if (road == null || path == null || path.Count == 0) return false;
             if (!IsAvailable(road)) return false;
             foreach (var c in path)
             {
                 if (!Grid.CanPlaceRoad(c)) return false;
                 if (Grid.HasRoad(c)) continue;
-                cost += road.costPerCell;
-                newCells++;
+                cost += GetRoadCellCost(road, c);
+                bool bridge = IsWater(c);
+                materialUnits += bridge ? bridgeCostFactor : 1f;
+                if (bridge) bridgeCells++;
             }
             return true;
         }
 
         public bool TryBuildRoad(RoadDefinition road, IReadOnlyList<Vector2Int> path)
         {
-            if (!CanBuildRoad(road, path, out float cost, out int newCells) ||
-                GetMissingCost(cost, road.materialCostsPerCell, newCells) != null) return false;
+            if (!CanBuildRoad(road, path, out float cost, out float units, out _) ||
+                GetMissingCost(cost, road.materialCostsPerCell, units) != null) return false;
 
-            Pay(cost, road.materialCostsPerCell, newCells);
+            Pay(cost, road.materialCostsPerCell, units);
             var built = new List<Vector2Int>();
             foreach (var c in path)
             {
@@ -498,7 +528,7 @@ namespace EpochCity
             ClearZone(c); // Straßen verdrängen Zonen
             ClearDeposits(new[] { c }); // und roden Wald
             Grid.SetRoad(c, road);
-            RoadUpkeepPerMonth += road.upkeepPerCellPerMonth;
+            RoadUpkeepPerMonth += GetRoadCellUpkeep(road, c);
             if (road.prefab != null)
                 roadViews[c] = Instantiate(road.prefab, Grid.CellCenterToWorld(c, transform.position),
                     Quaternion.identity, transform);
@@ -510,7 +540,7 @@ namespace EpochCity
             if (road == null) return false;
 
             Grid.SetRoad(cell, null);
-            RoadUpkeepPerMonth = Mathf.Max(0f, RoadUpkeepPerMonth - road.upkeepPerCellPerMonth);
+            RoadUpkeepPerMonth = Mathf.Max(0f, RoadUpkeepPerMonth - GetRoadCellUpkeep(road, cell));
             if (roadViews.TryGetValue(cell, out var view))
             {
                 Destroy(view);
@@ -726,7 +756,7 @@ namespace EpochCity
                 for (int y = 0; y < footprint.y; y++)
                 {
                     var deposit = Grid.GetDeposit(new Vector2Int(origin.x + x, origin.y + y));
-                    if (deposit != null && deposit.blocksBuilding && deposit != def.requiredDeposit) return false;
+                    if (deposit != null && (deposit.isWater || deposit.blocksBuilding && deposit != def.requiredDeposit)) return false;
                 }
             return true;
         }
@@ -738,7 +768,7 @@ namespace EpochCity
             foreach (var c in cells)
             {
                 var deposit = Grid.GetDeposit(c);
-                if (deposit == null || !deposit.clearedByBuilding) continue;
+                if (deposit == null || deposit.isWater || !deposit.clearedByBuilding) continue;
                 Grid.SetDeposit(c, null);
                 changed = true;
             }

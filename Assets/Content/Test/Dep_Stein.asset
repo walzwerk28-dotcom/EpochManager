@@ -23,5 +23,6 @@ MonoBehaviour:
   decorScale: {x: 0.8, y: 1.2}
   clearedByBuilding: 0
   blocksBuilding: 1
+  isWater: 0
   regrowMonths: 0
   regrowMonthsTended: 4

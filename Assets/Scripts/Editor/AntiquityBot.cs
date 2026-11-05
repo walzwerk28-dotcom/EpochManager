@@ -504,7 +504,7 @@ namespace EpochCity
                     for (int y = near.y - radius; y <= near.y + radius; y++)
                     {
                         var o = new Vector2Int(x, y);
-                        if (city.Grid.CanPlace(def.size, o) && !Zoned(o, def.size) && !OnRoadLine(o, def.size)) candidates.Add(o);
+                        if (city.Grid.CanPlace(def.size, o) && !OnWater(o, def.size) && !Zoned(o, def.size) && !OnRoadLine(o, def.size)) candidates.Add(o);
                     }
                 foreach (var o in candidates.OrderBy(o => (o - near).sqrMagnitude).Take(8))
                 {
@@ -540,7 +540,7 @@ namespace EpochCity
                     for (int y = 1; y < grid.Height - def.size.y; y++)
                     {
                         var o = new Vector2Int(x, y);
-                        if (!grid.CanPlace(def.size, o) || Zoned(o, def.size) || OnRoadLine(o, def.size)) continue;
+                        if (!grid.CanPlace(def.size, o) || OnWater(o, def.size) || Zoned(o, def.size) || OnRoadLine(o, def.size)) continue;
                         int count = grid.CountDeposit(deposit, o, def.size, def.depositRange);
                         if (count == 0) continue;
                         // Nicht in den Umkreis eines anderen Betriebs desselben Vorkommens
@@ -591,6 +591,27 @@ namespace EpochCity
                 return false;
             }
 
+            /// <summary>Anteil der Felder des Blocks (mit Straßenrand), die Wasser sind.</summary>
+            private float WaterShare(RectInt rect)
+            {
+                int water = 0, total = 0;
+                for (int x = rect.xMin; x <= rect.xMax; x++)
+                    for (int y = rect.yMin; y <= rect.yMax; y++)
+                    {
+                        total++;
+                        if (city.IsWater(new Vector2Int(x, y))) water++;
+                    }
+                return total == 0 ? 0f : water / (float)total;
+            }
+
+            /// <summary>Der Teil einer Straßenseite vom ersten bis zum letzten Landfeld; Wasser davor und dahinter entfällt, Wasser dazwischen wird zur Brücke.</summary>
+            private List<Vector2Int> LandSpan(List<Vector2Int> path)
+            {
+                int first = path.FindIndex(c => !city.IsWater(c));
+                int last = path.FindLastIndex(c => !city.IsWater(c));
+                return first < 0 ? new List<Vector2Int>() : path.GetRange(first, last - first + 1);
+            }
+
             /// <summary>Straßen um den nächsten freien Block nahe near; gibt den Block zurück oder null.</summary>
             private bool OpenBlock(Vector2Int near) => OpenBlockRect(near).HasValue;
 
@@ -607,6 +628,7 @@ namespace EpochCity
                         var rect = new RectInt(x0, y0, BlockWidth, BlockHeight); // Straßen auf x0, y0, x0+9, y0+7
                         if (x0 < 1 || y0 < 1 || x0 + BlockWidth >= grid.Width - 1 || y0 + BlockHeight >= grid.Height - 1) continue;
                         if (openBlocks.Contains(rect)) continue;
+                        if (WaterShare(rect) > 0.5f) continue; // Block zu mehr als der Hälfte im Wasser: überspringen
                         float d = (rect.center - (Vector2)near).sqrMagnitude;
                         // Blöcke nahe der Stadtmitte bevorzugen, damit die Stadt zusammenhängt
                         d += (rect.center - (Vector2)Center).sqrMagnitude * 0.5f;
@@ -619,14 +641,17 @@ namespace EpochCity
                     new Vector2Int(b.xMin, b.yMin), new Vector2Int(b.xMax, b.yMin),
                     new Vector2Int(b.xMax, b.yMax), new Vector2Int(b.xMin, b.yMax)
                 };
+                // Brücken nur dort, wo Wasser die Blockstraße sonst unterbräche (zwischen Land davor und dahinter)
+                var sides = new List<List<Vector2Int>>();
+                for (int k = 0; k < 4; k++) sides.Add(LandSpan(GridMap.LPath(corners[k], corners[(k + 1) % 4])));
                 float cost = 0f;
-                for (int k = 0; k < 4; k++)
-                    foreach (var c in GridMap.LPath(corners[k], corners[(k + 1) % 4]))
-                        if (!grid.HasRoad(c)) cost += road.costPerCell;
+                foreach (var side in sides)
+                    foreach (var c in side)
+                        if (!grid.HasRoad(c)) cost += city.GetRoadCellCost(road, c);
                 if (city.Money - cost < Reserve) return null;
                 int built = 0;
-                for (int k = 0; k < 4; k++)
-                    if (city.TryBuildRoad(road, GridMap.LPath(corners[k], corners[(k + 1) % 4]))) built++;
+                foreach (var side in sides)
+                    if (side.Count > 0 && city.TryBuildRoad(road, side)) built++;
                 openBlocks.Add(b);
                 if (built == 0) return null;
                 actions.Add($"M{Month}: Block ({b.xMin},{b.yMin}) mit {built}/4 Straßen");
@@ -679,6 +704,14 @@ namespace EpochCity
             }
 
             private static int Mod(int a, int m) => ((a % m) + m) % m;
+
+            private bool OnWater(Vector2Int origin, Vector2Int size)
+            {
+                for (int x = 0; x < size.x; x++)
+                    for (int y = 0; y < size.y; y++)
+                        if (city.IsWater(origin + new Vector2Int(x, y))) return true;
+                return false;
+            }
 
             private bool Zoned(Vector2Int origin, Vector2Int size)
             {

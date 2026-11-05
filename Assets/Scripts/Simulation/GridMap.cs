@@ -157,7 +157,7 @@ namespace EpochCity
         /// Vorkommen, das Bauen verhindert).
         /// </summary>
         public bool CanZone(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null && roads[c.x, c.y] == null &&
-                                             !(deposits[c.x, c.y] != null && deposits[c.x, c.y].blocksBuilding);
+                                             !(deposits[c.x, c.y] != null && (deposits[c.x, c.y].blocksBuilding || deposits[c.x, c.y].isWater));
 
         /// <summary>Setzt oder entfernt (null) die Zone eines Felds.</summary>
         public void SetZone(Vector2Int c, ZoneDefinition zone)

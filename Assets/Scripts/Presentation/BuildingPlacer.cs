@@ -327,6 +327,9 @@ namespace EpochCity
             }
         }
 
+        /// <summary>Strecke der Straßenvorschau (für die Kostenanzeige), null ohne Vorschau.</summary>
+        public IReadOnlyList<Vector2Int> RoadPreviewPath { get; private set; }
+
         private void HandleRoad(Mouse mouse, bool overUi)
         {
             if (!dragging && !overUi && hasHover && mouse.leftButton.wasPressedThisFrame)
@@ -337,12 +340,14 @@ namespace EpochCity
 
             if (!hasHover && !dragging)
             {
+                RoadPreviewPath = null;
                 roadGhosts.Hide();
                 return;
             }
 
             var path = dragging ? GridMap.LPath(dragStart, hoverCell) : new List<Vector2Int> { hoverCell };
             bool canBuild = city.CanBuildRoad(road, path, out _);
+            RoadPreviewPath = path;
             roadGhosts.Show(city, road.prefab, path, _ => canBuild, GhostColor(validColor), GhostColor(invalidColor));
 
             if (dragging && mouse.leftButton.wasReleasedThisFrame)

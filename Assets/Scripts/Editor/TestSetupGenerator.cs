@@ -542,10 +542,36 @@ namespace EpochCity
             forester.workerTier = farmers;
             forester.workers = 2;
 
+            // Wasser (2026-11-05): nicht bebaubar, nie gerodet, Straßen werden zu Brücken; Kachel vorläufig flach blau
+            var waterDeposit = GetOrCreate<DepositDefinition>("Dep_Wasser");
+            waterDeposit.displayName = "Wasser";
+            waterDeposit.color = new Color(0.20f, 0.45f, 0.75f);
+            waterDeposit.isWater = true;
+            waterDeposit.clearedByBuilding = false;
+            waterDeposit.blocksBuilding = false;
+            waterDeposit.regrowMonths = 0;
+            waterDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Wasser", Vector2Int.one, 0.02f,
+                new Color(0.20f, 0.45f, 0.75f), 1f);
+            waterDeposit.decorPrefabs = new GameObject[0];
+            waterDeposit.decorPerCell = Vector2Int.zero;
+
             var mapDef = GetOrCreate<MapDefinition>("Map_Standard");
             mapDef.seed = 0;
             mapDef.border = 2;
             mapDef.startAreaRadius = 4f;
+            // Wasser vor den Flecken; die Karte ist nur 64 × 64 Felder groß, also kleine Seen
+            mapDef.water = new WaterFeatures
+            {
+                deposit = waterDeposit,
+                lakeCount = new Vector2Int(0, 2),
+                lakeCells = new Vector2Int(20, 40),
+                riverChance = 0.6f,
+                riverWidth = new Vector2Int(1, 2),
+                riverMeander = 0.35f,
+                coastChance = 0.4f,
+                coastDepth = new Vector2Int(4, 8),
+                coastRoughness = 0.5f
+            };
             mapDef.patches = new[]
             {
                 // Stein zuerst: kleine Flecken, die der Wald danach auslässt
@@ -946,7 +972,7 @@ namespace EpochCity
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
                 workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
                 food, marketNeed, water, faith, farmers,
-                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, mapDef,
+                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, waterDeposit, mapDef,
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,

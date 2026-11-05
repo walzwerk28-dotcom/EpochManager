@@ -29,6 +29,9 @@ MonoBehaviour:
   fellsDeposit: 1
   cyclesPerFelling: 4
   plantsDeposit: {fileID: 0}
+  workAreaMaxDistance: 12
+  workAreaMaxCells: 64
+  workAreaFarFactor: 0.6
   buildCost: 60
   materialCosts: []
   upkeepPerMonth: 3

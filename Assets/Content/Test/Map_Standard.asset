@@ -28,3 +28,13 @@ MonoBehaviour:
     minCells: 15
     maxCells: 40
     firstPatchDistance: {x: 8, y: 14}
+  water:
+    deposit: {fileID: 11400000, guid: d475f2cc11d6a864295a96fad7c07953, type: 2}
+    lakeCount: {x: 0, y: 2}
+    lakeCells: {x: 20, y: 40}
+    riverChance: 0.6
+    riverWidth: {x: 1, y: 2}
+    riverMeander: 0.35
+    coastChance: 0.4
+    coastDepth: {x: 4, y: 8}
+    coastRoughness: 0.5

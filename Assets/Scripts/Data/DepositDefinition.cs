@@ -28,6 +28,9 @@ namespace EpochCity
         [Tooltip("Hier stehen nur Gebäude, die dieses Vorkommen brauchen, und keine Zonen; Straßen dürfen darüber")]
         public bool blocksBuilding;
 
+        [Tooltip("Wasser (See, Fluss, Küste): nie bebaubar und nie gerodet, auch nicht für Betriebe, die das Vorkommen brauchen; Straßen werden zu Brücken")]
+        public bool isWater;
+
         [Header("Nachwachsen (Wald)")]
         [Tooltip("Monate, bis ein gefälltes oder gepflanztes Feld wieder zählt (0 = wächst nicht nach)")]
         [Min(0)] public int regrowMonths;
