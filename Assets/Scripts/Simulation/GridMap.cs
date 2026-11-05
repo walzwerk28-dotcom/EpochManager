@@ -71,8 +71,9 @@ namespace EpochCity
 
         public bool HasRoad(Vector2Int c) => GetRoad(c) != null;
 
-        /// <summary>Auf dieser Zelle darf eine Straße liegen (im Raster, kein Gebäude).</summary>
-        public bool CanPlaceRoad(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null;
+        /// <summary>Auf dieser Zelle darf eine Straße liegen (im Raster, kein Gebäude, kein Berg; Wasser ja, als Brücke).</summary>
+        public bool CanPlaceRoad(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null &&
+                                                  !(deposits[c.x, c.y] != null && deposits[c.x, c.y].isMountain);
 
         public void SetRoad(Vector2Int c, RoadDefinition road)
         {
@@ -157,7 +158,7 @@ namespace EpochCity
         /// Vorkommen, das Bauen verhindert).
         /// </summary>
         public bool CanZone(Vector2Int c) => InBounds(c) && cells[c.x, c.y] == null && roads[c.x, c.y] == null &&
-                                             !(deposits[c.x, c.y] != null && (deposits[c.x, c.y].blocksBuilding || deposits[c.x, c.y].isWater));
+                                             !(deposits[c.x, c.y] != null && (deposits[c.x, c.y].blocksBuilding || deposits[c.x, c.y].isWater || deposits[c.x, c.y].isMountain));
 
         /// <summary>Setzt oder entfernt (null) die Zone eines Felds.</summary>
         public void SetZone(Vector2Int c, ZoneDefinition zone)

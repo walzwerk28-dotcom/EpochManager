@@ -462,6 +462,13 @@ namespace EpochCity
             return d != null && d.isWater;
         }
 
+        /// <summary>Liegt auf diesem Feld ein Berg (keine Gebäude, Zonen und Straßen)?</summary>
+        public bool IsMountain(Vector2Int c)
+        {
+            var d = Grid.GetDeposit(c);
+            return d != null && d.isMountain;
+        }
+
         /// <summary>Straße auf Wasser?</summary>
         public bool IsBridge(Vector2Int c) => Grid.HasRoad(c) && IsWater(c);
 
@@ -756,7 +763,7 @@ namespace EpochCity
                 for (int y = 0; y < footprint.y; y++)
                 {
                     var deposit = Grid.GetDeposit(new Vector2Int(origin.x + x, origin.y + y));
-                    if (deposit != null && (deposit.isWater || deposit.blocksBuilding && deposit != def.requiredDeposit)) return false;
+                    if (deposit != null && (deposit.isWater || deposit.isMountain || deposit.blocksBuilding && deposit != def.requiredDeposit)) return false;
                 }
             return true;
         }
@@ -768,7 +775,7 @@ namespace EpochCity
             foreach (var c in cells)
             {
                 var deposit = Grid.GetDeposit(c);
-                if (deposit == null || deposit.isWater || !deposit.clearedByBuilding) continue;
+                if (deposit == null || deposit.isWater || deposit.isMountain || !deposit.clearedByBuilding) continue;
                 Grid.SetDeposit(c, null);
                 changed = true;
             }

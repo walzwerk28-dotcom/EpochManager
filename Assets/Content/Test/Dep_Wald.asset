@@ -25,5 +25,6 @@ MonoBehaviour:
   clearedByBuilding: 1
   blocksBuilding: 0
   isWater: 0
+  isMountain: 0
   regrowMonths: 8
   regrowMonthsTended: 4

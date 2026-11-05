@@ -612,6 +612,37 @@ namespace EpochCity
                 return first < 0 ? new List<Vector2Int>() : path.GetRange(first, last - first + 1);
             }
 
+            /// <summary>Anteil der Felder des Blocks (mit Straßenrand), die Berg sind.</summary>
+            private float MountainShare(RectInt rect)
+            {
+                int mountain = 0, total = 0;
+                for (int x = rect.xMin; x <= rect.xMax; x++)
+                    for (int y = rect.yMin; y <= rect.yMax; y++)
+                    {
+                        total++;
+                        if (city.IsMountain(new Vector2Int(x, y))) mountain++;
+                    }
+                return total == 0 ? 0f : mountain / (float)total;
+            }
+
+            /// <summary>Teilt eine Strecke an Bergfeldern in zusammenhängende Stücke ohne Berg.</summary>
+            private List<List<Vector2Int>> SplitAtMountains(List<Vector2Int> path)
+            {
+                var pieces = new List<List<Vector2Int>>();
+                var current = new List<Vector2Int>();
+                foreach (var c in path)
+                {
+                    if (city.IsMountain(c))
+                    {
+                        if (current.Count > 0) pieces.Add(current);
+                        current = new List<Vector2Int>();
+                    }
+                    else current.Add(c);
+                }
+                if (current.Count > 0) pieces.Add(current);
+                return pieces;
+            }
+
             /// <summary>Straßen um den nächsten freien Block nahe near; gibt den Block zurück oder null.</summary>
             private bool OpenBlock(Vector2Int near) => OpenBlockRect(near).HasValue;
 
@@ -628,7 +659,7 @@ namespace EpochCity
                         var rect = new RectInt(x0, y0, BlockWidth, BlockHeight); // Straßen auf x0, y0, x0+9, y0+7
                         if (x0 < 1 || y0 < 1 || x0 + BlockWidth >= grid.Width - 1 || y0 + BlockHeight >= grid.Height - 1) continue;
                         if (openBlocks.Contains(rect)) continue;
-                        if (WaterShare(rect) > 0.5f) continue; // Block zu mehr als der Hälfte im Wasser: überspringen
+                        if (WaterShare(rect) > 0.5f || MountainShare(rect) > 0.25f) continue; // mehr als halb Wasser oder viertel Berg: überspringen
                         float d = (rect.center - (Vector2)near).sqrMagnitude;
                         // Blöcke nahe der Stadtmitte bevorzugen, damit die Stadt zusammenhängt
                         d += (rect.center - (Vector2)Center).sqrMagnitude * 0.5f;
@@ -643,7 +674,10 @@ namespace EpochCity
                 };
                 // Brücken nur dort, wo Wasser die Blockstraße sonst unterbräche (zwischen Land davor und dahinter)
                 var sides = new List<List<Vector2Int>>();
-                for (int k = 0; k < 4; k++) sides.Add(LandSpan(GridMap.LPath(corners[k], corners[(k + 1) % 4])));
+                // Berge unterbrechen die Straße ohne Brücke: jedes Stück zwischen Bergen wird für sich gebaut
+                for (int k = 0; k < 4; k++)
+                    foreach (var piece in SplitAtMountains(LandSpan(GridMap.LPath(corners[k], corners[(k + 1) % 4]))))
+                        sides.Add(LandSpan(piece));
                 float cost = 0f;
                 foreach (var side in sides)
                     foreach (var c in side)
@@ -654,7 +688,7 @@ namespace EpochCity
                     if (side.Count > 0 && city.TryBuildRoad(road, side)) built++;
                 openBlocks.Add(b);
                 if (built == 0) return null;
-                actions.Add($"M{Month}: Block ({b.xMin},{b.yMin}) mit {built}/4 Straßen");
+                actions.Add($"M{Month}: Block ({b.xMin},{b.yMin}) mit {built}/{sides.Count} Straßen");
                 return b;
             }
 
@@ -709,7 +743,7 @@ namespace EpochCity
             {
                 for (int x = 0; x < size.x; x++)
                     for (int y = 0; y < size.y; y++)
-                        if (city.IsWater(origin + new Vector2Int(x, y))) return true;
+                        if (city.IsWater(origin + new Vector2Int(x, y)) || city.IsMountain(origin + new Vector2Int(x, y))) return true; // Wasser und Berge meiden
                 return false;
             }
 

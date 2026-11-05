@@ -31,6 +31,9 @@ namespace EpochCity
         [Tooltip("Wasser (See, Fluss, Küste): nie bebaubar und nie gerodet, auch nicht für Betriebe, die das Vorkommen brauchen; Straßen werden zu Brücken")]
         public bool isWater;
 
+        [Tooltip("Berg: nie bebaubar, keine Zonen, keine Straßen (auch keine Brücken), wird nie gerodet; der Förster pflanzt nicht darauf")]
+        public bool isMountain;
+
         [Header("Nachwachsen (Wald)")]
         [Tooltip("Monate, bis ein gefälltes oder gepflanztes Feld wieder zählt (0 = wächst nicht nach)")]
         [Min(0)] public int regrowMonths;

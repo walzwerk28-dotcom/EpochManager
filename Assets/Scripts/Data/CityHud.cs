@@ -139,6 +139,9 @@ namespace EpochCity
             if (placer.RoadMode && placer.road != null && placer.RoadPreviewPath != null &&
                 city.CanBuildRoad(placer.road, placer.RoadPreviewPath, out float roadCost, out float roadUnits, out int bridges))
                 return RoadCostInfo(placer.road, roadCost, roadUnits, bridges);
+            if (placer.RoadMode && placer.RoadPreviewPath != null && placer.road != null)
+                foreach (var c in placer.RoadPreviewPath)
+                    if (city.IsMountain(c)) return $"{placer.road.displayName}  |  Berge sind nicht befahrbar";
 
             // Mit gewähltem Gebäude: was zum Bau noch fehlt
             var selected = placer.SelectedBuilding;
@@ -191,7 +194,7 @@ namespace EpochCity
             if (deposit != null && city.Grid.YoungDeposits.TryGetValue(cell, out int age))
                 parts.Add($"{deposit.displayName} (jung, {age} / " +
                           $"{(city.IsTended(cell, deposit) ? Mathf.Min(deposit.regrowMonthsTended, deposit.regrowMonths) : deposit.regrowMonths)} Monate)");
-            else if (deposit != null && deposit.isWater) parts.Add($"{deposit.displayName} – nicht bebaubar");
+            else if (deposit != null && (deposit.isWater || deposit.isMountain)) parts.Add($"{deposit.displayName} – nicht bebaubar");
             else if (deposit != null) parts.Add(deposit.displayName);
             if (zone != null) parts.Add($"{zone.displayName} (frei)");
             return string.Join("  |  ", parts);

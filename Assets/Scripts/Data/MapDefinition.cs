@@ -48,6 +48,41 @@ namespace EpochCity
     }
 
     /// <summary>
+    /// Berge auf der Karte (MapGenerator): ein Randgebirge an einer Kartenseite (nicht der Küste) und einzelne Massive.
+    /// Berge sind ein Vorkommen mit DepositDefinition.isMountain; ohne deposit gibt es keine. Sie halten Abstand zur
+    /// Mitte und zum Wasser und trennen nie Land, das eine Straße tragen könnte, von der Mitte.
+    /// </summary>
+    [System.Serializable]
+    public class MountainFeatures
+    {
+        [Tooltip("Das Berg-Vorkommen (isMountain); leer = keine Berge")]
+        public DepositDefinition deposit;
+
+        [Header("Randgebirge")]
+        [Range(0f, 1f)] public float rangeChance = 0.5f;
+        [Tooltip("Tiefe des Streifens in Feldern (von, bis)")]
+        public Vector2Int rangeDepth = new Vector2Int(3, 7);
+        [Tooltip("Wie unruhig die Kante ist: Wahrscheinlichkeit je Feld, dass sich die Tiefe um 1 ändert")]
+        [Range(0f, 1f)] public float rangeRoughness = 0.5f;
+        [Tooltip("Wahrscheinlichkeit je Feld, dass vom Gebirge ein Ausläufer nach innen wächst")]
+        [Range(0f, 1f)] public float spurChance = 0.04f;
+
+        [Header("Massive")]
+        [Tooltip("Anzahl einzelner Massive (von, bis einschließlich)")]
+        public Vector2Int massifCount = new Vector2Int(1, 2);
+        [Tooltip("Größe eines Massivs in Feldern (von, bis)")]
+        public Vector2Int massifCells = new Vector2Int(15, 35);
+
+        [Header("Abstände")]
+        [Tooltip("Freie Felder zwischen Bergen und Wasser")]
+        [Min(0)] public int waterClearance = 1;
+        [Tooltip("Mindestabstand zur Kartenmitte; wirksam mindestens startAreaRadius + 4")]
+        [Min(0)] public float startClearance = 8f;
+        [Tooltip("Steinflecken (außer dem ersten) beginnen bevorzugt am Fuß der Berge")]
+        public bool stoneNearMountains = true;
+    }
+
+    /// <summary>
     /// Parameter für die Karte beim Spielstart (MapGenerator): Rohstoff-Vorkommen als zufällige Flecken.
     /// Der Startwert 0 wählt bei jedem Spiel einen neuen.
     /// </summary>
@@ -64,5 +99,7 @@ namespace EpochCity
         public DepositPatches[] patches;
         [Tooltip("Küste, Fluss und Seen; wird vor den Flecken erzeugt")]
         public WaterFeatures water;
+        [Tooltip("Randgebirge und Massive; werden nach dem Wasser und vor Wald und Stein erzeugt")]
+        public MountainFeatures mountains;
     }
 }

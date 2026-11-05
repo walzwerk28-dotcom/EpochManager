@@ -554,6 +554,19 @@ namespace EpochCity
             waterDeposit.decorPrefabs = new GameObject[0];
             waterDeposit.decorPerCell = Vector2Int.zero;
 
+            // Berge (2026-11-06): nicht bebaubar, keine Straßen, nie gerodet; vorläufige graue Kachel bis Teil B (Relief)
+            var mountainDeposit = GetOrCreate<DepositDefinition>("Dep_Berg");
+            mountainDeposit.displayName = "Berg";
+            mountainDeposit.color = new Color(0.45f, 0.42f, 0.38f);
+            mountainDeposit.isMountain = true;
+            mountainDeposit.clearedByBuilding = false;
+            mountainDeposit.blocksBuilding = false;
+            mountainDeposit.regrowMonths = 0;
+            mountainDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Berg", Vector2Int.one, 0.015f,
+                new Color(0.45f, 0.42f, 0.38f), 1f);
+            mountainDeposit.decorPrefabs = new GameObject[0];
+            mountainDeposit.decorPerCell = Vector2Int.zero;
+
             var mapDef = GetOrCreate<MapDefinition>("Map_Standard");
             mapDef.seed = 0;
             mapDef.border = 2;
@@ -570,6 +583,20 @@ namespace EpochCity
                 coastChance = 0.4f,
                 coastDepth = new Vector2Int(4, 8),
                 coastRoughness = 0.5f
+            };
+            // Berge nach dem Wasser, vor Stein und Wald
+            mapDef.mountains = new MountainFeatures
+            {
+                deposit = mountainDeposit,
+                rangeChance = 0.5f,
+                rangeDepth = new Vector2Int(3, 7),
+                rangeRoughness = 0.5f,
+                spurChance = 0.04f,
+                massifCount = new Vector2Int(1, 2),
+                massifCells = new Vector2Int(15, 35),
+                waterClearance = 1,
+                startClearance = 8f,
+                stoneNearMountains = true
             };
             mapDef.patches = new[]
             {
@@ -971,7 +998,7 @@ namespace EpochCity
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
                 workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
                 food, marketNeed, water, faith, farmers,
-                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, waterDeposit, mapDef,
+                logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, waterDeposit, mountainDeposit, mapDef,
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,

@@ -38,3 +38,14 @@ MonoBehaviour:
     coastChance: 0.4
     coastDepth: {x: 4, y: 8}
     coastRoughness: 0.5
+  mountains:
+    deposit: {fileID: 11400000, guid: fe3422eb0f4c25649ad77c8092747a8a, type: 2}
+    rangeChance: 0.5
+    rangeDepth: {x: 3, y: 7}
+    rangeRoughness: 0.5
+    spurChance: 0.04
+    massifCount: {x: 1, y: 2}
+    massifCells: {x: 15, y: 35}
+    waterClearance: 1
+    startClearance: 8
+    stoneNearMountains: 1
