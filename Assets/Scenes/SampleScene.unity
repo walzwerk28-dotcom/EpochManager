@@ -149,7 +149,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.RoadVisuals
   city: {fileID: 440537052}
+  overlay: {fileID: 1216388727}
   edgeWidth: 0.22
+  bridgeCenter: {fileID: 1936627530949986862, guid: 78f5e1588d5ad634daa855e80e5e0b0c, type: 3}
+  bridgeRail: {fileID: 5146339319612695138, guid: d56f70ade1110ee4ab106b19e6151eb7, type: 3}
+  bridgeArmFlat: {fileID: 7429670798625758284, guid: acf2532deeddbd645a9a5b38c3370dbe, type: 3}
+  bridgeArmRamp: {fileID: 1702919116539961922, guid: bb73ea39692ba2446818082da5e0a4db, type: 3}
+  bridgeBaseDirection: {x: 0, y: 0, z: -1}
 --- !u!4 &131521622
 Transform:
   m_ObjectHideFlags: 0
@@ -591,6 +597,8 @@ MonoBehaviour:
   map: {fileID: 11400000, guid: 1583c8aa391a066428e3a815cdcb8301, type: 2}
   debugBuilding: {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
   debugCell: {x: 0, y: 0}
+  bridgeCostFactor: 4
+  bridgeUpkeepFactor: 2
 --- !u!4 &440537053
 Transform:
   m_ObjectHideFlags: 0
@@ -1227,6 +1235,7 @@ GameObject:
   - component: {fileID: 1732010462}
   - component: {fileID: 1732010464}
   - component: {fileID: 1732010465}
+  - component: {fileID: 1732010466}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -1373,6 +1382,38 @@ MonoBehaviour:
   city: {fileID: 440537052}
   spread: 0.32
   saplingScale: 0.3
+--- !u!114 &1732010466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732010457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c724dfa1ce50ed44986a235cdb9f562, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.WaterVisuals
+  city: {fileID: 440537052}
+  waterMaterial: {fileID: 2100000, guid: 994e9ad085e021d4ab71443c984b6ef4, type: 2}
+  shoreMaterial: {fileID: 2100000, guid: 3f43cb2f3c62b50488b7868474f24a90, type: 2}
+  waterHeight: 0.04
+  shoreHeight: 0.01
+  shoreLevel: 0.3
+  edgeExtension: 120
+  chunkSize: 16
+  reeds:
+  - {fileID: 1571661899910480711, guid: ce091323e1969c54b881d96a6cabf005, type: 3}
+  - {fileID: 2049672482181871646, guid: 48de88ec8284be14bb33d40058e5ffa7, type: 3}
+  - {fileID: 1869694934060367394, guid: ac554a084c8cb4d4aa98b75850861871, type: 3}
+  shoreStones:
+  - {fileID: 3648523226171021838, guid: 12973cef75c508f4eae56fa85fdcaedc, type: 3}
+  - {fileID: 5033786615652458801, guid: e1647facfbb04c44c847a35f21e94949, type: 3}
+  lilies:
+  - {fileID: 7767635844242669741, guid: 815e3de4b42e64a43bb8276e47449def, type: 3}
+  - {fileID: 6142250328783819902, guid: ba520ba5c4d18a94791cc7879b80ecff, type: 3}
+  lilyChance: 0.24
+  stoneChance: 0.22
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

@@ -542,7 +542,7 @@ namespace EpochCity
             forester.workerTier = farmers;
             forester.workers = 2;
 
-            // Wasser (2026-11-05): nicht bebaubar, nie gerodet, Straßen werden zu Brücken; Kachel vorläufig flach blau
+            // Wasser (2026-11-05): nicht bebaubar, nie gerodet, Straßen werden zu Brücken
             var waterDeposit = GetOrCreate<DepositDefinition>("Dep_Wasser");
             waterDeposit.displayName = "Wasser";
             waterDeposit.color = new Color(0.20f, 0.45f, 0.75f);
@@ -550,8 +550,7 @@ namespace EpochCity
             waterDeposit.clearedByBuilding = false;
             waterDeposit.blocksBuilding = false;
             waterDeposit.regrowMonths = 0;
-            waterDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Wasser", Vector2Int.one, 0.02f,
-                new Color(0.20f, 0.45f, 0.75f), 1f);
+            waterDeposit.tilePrefab = null; // WaterVisuals zeigt das Wasser als zusammenhängende Fläche (Teil B)
             waterDeposit.decorPrefabs = new GameObject[0];
             waterDeposit.decorPerCell = Vector2Int.zero;
 

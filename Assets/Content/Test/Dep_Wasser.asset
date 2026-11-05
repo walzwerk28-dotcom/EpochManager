@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.DepositDefinition
   displayName: Wasser
   color: {r: 0.2, g: 0.45, b: 0.75, a: 1}
-  tilePrefab: {fileID: 3793566054038642357, guid: e963546ff806d9b41a70fa0fd64fca5e, type: 3}
+  tilePrefab: {fileID: 0}
   decorPrefabs: []
   decorPerCell: {x: 0, y: 0}
   decorScale: {x: 0.85, y: 1.15}

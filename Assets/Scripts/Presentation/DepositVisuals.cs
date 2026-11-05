@@ -72,6 +72,7 @@ namespace EpochCity
 
             foreach (var c in grid.DepositCells)
             {
+                if (grid.GetDeposit(c).isWater) continue; // Wasser zeigt WaterVisuals als zusammenhängende Fläche
                 if (!views.TryGetValue(c, out var view))
                     views[c] = view = Create(c, grid.GetDeposit(c));
                 bool free = grid.GetAt(c) == null && !grid.HasRoad(c);

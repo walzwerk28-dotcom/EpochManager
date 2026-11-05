@@ -53,6 +53,12 @@ namespace EpochCity
                 : Color.Lerp(mediumColor, goodColor, (efficiency - 0.5f) / 0.5f);
         }
 
+        /// <summary>Färbt neu (z. B. wenn RoadVisuals Brückenstücke neu aufgebaut hat); ohne Overlay ohne Wirkung.</summary>
+        public void Reapply()
+        {
+            if (Visible) Refresh();
+        }
+
         private void Refresh()
         {
             if (city == null) return;
