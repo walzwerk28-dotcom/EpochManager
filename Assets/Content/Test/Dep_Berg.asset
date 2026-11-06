@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.DepositDefinition
   displayName: Berg
   color: {r: 0.45, g: 0.42, b: 0.38, a: 1}
-  tilePrefab: {fileID: 2268025275074009328, guid: e170248638c683a478f7b83ab4812a45, type: 3}
+  tilePrefab: {fileID: 0}
   decorPrefabs: []
   decorPerCell: {x: 0, y: 0}
   decorScale: {x: 0.85, y: 1.15}

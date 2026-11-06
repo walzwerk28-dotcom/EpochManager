@@ -32,8 +32,17 @@ namespace EpochCity
         public float minPitch = 25f;
         public float maxPitch = 85f;
 
+        [Header("Gebirge (optional: Kamera bleibt über dem Relief)")]
+        [SerializeField] private MountainVisuals mountains;
+        [Tooltip("Mindestabstand der Kamera über dem Relief (Meter)")]
+        [SerializeField] private float terrainClearance = 4f;
+        [Tooltip("Umkreis (Meter), in dem das Relief unter der Kamera geprüft wird")]
+        [SerializeField] private float terrainProbeRadius = 4f;
+
         [Header("Spielstand (optional: Kamera wird mitgespeichert)")]
         [SerializeField] private SaveSystem saveSystem;
+
+        private float lift;
 
         private void OnEnable()
         {
@@ -105,7 +114,17 @@ namespace EpochCity
             focus.z = Mathf.Clamp(focus.z, boundsMin.y, boundsMax.y);
 
             var rot = Quaternion.Euler(pitch, yaw, 0f);
-            transform.SetPositionAndRotation(focus + rot * new Vector3(0f, 0f, -distance), rot);
+            var position = focus + rot * new Vector3(0f, 0f, -distance);
+
+            // Über dem Relief bleiben: nach oben sofort, nach unten weich, damit die Kamera beim Fahren nicht zuckt
+            if (mountains == null) mountains = FindAnyObjectByType<MountainVisuals>();
+            float needed = 0f;
+            if (mountains != null && mountains.Ready)
+                needed = Mathf.Max(0f, mountains.GetMaxHeight(position, terrainProbeRadius) + terrainClearance - position.y);
+            lift = needed > lift ? needed : Mathf.Lerp(lift, needed, 1f - Mathf.Exp(-4f * dt));
+            if (lift < 0.001f) lift = 0f;
+            position.y += lift;
+            transform.SetPositionAndRotation(position, rot);
         }
     }
 }

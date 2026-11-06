@@ -425,6 +425,9 @@ MonoBehaviour:
   pitch: 55
   minPitch: 25
   maxPitch: 85
+  mountains: {fileID: 1732010467}
+  terrainClearance: 4
+  terrainProbeRadius: 4
   saveSystem: {fileID: 1598712642}
 --- !u!1 &410087039
 GameObject:
@@ -1236,6 +1239,7 @@ GameObject:
   - component: {fileID: 1732010464}
   - component: {fileID: 1732010465}
   - component: {fileID: 1732010466}
+  - component: {fileID: 1732010467}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -1414,6 +1418,38 @@ MonoBehaviour:
   - {fileID: 6142250328783819902, guid: ba520ba5c4d18a94791cc7879b80ecff, type: 3}
   lilyChance: 0.24
   stoneChance: 0.22
+--- !u!114 &1732010467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732010457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbd9104a2b1b04048861ee71a68422fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.MountainVisuals
+  city: {fileID: 440537052}
+  mountainMaterial: {fileID: 2100000, guid: 8506d49b210c26f42921f7540bc429eb, type: 2}
+  maxHeight: 14
+  outerMaxHeight: 24
+  fadeStart: 60
+  jitter: 0.3
+  chunkSize: 16
+  pines:
+  - {fileID: 4692700761507208854, guid: 69283cc7fdc80c046bdc663d4053130e, type: 3}
+  - {fileID: 2299656186566020029, guid: a0df2f1b1b6ca454095e36ec42df105a, type: 3}
+  cypresses:
+  - {fileID: 3832296537179660979, guid: 966e8ec3cae56c6469c6de19a2fa990c, type: 3}
+  bushes:
+  - {fileID: 5155372470572185683, guid: 1f682272a70cb5b45949c7d0e5650d5b, type: 3}
+  - {fileID: 2098691883685455100, guid: 33452a4b4ddcf684fa9cd28ba1d3f701, type: 3}
+  rocks:
+  - {fileID: 1431738181621175319, guid: 544eb69d4e453a14eb1bcb4c73d92c46, type: 3}
+  - {fileID: 5711781642084699462, guid: fc06510fa40345c4fb0a21d28a890021, type: 3}
+  - {fileID: 8020015045080142785, guid: a8b7f74f0a37e9f40b9f10a11237b906, type: 3}
+  outerDecorFactor: 0.2
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

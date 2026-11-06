@@ -554,7 +554,7 @@ namespace EpochCity
             waterDeposit.decorPrefabs = new GameObject[0];
             waterDeposit.decorPerCell = Vector2Int.zero;
 
-            // Berge (2026-11-06): nicht bebaubar, keine Straßen, nie gerodet; vorläufige graue Kachel bis Teil B (Relief)
+            // Berge (2026-11-06): nicht bebaubar, keine Straßen, nie gerodet; Relief zeigt MountainVisuals (Teil B)
             var mountainDeposit = GetOrCreate<DepositDefinition>("Dep_Berg");
             mountainDeposit.displayName = "Berg";
             mountainDeposit.color = new Color(0.45f, 0.42f, 0.38f);
@@ -562,8 +562,7 @@ namespace EpochCity
             mountainDeposit.clearedByBuilding = false;
             mountainDeposit.blocksBuilding = false;
             mountainDeposit.regrowMonths = 0;
-            mountainDeposit.tilePrefab = CreatePrefab("Prefab_Vorkommen_Berg", Vector2Int.one, 0.015f,
-                new Color(0.45f, 0.42f, 0.38f), 1f);
+            mountainDeposit.tilePrefab = null; // MountainVisuals zeigt die Berge als Relief (Teil B)
             mountainDeposit.decorPrefabs = new GameObject[0];
             mountainDeposit.decorPerCell = Vector2Int.zero;
 
