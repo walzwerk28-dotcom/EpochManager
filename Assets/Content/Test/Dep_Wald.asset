@@ -16,12 +16,18 @@ MonoBehaviour:
   color: {r: 0.22, g: 0.42, b: 0.18, a: 1}
   tilePrefab: {fileID: 2117699414966403576, guid: cc8ab5161d3e0684dbbd4173df5749de, type: 3}
   decorPrefabs:
-  - {fileID: 8365692569918954403, guid: ba22f9b95a0f6274ca10a9f740aa560e, type: 3}
-  - {fileID: 5488466265938004310, guid: a02e97cf8cab032428209f6a97d3c716, type: 3}
-  - {fileID: 8820878340556552035, guid: 58a486d27568d244abd14a224cdf184b, type: 3}
-  - {fileID: 5962855636904893549, guid: 9f2acf276d2a43447bbbb9b76b219ee2, type: 3}
-  decorPerCell: {x: 2, y: 3}
-  decorScale: {x: 0.8, y: 1.2}
+  - {fileID: 6594447898569951438, guid: 14cee67607b852f45b7ccab6bcd01a1e, type: 3}
+  - {fileID: 6594447898569951438, guid: 14cee67607b852f45b7ccab6bcd01a1e, type: 3}
+  - {fileID: 3835965704334330998, guid: 08cdf1c029068bb4aa721771d949b88a, type: 3}
+  - {fileID: 3835965704334330998, guid: 08cdf1c029068bb4aa721771d949b88a, type: 3}
+  - {fileID: 4692700761507208854, guid: 69283cc7fdc80c046bdc663d4053130e, type: 3}
+  - {fileID: 2299656186566020029, guid: a0df2f1b1b6ca454095e36ec42df105a, type: 3}
+  - {fileID: 3553887836572040950, guid: a9a6a8a2a6058174e9162527842b636e, type: 3}
+  - {fileID: 4867562237959263138, guid: 2268680f83004a54c80763930ec572f2, type: 3}
+  - {fileID: 8621361855490546005, guid: fc3d6ecf20f1a214287b2c167a6c40ca, type: 3}
+  - {fileID: 3832296537179660979, guid: 966e8ec3cae56c6469c6de19a2fa990c, type: 3}
+  decorPerCell: {x: 3, y: 4}
+  decorScale: {x: 0.8, y: 1.15}
   clearedByBuilding: 1
   blocksBuilding: 0
   isWater: 0

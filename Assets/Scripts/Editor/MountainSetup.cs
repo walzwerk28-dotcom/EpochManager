@@ -4,9 +4,10 @@ using UnityEngine;
 namespace EpochCity
 {
     /// <summary>
-    /// Richtet die Berg-Optik ein (Menü EpochCity → Berge einrichten): Material mit dem Shader EpochCity/Gebirge,
-    /// Prefabs aus Gebirge.fbx (Pinien, Zypresse, Macchia, Felsen), entfernt die Kachel aus Dep_Berg und verdrahtet
-    /// in der offenen Szene MountainVisuals und die Kamera. Die FBX-Datei entsteht mit Blender/scripts/gebirge.py.
+    /// Richtet die Natur-Optik ein (Menü EpochCity → Natur einrichten): Material mit dem Shader EpochCity/Gebirge (mit der
+    /// Wiesentextur des Bodens), Prefabs aus Gebirge.fbx (Steineichen, Pinien, Aleppokiefern, Zypressen, Macchia, Felsen),
+    /// entfernt die Kachel aus Dep_Berg, trägt die Bäume in Dep_Wald ein und verdrahtet in der offenen Szene
+    /// MountainVisuals und die Kamera. Die FBX-Datei entsteht mit Blender/scripts/gebirge.py.
     /// Mehrfaches Ausführen überschreibt nur die Werte.
     /// </summary>
     public static class MountainSetup
@@ -14,7 +15,7 @@ namespace EpochCity
         private const string Root = "Assets/Content/Mountains";
         private const string Models = "Assets/Content/Models";
 
-        [MenuItem("EpochCity/Berge einrichten")]
+        [MenuItem("EpochCity/Natur einrichten")]
         public static void Run()
         {
             if (!AssetDatabase.IsValidFolder(Root)) AssetDatabase.CreateFolder("Assets/Content", "Mountains");
@@ -23,23 +24,45 @@ namespace EpochCity
             material.SetColor("_HazeColor", new Color(0.74f, 0.81f, 0.86f));
             material.SetColor("_Tint", Color.white);
             material.SetFloat("_Ambient", 1f);
+            material.SetTexture("_GroundTex", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Content/Look/Tex_Ground.png"));
             EditorUtility.SetDirty(material);
 
-            var pines = MakePrefabs("Pinie_A", "Pinie_B");
-            var cypresses = MakePrefabs("Zypresse_A");
-            var bushes = MakePrefabs("Macchia_A", "Macchia_B");
-            var rocks = MakePrefabs("Fels_A", "Fels_B", "Fels_C");
+            var oakA = MakePrefab("Gebirge", "Steineiche_A");
+            var oakB = MakePrefab("Gebirge", "Steineiche_B");
+            var pineA = MakePrefab("Gebirge", "Pinie_A");
+            var pineB = MakePrefab("Gebirge", "Pinie_B");
+            var pineC = MakePrefab("Gebirge", "Pinie_C");
+            var aleppoA = MakePrefab("Gebirge", "Aleppokiefer_A");
+            var aleppoB = MakePrefab("Gebirge", "Aleppokiefer_B");
+            var cypA = MakePrefab("Gebirge", "Zypresse_A");
+            var cypB = MakePrefab("Gebirge", "Zypresse_B");
+            var bushes = MakePrefabs("Macchia_A", "Macchia_B", "Macchia_C");
+            var rocks = MakePrefabs("Fels_A", "Fels_B", "Fels_C", "Fels_D");
 
-            var deposit = AssetDatabase.LoadAssetAtPath<DepositDefinition>("Assets/Content/Test/Dep_Berg.asset");
-            if (deposit != null)
+            var oaks = new[] { oakA, oakB };
+            var pines = new[] { pineA, pineB, pineC, aleppoA, aleppoB };
+            var cypresses = new[] { cypA, cypB };
+
+            var mountain = AssetDatabase.LoadAssetAtPath<DepositDefinition>("Assets/Content/Test/Dep_Berg.asset");
+            if (mountain != null)
             {
-                deposit.tilePrefab = null;
-                EditorUtility.SetDirty(deposit);
+                mountain.tilePrefab = null;
+                EditorUtility.SetDirty(mountain);
+            }
+
+            // Wald der Karte: Steineichen, Pinien, Aleppokiefern und einzelne Zypressen (Gewichte über Wiederholung)
+            var forest = AssetDatabase.LoadAssetAtPath<DepositDefinition>("Assets/Content/Test/Dep_Wald.asset");
+            if (forest != null)
+            {
+                forest.decorPrefabs = new[] { oakA, oakA, oakB, oakB, pineA, pineB, pineC, aleppoA, aleppoB, cypA };
+                forest.decorPerCell = new Vector2Int(3, 4);
+                forest.decorScale = new Vector2(0.8f, 1.15f);
+                EditorUtility.SetDirty(forest);
             }
             AssetDatabase.SaveAssets();
 
-            WireScene(material, pines, cypresses, bushes, rocks);
-            Debug.Log("Berge eingerichtet: Material, Prefabs, Szene verdrahtet.");
+            WireScene(material, oaks, pines, cypresses, bushes, rocks);
+            Debug.Log("Natur eingerichtet: Material, Prefabs, Wald, Szene verdrahtet.");
         }
 
         private static Material GetOrCreateMaterial(string name, string shaderName)
@@ -103,8 +126,8 @@ namespace EpochCity
             return prefab;
         }
 
-        private static void WireScene(Material material, GameObject[] pines, GameObject[] cypresses, GameObject[] bushes,
-            GameObject[] rocks)
+        private static void WireScene(Material material, GameObject[] oaks, GameObject[] pines, GameObject[] cypresses,
+            GameObject[] bushes, GameObject[] rocks)
         {
             var city = Object.FindAnyObjectByType<CityController>();
             var depositVisuals = Object.FindAnyObjectByType<DepositVisuals>();
@@ -120,6 +143,7 @@ namespace EpochCity
             var so = new SerializedObject(visuals);
             so.FindProperty("city").objectReferenceValue = city;
             so.FindProperty("mountainMaterial").objectReferenceValue = material;
+            SetArray(so.FindProperty("oaks"), oaks);
             SetArray(so.FindProperty("pines"), pines);
             SetArray(so.FindProperty("cypresses"), cypresses);
             SetArray(so.FindProperty("bushes"), bushes);

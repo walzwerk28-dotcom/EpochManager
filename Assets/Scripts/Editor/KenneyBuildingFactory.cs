@@ -123,12 +123,8 @@ namespace EpochCity
                 b => Row(b, "wall-wood", 4, 0f, (3, "roof-high", false), (2, "roof", true))));
             Assign("Bld_Muehle", Make("Muehle", 2, original, Mill));
 
-            // Deko der Rohstoff-Vorkommen: einzelne Bäume und Felsen in natürlicher Größe (nicht auf ein Feld skaliert)
-            AssignDecor("Dep_Wald",
-                MakeDecor("Baum_Eiche", NK + "tree_oak", 1.8f),
-                MakeDecor("Baum_Laub", NK + "tree_default", 1.8f),
-                MakeDecor("Baum_Kiefer", NK + "tree_pineRoundB", 1.8f, defaultMatAs: "leafsDark"),
-                MakeDecor("Baum_Kiefer_Hoch", NK + "tree_pineTallA", 1.6f));
+            // Deko der Rohstoff-Vorkommen: einzelne Felsen in natürlicher Größe (nicht auf ein Feld skaliert).
+            // Die Bäume von Dep_Wald stammen seit 2026-11-06 aus Blender (gebirge.py, EpochCity → Natur einrichten).
             AssignDecor("Dep_Stein",
                 MakeDecor("Fels_Gross", NK + "stone_largeA", 1.8f),
                 MakeDecor("Fels_Hoch", NK + "stone_tallB", 1.6f),

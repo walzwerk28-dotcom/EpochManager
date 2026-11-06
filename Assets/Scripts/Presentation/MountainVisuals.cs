@@ -7,13 +7,16 @@ namespace EpochCity
 {
     /// <summary>
     /// Zeigt die Berge der Karte (Vorkommen mit DepositDefinition.isMountain) als Höhenrelief statt einer Kachel je
-    /// Feld. Ein Gitter mit zwei Eckpunkten je Feld (am Kartenrand wachsen die Abstände nach außen, damit das
-    /// Gebirge weit über die Karte hinausläuft, ohne viele Dreiecke) liefert die Höhe: an der Außenkante der Bergfelder
-    /// 0, damit die Hänge bündig in die Wiese übergehen, nach innen steigt sie mit dem Abstand zum Rand (Distanzfeld)
-    /// plus Rauschen. Die Eckpunkte im Inneren sind leicht gegeneinander versetzt, Schattierung und Farbe je
-    /// Dreieck (Low-Poly): unten Gras, darüber Buschland in Oliv und Ocker, steil und oben Kalkfels. Abschnitte von
-    /// chunkSize × chunkSize Feldern, nur geänderte werden neu gebaut. Dazu Deko (Pinien, Zypressen, Macchia, Felsen),
-    /// fest an der Position verteilt und auf die Höhe des Reliefs gesetzt. GetHeight liefert die Höhe für die Kamera.
+    /// Feld. Ein regelmäßiges Gitter mit vier Eckpunkten je Feld (am Kartenrand wachsen die Abstände nach außen, damit
+    /// das Gebirge weit über die Karte hinausläuft, ohne viele Dreiecke) liefert die Höhe: an der Außenkante der
+    /// Bergfelder 0, nach innen steigt sie weich mit dem Abstand zum Rand (Distanzfeld), überlagert von Grat- und
+    /// Talrauschen (Ridged-Noise), Rinnen entlang der Falllinie und einer welligen Fußlinie. Die Normalen sind weich
+    /// (aus dem Höhenfeld), die Krümmung (Mulde oder Grat) steckt in der Vertexfarbe; Farbe und Gesteinsschichten
+    /// entstehen im Shader. Abschnitte von chunkSize × chunkSize Feldern, nur geänderte werden neu gebaut. Dazu Deko
+    /// (Steineichen, Pinien, Zypressen, Macchia, Felsen), fest an der Position verteilt: in Hainen nach Rauschen, unten
+    /// und in Mulden dichter, an mittleren Hängen Pinien und Zypressen in Reihen, oben nur Felsen und Büsche; auf die
+    /// Höhe des Reliefs gesetzt, Stämme bis in den Boden, Felsen eingesenkt und nach dem Hang ausgerichtet.
+    /// GetHeight liefert die Höhe für die Kamera.
     /// </summary>
     public class MountainVisuals : MonoBehaviour
     {
@@ -27,28 +30,25 @@ namespace EpochCity
         [SerializeField] private float outerMaxHeight = 24f;
         [Tooltip("Ab dieser Entfernung vom Kartenrand (Meter) sinkt das Gebirge wieder auf 0")]
         [SerializeField] private float fadeStart = 60f;
-        [Range(0f, 0.45f)] [SerializeField] private float jitter = 0.3f;
         [Min(4)] [SerializeField] private int chunkSize = 16;
 
         [Header("Deko")]
+        [SerializeField] private GameObject[] oaks;
         [SerializeField] private GameObject[] pines;
         [SerializeField] private GameObject[] cypresses;
         [SerializeField] private GameObject[] bushes;
         [SerializeField] private GameObject[] rocks;
         [Tooltip("Anteil der Deko-Dichte außerhalb der Karte")]
         [Range(0f, 1f)] [SerializeField] private float outerDecorFactor = 0.2f;
+        [Tooltip("Gesamtdichte der Deko (1 = Höchstdichte der Arten); lieber weniger Objekte, dafür bessere Modelle")]
+        [Range(0.1f, 1f)] [SerializeField] private float decorDensity = 0.65f;
 
         // Abstände der Gitterlinien jenseits des Kartenrands (Meter), ihre Summe ist die Länge des Gebirges außerhalb
         private static readonly float[] ExtensionSteps = { 1, 1, 2, 2, 4, 4, 8, 8, 16, 16, 24, 24 };
-        private const int Sub = 2;
-
-        // Farben (sRGB, im Code in linear umgerechnet)
-        private static readonly Color Grass = new Color(0.37f, 0.52f, 0.27f);
-        private static readonly Color Olive = new Color(0.44f, 0.51f, 0.27f);
-        private static readonly Color Ochre = new Color(0.60f, 0.55f, 0.33f);
-        private static readonly Color RockWarm = new Color(0.74f, 0.69f, 0.58f);
-        private static readonly Color RockGrey = new Color(0.62f, 0.59f, 0.54f);
-        private static readonly Color RockDark = new Color(0.50f, 0.46f, 0.41f);
+        private static readonly int ExtCount = ExtensionSteps.Length;
+        private const int Sub = 4;
+        // Das Relief liegt 2 cm über dem Boden, damit es dort, wo es 0 ist, nicht mit der Wiese flackert
+        private const float Lift = 0.02f;
 
         private class Chunk
         {
@@ -62,7 +62,9 @@ namespace EpochCity
         private Dictionary<Vector2Int, List<Vector2Int>> chunkQuads = new Dictionary<Vector2Int, List<Vector2Int>>();
         private bool[,] mask;
         private float[] xs, zs;
-        private float[,] px, pz, ph;      // Eckpunkte nach dem Versatz und Höhe
+        private float[,] ph;              // Höhe je Gitterpunkt
+        private Vector3[,] nrm;           // weiche Normale je Gitterpunkt
+        private float[,] curvature;       // >0 Mulde, <0 Grat (etwa -1 bis 1)
         private bool[,] mountainQuad;     // Quad (i, j) liegt in einem Bergfeld
         private bool[,] flip;             // Diagonale des Quads
         private int width, height;
@@ -70,6 +72,8 @@ namespace EpochCity
         private Vector3 origin;
         private bool dirty = true;
         private float mapW, mapH;
+        private Material runtimeMaterial;
+        private readonly Dictionary<GameObject, Vector2> prefabSize = new Dictionary<GameObject, Vector2>();
 
         /// <summary>Anzahl der Bergfelder (für Tests).</summary>
         public int MountainCellCount { get; private set; }
@@ -93,6 +97,11 @@ namespace EpochCity
         {
             if (city == null) return;
             city.DepositsChanged -= MarkDirty;
+        }
+
+        private void OnDestroy()
+        {
+            if (runtimeMaterial != null) Destroy(runtimeMaterial);
         }
 
         private void MarkDirty() => dirty = true;
@@ -166,7 +175,7 @@ namespace EpochCity
             }
         }
 
-        /// <summary>Weicher Übergang von 0 bei a nach 1 bei b (anders als Mathf.SmoothStep, das zwischen zwei Werten mischt).</summary>
+        /// <summary>Weicher Übergang von 0 bei a nach 1 bei b.</summary>
         private static float Smooth(float a, float b, float x)
         {
             float t = Mathf.Clamp01((x - a) / (b - a));
@@ -186,6 +195,13 @@ namespace EpochCity
             return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fz);
         }
 
+        /// <summary>Ridged-Noise: scharfe Grate (1) und breite Täler (0).</summary>
+        private static float Ridged(float x, float z, int salt)
+        {
+            float r = 1f - Mathf.Abs(2f * ValueNoise(x, z, salt) - 1f);
+            return r * r;
+        }
+
         private void ComputeField()
         {
             xs = BuildLines(width);
@@ -193,13 +209,9 @@ namespace EpochCity
             int nx = xs.Length, nz = zs.Length;
 
             mountainQuad = new bool[nx - 1, nz - 1];
-            flip = new bool[nx - 1, nz - 1];
             for (int i = 0; i < nx - 1; i++)
                 for (int j = 0; j < nz - 1; j++)
-                {
                     mountainQuad[i, j] = IsMountainCell(QuadCell(xs[i], xs[i + 1], width), QuadCell(zs[j], zs[j + 1], height));
-                    flip[i, j] = (Hash(i, j, 7) & 1) == 1;
-                }
 
             // Eckpunkte im Inneren (alle angrenzenden Quads sind Berg) steigen, alle anderen bleiben bei 0
             var interior = new bool[nx, nz];
@@ -232,39 +244,89 @@ namespace EpochCity
                         Relax(dist, i, j, nx, nz, 1, 0, 1, 1, 0, 1, -1, 1);
             }
 
-            px = new float[nx, nz];
-            pz = new float[nx, nz];
+            // geglättetes Distanzfeld für die Richtung der Falllinie (Rinnen)
+            var ds = new float[nx, nz];
+            for (int i = 0; i < nx; i++)
+                for (int j = 0; j < nz; j++)
+                {
+                    float sum = 0f; int cnt = 0;
+                    for (int di = -2; di <= 2; di++)
+                        for (int dj = -2; dj <= 2; dj++)
+                        {
+                            int a = i + di, b = j + dj;
+                            if (a < 0 || b < 0 || a >= nx || b >= nz) continue;
+                            sum += Mathf.Min(dist[a, b], 200f); cnt++;
+                        }
+                    ds[i, j] = sum / cnt;
+                }
+
             ph = new float[nx, nz];
             for (int i = 0; i < nx; i++)
                 for (int j = 0; j < nz; j++)
                 {
-                    float x = xs[i], z = zs[j];
-                    px[i, j] = x;
-                    pz[i, j] = z;
                     if (!interior[i, j]) continue;
-
+                    float x = xs[i], z = zs[j];
                     float outside = Mathf.Max(Mathf.Max(-x, x - mapW), Mathf.Max(-z, z - mapH));
                     outside = Mathf.Max(0f, outside);
-                    float d = Mathf.Min(dist[i, j], 60f);
+                    float d = Mathf.Min(dist[i, j], 80f);
 
-                    float baseH = 0.5f * d + 0.1f * Mathf.Pow(d, 1.5f);
-                    float broad = 0.7f + 0.75f * ValueNoise(x / 18f, z / 18f, 11);
-                    float detail = (ValueNoise(x / 9f, z / 9f, 23) - 0.5f) * 2.2f
-                                   + (ValueNoise(x / 3.5f, z / 3.5f, 37) - 0.5f) * 0.7f
-                                   + (ValueNoise(x / 40f, z / 40f, 71) - 0.5f) * 7f * Mathf.SmoothStep(0f, 1f, d / 8f);
-                    float h = baseH * broad + detail * Mathf.SmoothStep(0f, 1f, d / 3f);
+                    // wellige Fußlinie: die Steigung beginnt erst hinter einer unruhigen Linie, dann weich in 2 m
+                    float off = 0.5f + 1.7f * ValueNoise(x / 7f, z / 7f, 81);
+                    float dd = Mathf.Max(0f, d - off);
+                    float foot = Smooth(0f, 2.2f, dd);
+                    float ramp = Smooth(0f, 6f, dd);
+
+                    float baseH = 0.34f * dd + 0.085f * Mathf.Pow(dd, 1.5f);
+                    float broad = 0.5f + 0.9f * ValueNoise(x / 30f, z / 30f, 11) + 0.5f * Ridged(x / 20f, z / 20f, 13);
+                    float h = baseH * broad;
+
+                    // Grate und Täler
+                    h += (Ridged(x / 11f, z / 11f, 23) - 0.35f) * 3.8f * ramp;
+                    h += (Ridged(x / 6f, z / 6f, 29) - 0.35f) * 1.7f * Smooth(0f, 4f, dd);
+                    h += (ValueNoise(x / 2.2f, z / 2.2f, 37) - 0.5f) * 0.35f * Smooth(0f, 3f, dd);
+
+                    // Rinnen, die hangabwärts laufen: Rauschen quer zur Falllinie, entlang ihr langgestreckt
+                    float gx = (ds[Mathf.Min(i + 1, nx - 1), j] - ds[Mathf.Max(i - 1, 0), j]) / Mathf.Max(0.01f, xs[Mathf.Min(i + 1, nx - 1)] - xs[Mathf.Max(i - 1, 0)]);
+                    float gz = (ds[i, Mathf.Min(j + 1, nz - 1)] - ds[i, Mathf.Max(j - 1, 0)]) / Mathf.Max(0.01f, zs[Mathf.Min(j + 1, nz - 1)] - zs[Mathf.Max(j - 1, 0)]);
+                    var tangent = new Vector2(-gz, gx);
+                    if (tangent.sqrMagnitude < 1e-4f) tangent = Vector2.right; else tangent.Normalize();
+                    float across = x * tangent.x + z * tangent.y;
+                    float gullies = Ridged(across / 3.4f, dd / 22f, 91);
+                    h += (gullies - 0.4f) * 2.4f * Smooth(2f, 9f, dd);
+
+                    h = Mathf.Max(0f, h) * foot;
                     h *= 1f + 0.6f * Mathf.Clamp01(outside / 80f);
                     float cap = Mathf.Lerp(maxHeight, outerMaxHeight, Mathf.Clamp01(outside / 40f));
-                    h = cap * (float)Math.Tanh(Mathf.Max(0f, h) / cap);
+                    h = cap * (float)Math.Tanh(h / cap);
                     float fade = 1f - Mathf.SmoothStep(0f, 1f, (outside - fadeStart) / Mathf.Max(1f, ExtensionTotal - fadeStart));
                     ph[i, j] = Mathf.Max(0f, h * fade);
-
-                    // Versatz der Eckpunkte, höchstens ein Drittel des kleinsten Nachbarabstands
-                    float gapX = Mathf.Min(i > 0 ? xs[i] - xs[i - 1] : 99f, i < nx - 1 ? xs[i + 1] - xs[i] : 99f);
-                    float gapZ = Mathf.Min(j > 0 ? zs[j] - zs[j - 1] : 99f, j < nz - 1 ? zs[j + 1] - zs[j] : 99f);
-                    px[i, j] += (Hash01(i, j, 3) - 0.5f) * 2f * jitter * gapX;
-                    pz[i, j] += (Hash01(i, j, 5) - 0.5f) * 2f * jitter * gapZ;
                 }
+
+            // weiche Normalen und Krümmung aus dem Höhenfeld
+            nrm = new Vector3[nx, nz];
+            curvature = new float[nx, nz];
+            const int k = 3;
+            for (int i = 0; i < nx; i++)
+                for (int j = 0; j < nz; j++)
+                {
+                    int i0 = Mathf.Max(i - 1, 0), i1 = Mathf.Min(i + 1, nx - 1);
+                    int j0 = Mathf.Max(j - 1, 0), j1 = Mathf.Min(j + 1, nz - 1);
+                    float dhdx = (ph[i1, j] - ph[i0, j]) / (xs[i1] - xs[i0]);
+                    float dhdz = (ph[i, j1] - ph[i, j0]) / (zs[j1] - zs[j0]);
+                    nrm[i, j] = new Vector3(-dhdx, 1f, -dhdz).normalized;
+
+                    int a0 = Mathf.Max(i - k, 0), a1 = Mathf.Min(i + k, nx - 1);
+                    int b0 = Mathf.Max(j - k, 0), b1 = Mathf.Min(j + k, nz - 1);
+                    float sx = Mathf.Max(0.3f, (xs[a1] - xs[a0]) * 0.5f), sz = Mathf.Max(0.3f, (zs[b1] - zs[b0]) * 0.5f);
+                    float lap = (ph[a0, j] + ph[a1, j] - 2f * ph[i, j]) / (sx * sx) + (ph[i, b0] + ph[i, b1] - 2f * ph[i, j]) / (sz * sz);
+                    curvature[i, j] = Mathf.Clamp(lap * 0.8f, -1f, 1f);
+                }
+
+            // Diagonale je Quad: die mit dem kleineren Höhenunterschied, so bleiben Grate sauber
+            flip = new bool[nx - 1, nz - 1];
+            for (int i = 0; i < nx - 1; i++)
+                for (int j = 0; j < nz - 1; j++)
+                    flip[i, j] = Mathf.Abs(ph[i, j + 1] - ph[i + 1, j]) < Mathf.Abs(ph[i, j] - ph[i + 1, j + 1]);
         }
 
         private float ExtensionTotal
@@ -329,49 +391,38 @@ namespace EpochCity
             return Mathf.Clamp(idx, 0, lines.Length - 2);
         }
 
-        /// <summary>Höhe auf dem tatsächlichen Dreiecksnetz (mit Versatz) an einer Position relativ zum Ursprung der Karte.</summary>
+        /// <summary>Höhe auf dem Dreiecksnetz an einer Position relativ zum Ursprung der Karte.</summary>
         private bool TrySample(float x, float z, out float h)
         {
             h = 0f;
             if (x < xs[0] || z < zs[0] || x > xs[xs.Length - 1] || z > zs[zs.Length - 1]) return false;
-            int i0 = FindLine(xs, x), j0 = FindLine(zs, z);
-            for (int di = -1; di <= 1; di++)
-                for (int dj = -1; dj <= 1; dj++)
-                {
-                    int i = i0 + di, j = j0 + dj;
-                    if (i < 0 || j < 0 || i >= xs.Length - 1 || j >= zs.Length - 1) continue;
-                    GetTriangles(i, j, out var t1, out var t2);
-                    if (InTriangle(x, z, t1, out h)) return true;
-                    if (InTriangle(x, z, t2, out h)) return true;
-                }
-            return false;
+            int i = FindLine(xs, x), j = FindLine(zs, z);
+            float u = Mathf.Clamp01((x - xs[i]) / (xs[i + 1] - xs[i]));
+            float v = Mathf.Clamp01((z - zs[j]) / (zs[j + 1] - zs[j]));
+            float ha = ph[i, j], hb = ph[i + 1, j], hc = ph[i + 1, j + 1], hd = ph[i, j + 1];
+            if (!flip[i, j])
+            {
+                // Diagonale a-c: Dreiecke (a, d, c) für u <= v, (a, c, b) sonst
+                h = u <= v ? ha + (hd - ha) * v + (hc - hd) * u : ha + (hb - ha) * u + (hc - hb) * v;
+            }
+            else
+            {
+                // Diagonale b-d: Dreiecke (a, d, b) für u + v <= 1, (b, d, c) sonst
+                h = u + v <= 1f ? ha + (hb - ha) * u + (hd - ha) * v : hc + (hd - hc) * (1f - u) + (hb - hc) * (1f - v);
+            }
+            return true;
         }
 
-        private void GetTriangles(int i, int j, out Vector3Int[] t1, out Vector3Int[] t2)
+        /// <summary>Höhe, Normale und Krümmung an einer Position (Normale und Krümmung vom nächsten Gitterpunkt).</summary>
+        private bool Sample(float x, float z, out float h, out Vector3 normal, out float curv)
         {
-            // Eckpunkte a (i, j), b (i + 1, j), c (i + 1, j + 1), d (i, j + 1); Dreiecke im Uhrzeigersinn von oben
-            var a = new Vector3Int(i, j, 0);
-            var b = new Vector3Int(i + 1, j, 0);
-            var c = new Vector3Int(i + 1, j + 1, 0);
-            var d = new Vector3Int(i, j + 1, 0);
-            if (!flip[i, j]) { t1 = new[] { a, d, c }; t2 = new[] { a, c, b }; }
-            else { t1 = new[] { a, d, b }; t2 = new[] { b, d, c }; }
-        }
-
-        private bool InTriangle(float x, float z, Vector3Int[] t, out float h)
-        {
-            h = 0f;
-            var p0 = new Vector2(px[t[0].x, t[0].y], pz[t[0].x, t[0].y]);
-            var p1 = new Vector2(px[t[1].x, t[1].y], pz[t[1].x, t[1].y]);
-            var p2 = new Vector2(px[t[2].x, t[2].y], pz[t[2].x, t[2].y]);
-            float denom = (p1.y - p2.y) * (p0.x - p2.x) + (p2.x - p1.x) * (p0.y - p2.y);
-            if (Mathf.Abs(denom) < 1e-8f) return false;
-            float w0 = ((p1.y - p2.y) * (x - p2.x) + (p2.x - p1.x) * (z - p2.y)) / denom;
-            float w1 = ((p2.y - p0.y) * (x - p2.x) + (p0.x - p2.x) * (z - p2.y)) / denom;
-            float w2 = 1f - w0 - w1;
-            const float eps = -1e-4f;
-            if (w0 < eps || w1 < eps || w2 < eps) return false;
-            h = w0 * ph[t[0].x, t[0].y] + w1 * ph[t[1].x, t[1].y] + w2 * ph[t[2].x, t[2].y];
+            normal = Vector3.up; curv = 0f;
+            if (!TrySample(x, z, out h)) return false;
+            int i = FindLine(xs, x), j = FindLine(zs, z);
+            if (x - xs[i] > xs[i + 1] - x) i++;
+            if (z - zs[j] > zs[j + 1] - z) j++;
+            normal = nrm[i, j];
+            curv = curvature[i, j];
             return true;
         }
 
@@ -382,6 +433,7 @@ namespace EpochCity
 
         private void RebuildChunks()
         {
+            EnsureMaterial();
             chunkQuads = new Dictionary<Vector2Int, List<Vector2Int>>();
             for (int i = 0; i < xs.Length - 1; i++)
                 for (int j = 0; j < zs.Length - 1; j++)
@@ -420,6 +472,14 @@ namespace EpochCity
             DecorCount = decor;
         }
 
+        /// <summary>Eigene Materialkopie mit der Lage des Bodens (Welt-UV der Wiesentextur).</summary>
+        private void EnsureMaterial()
+        {
+            if (mountainMaterial == null) return;
+            if (runtimeMaterial == null) runtimeMaterial = new Material(mountainMaterial) { name = mountainMaterial.name + " (Laufzeit)" };
+            runtimeMaterial.SetVector("_GroundRect", new Vector4(origin.x, origin.z, 1f / mapW, 1f / mapH));
+        }
+
         private ulong Signature(List<Vector2Int> quads)
         {
             ulong h = 1469598103934665603UL;
@@ -435,17 +495,32 @@ namespace EpochCity
 
         private Chunk BuildChunk(Vector2Int key, List<Vector2Int> quads)
         {
-            var verts = new List<Vector3>(quads.Count * 6);
-            var normals = new List<Vector3>(quads.Count * 6);
-            var colors = new List<Color>(quads.Count * 6);
-            var uvs = new List<Vector2>(quads.Count * 6);
+            var verts = new List<Vector3>(quads.Count + 64);
+            var normals = new List<Vector3>(quads.Count + 64);
+            var colors = new List<Color>(quads.Count + 64);
+            var uvs = new List<Vector2>(quads.Count + 64);
             var tris = new List<int>(quads.Count * 6);
+            var index = new Dictionary<int, int>(quads.Count + 64);
+            int nz = zs.Length;
+
+            int Vertex(int i, int j)
+            {
+                int id = i * nz + j;
+                if (index.TryGetValue(id, out int found)) return found;
+                var p = new Vector3(xs[i], ph[i, j] + Lift, zs[j]);
+                verts.Add(p);
+                normals.Add(nrm[i, j]);
+                colors.Add(new Color(0.5f + 0.5f * curvature[i, j], 0f, 0f, 1f));
+                uvs.Add(new Vector2(HazeAt(p), 0f));
+                index[id] = verts.Count - 1;
+                return verts.Count - 1;
+            }
 
             foreach (var q in quads)
             {
-                GetTriangles(q.x, q.y, out var t1, out var t2);
-                AddTriangle(t1, q, 0, verts, normals, colors, uvs, tris);
-                AddTriangle(t2, q, 1, verts, normals, colors, uvs, tris);
+                int a = Vertex(q.x, q.y), b = Vertex(q.x + 1, q.y), c = Vertex(q.x + 1, q.y + 1), d = Vertex(q.x, q.y + 1);
+                if (!flip[q.x, q.y]) { tris.Add(a); tris.Add(d); tris.Add(c); tris.Add(a); tris.Add(c); tris.Add(b); }
+                else { tris.Add(a); tris.Add(d); tris.Add(b); tris.Add(b); tris.Add(d); tris.Add(c); }
             }
 
             var root = new GameObject($"Berg_{key.x}_{key.y}");
@@ -465,7 +540,7 @@ namespace EpochCity
             go.transform.SetParent(root.transform, false);
             go.GetComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = mountainMaterial;
+            renderer.sharedMaterial = runtimeMaterial != null ? runtimeMaterial : mountainMaterial;
             renderer.shadowCastingMode = ShadowCastingMode.On;
             renderer.receiveShadows = true;
 
@@ -474,69 +549,23 @@ namespace EpochCity
             return chunk;
         }
 
-        private void AddTriangle(Vector3Int[] t, Vector2Int quad, int which, List<Vector3> verts, List<Vector3> normals,
-            List<Color> colors, List<Vector2> uvs, List<int> tris)
-        {
-            var p = new Vector3[3];
-            for (int k = 0; k < 3; k++) p[k] = new Vector3(px[t[k].x, t[k].y], ph[t[k].x, t[k].y], pz[t[k].x, t[k].y]);
-            var normal = Vector3.Cross(p[1] - p[0], p[2] - p[0]).normalized;
-            float steep = 1f - Mathf.Clamp01(normal.y);
-            float faceNoise = Hash01(quad.x * 2 + which, quad.y, 41);
-            int start = verts.Count;
-            for (int k = 0; k < 3; k++)
-            {
-                verts.Add(p[k]);
-                normals.Add(normal);
-                colors.Add(VertexColor(p[k], steep, faceNoise));
-                uvs.Add(new Vector2(HazeAt(p[k]), 0f));
-                tris.Add(start + k);
-            }
-        }
-
         private float HazeAt(Vector3 p)
         {
             float outside = Mathf.Max(0f, Mathf.Max(Mathf.Max(-p.x, p.x - mapW), Mathf.Max(-p.z, p.z - mapH)));
             return 0.6f * Mathf.SmoothStep(0f, 1f, outside / 100f) * Smooth(0f, 6f, p.y);
         }
 
-        /// <summary>Farbe nach Höhe und Steilheit; unten Gras wie die Wiese, damit der Fuß unsichtbar übergeht.</summary>
-        private static Color VertexColor(Vector3 p, float steep, float faceNoise)
-        {
-            float n1 = ValueNoise(p.x / 5f, p.z / 5f, 51);
-            float n2 = ValueNoise(p.x / 9f, p.z / 9f, 61);
-            float h = p.y;
-
-            var scrub = Color.Lerp(Olive, Ochre, Smooth(0.25f, 0.75f, n2));
-            scrub = Color.Lerp(scrub, Grass, 0.4f * (1f - n1) * (1f - Smooth(2f, 6f, h)));
-            float toScrub = Mathf.SmoothStep(0f, 1f, (h + (n1 - 0.5f) * 2.2f - 0.4f) / 3.2f) * 0.92f;
-            var c = Color.Lerp(Grass, scrub, toScrub);
-
-            var rock = Color.Lerp(RockWarm, RockGrey, Smooth(0.2f, 0.8f, n1));
-            if (faceNoise > 0.72f) rock = Color.Lerp(rock, RockDark, 0.5f);
-            float toRock = Mathf.SmoothStep(0f, 1f, (h + (n2 - 0.5f) * 3f - 7.5f) / 4.5f);
-            float steepRock = Smooth(0.34f, 0.65f, steep + (n1 - 0.5f) * 0.12f) * Smooth(0.6f, 3f, h);
-            c = Color.Lerp(c, rock, Mathf.Max(toRock, steepRock));
-
-            float shade = 0.94f + 0.12f * faceNoise;
-            c = new Color(c.r * shade, c.g * shade, c.b * shade, 1f);
-            return c.linear;
-        }
-
         // ---------------------------------------------------------------- Deko
-
-        private int Count(float expected, System.Random random, int cap)
-        {
-            int n = Mathf.FloorToInt(expected);
-            if (random.NextDouble() < expected - n) n++;
-            return Mathf.Min(n, cap);
-        }
 
         private static float Range(System.Random random, float min, float max) =>
             min + (float)random.NextDouble() * (max - min);
 
+        private enum Kind { Oak, Pine, Cypress, Bush, Rock }
+
         private int BuildDecor(GameObject root, List<Vector2Int> quads)
         {
             int total = 0;
+            var placed = new Dictionary<Vector2Int, List<Vector3>>();
             foreach (var q in quads)
             {
                 float x0 = xs[q.x], x1 = xs[q.x + 1], z0 = zs[q.y], z1 = zs[q.y + 1];
@@ -544,52 +573,164 @@ namespace EpochCity
                 float outside = Mathf.Max(0f, Mathf.Max(Mathf.Max(-cxm, cxm - mapW), Mathf.Max(-czm, czm - mapH)));
                 if (outside > 85f) continue;
                 bool ext = outside > 0.01f;
-                float area = (x1 - x0) * (z1 - z0);
-                float dens = ext ? outerDecorFactor : 1f;
-                int cap = ext ? 2 : 1;
-                float hq = (ph[q.x, q.y] + ph[q.x + 1, q.y] + ph[q.x, q.y + 1] + ph[q.x + 1, q.y + 1]) * 0.25f;
-                float hMax = Mathf.Max(Mathf.Max(ph[q.x, q.y], ph[q.x + 1, q.y]), Mathf.Max(ph[q.x, q.y + 1], ph[q.x + 1, q.y + 1]));
-                float hMin = Mathf.Min(Mathf.Min(ph[q.x, q.y], ph[q.x + 1, q.y]), Mathf.Min(ph[q.x, q.y + 1], ph[q.x + 1, q.y + 1]));
-                float steep = ext ? Mathf.Clamp01((hMax - hMin) / Mathf.Max(1f, Mathf.Sqrt(area)) * 0.5f)
-                                  : Mathf.Clamp01((hMax - hMin) / 1.4f * 0.5f);
-                if (hq < 0.35f) continue;
-
+                if (!ext)
+                {
+                    // Innerhalb der Karte ein ganzes Spielfeld auf einmal (an der Ecke seiner ersten Quads)
+                    if ((q.x - ExtCount) % Sub != 0 || (q.y - ExtCount) % Sub != 0) continue;
+                    x1 = xs[q.x + Sub]; z1 = zs[q.y + Sub];
+                }
                 var random = new System.Random((int)Hash(q.x, q.y, 99));
-                float scaleBoost = ext ? 1.8f : 1f;
-
-                if (hq < 7.5f && steep < 0.38f)
-                    total += Scatter(root, pines, Count(area * 0.06f * dens, random, cap), x0, x1, z0, z1, random,
-                        0.85f * scaleBoost, 1.3f * scaleBoost, 0.18f, 0.5f);
-                if (hq < 6.5f && steep < 0.42f)
-                    total += Scatter(root, cypresses, Count(area * 0.03f * dens, random, cap), x0, x1, z0, z1, random,
-                        0.8f * scaleBoost, 1.25f * scaleBoost, 0.18f, 0.5f);
-                if (hq < 11f)
-                    total += Scatter(root, bushes, Count(area * 0.12f * dens, random, cap + 1), x0, x1, z0, z1, random,
-                        0.8f * scaleBoost, 1.5f * scaleBoost, 0.18f, 0.5f);
-                float rockDensity = 0.012f + 0.1f * Smooth(0.25f, 0.6f, steep) + (hq > 7f ? 0.03f : 0f);
-                total += Scatter(root, rocks, Count(area * rockDensity * dens, random, cap + 1), x0, x1, z0, z1, random,
-                    (0.5f + 0.5f * steep) * scaleBoost, (0.9f + 0.6f * steep) * scaleBoost, 0.1f, 0.6f);
+                total += Populate(root, placed, x0, x1, z0, z1, ext, random);
             }
             return total;
         }
 
-        private int Scatter(GameObject root, GameObject[] prefabs, int count, float x0, float x1, float z0, float z1,
-            System.Random random, float scaleMin, float scaleMax, float marginMin, float marginMax)
+        private int Populate(GameObject root, Dictionary<Vector2Int, List<Vector3>> placed,
+            float x0, float x1, float z0, float z1, bool ext, System.Random random)
+        {
+            float area = (x1 - x0) * (z1 - z0);
+            float factor = (ext ? outerDecorFactor : 1f) * decorDensity;
+            float sizeBoost = ext ? 1.7f : 1f;
+            int made = 0;
+            made += PlaceKind(root, placed, Kind.Oak, oaks, 0.22f, area * factor, x0, x1, z0, z1, random, sizeBoost, 1.15f);
+            made += PlaceKind(root, placed, Kind.Pine, pines, 0.14f, area * factor, x0, x1, z0, z1, random, sizeBoost, 1.0f);
+            made += PlaceKind(root, placed, Kind.Cypress, cypresses, 0.5f, area * factor, x0, x1, z0, z1, random, sizeBoost, 0.6f);
+            made += PlaceKind(root, placed, Kind.Bush, bushes, 0.45f, area * factor, x0, x1, z0, z1, random, sizeBoost, 0.45f);
+            made += PlaceKind(root, placed, Kind.Rock, rocks, 0.2f, area * factor, x0, x1, z0, z1, random, sizeBoost, 0.6f);
+            return made;
+        }
+
+        /// <summary>Dichte (je m²) einer Art an einer Stelle; Höhe, Hangneigung, Mulde und Hain-Rauschen bestimmen sie.</summary>
+        private float Density(Kind kind, float x, float z, float h, float steep, float curv)
+        {
+            float valley = Mathf.Clamp01(curv * 1.4f);
+            float slopeOk = 1f - Smooth(0.30f, 0.46f, steep);
+            float low = 1f - Smooth(3.5f, 8f, h);
+            float mid = Smooth(1.0f, 3.0f, h) * (1f - Smooth(7f, 10.5f, h));
+            float g1 = ValueNoise(x / 6.5f, z / 6.5f, 201);
+            switch (kind)
+            {
+                case Kind.Oak:
+                    return 0.22f * low * (1f + 1.2f * valley) * slopeOk * Smooth(0.45f, 0.68f, g1);
+                case Kind.Pine:
+                {
+                    float g2 = ValueNoise(x / 8f, z / 8f, 202);
+                    return 0.14f * Mathf.Max(mid, 0.5f * low) * slopeOk * Smooth(0.42f, 0.66f, g2) * (1f - 0.7f * Smooth(0.6f, 0.8f, g1));
+                }
+                case Kind.Cypress:
+                {
+                    // Reihen entlang der Höhenlinien, nur dort, wo ein Rauschen es erlaubt; dazu seltene Einzelbäume
+                    float gc = ValueNoise(x / 5f, z / 5f, 203);
+                    float v = h / 1.15f + ValueNoise(x / 9f, z / 9f, 204) * 1.5f;
+                    v -= Mathf.Floor(v);
+                    float row = v < 0.2f ? 1f : 0f;
+                    return (0.5f * row * Smooth(0.5f, 0.7f, gc) + 0.012f) * mid * slopeOk;
+                }
+                case Kind.Bush:
+                {
+                    float gm = ValueNoise(x / 4f, z / 4f, 205);
+                    float high = 1f - 0.75f * Smooth(9f, 13f, h);
+                    return 0.45f * high * (0.3f + 0.7f * Smooth(0.35f, 0.65f, gm)) * (1f - 0.7f * Smooth(0.45f, 0.7f, steep))
+                           * (1f - 0.5f * Smooth(0.6f, 0.8f, g1));
+                }
+                default:
+                {
+                    float ridge = Mathf.Clamp01(-curv * 1.4f);
+                    return 0.012f + 0.18f * Smooth(0.28f, 0.55f, steep) + 0.05f * Smooth(8f, 12f, h) + 0.06f * ridge;
+                }
+            }
+        }
+
+        private Vector2 PrefabSize(GameObject prefab)
+        {
+            if (prefabSize.TryGetValue(prefab, out var s)) return s;
+            var filter = prefab.GetComponentInChildren<MeshFilter>();
+            s = filter != null && filter.sharedMesh != null
+                ? new Vector2(filter.sharedMesh.bounds.size.y, filter.sharedMesh.bounds.min.y) : new Vector2(1f, 0f);
+            prefabSize[prefab] = s;
+            return s;
+        }
+
+        private int PlaceKind(GameObject root, Dictionary<Vector2Int, List<Vector3>> placed, Kind kind, GameObject[] prefabs,
+            float maxDensity, float effectiveArea, float x0, float x1, float z0, float z1, System.Random random,
+            float sizeBoost, float spacing)
         {
             if (prefabs == null || prefabs.Length == 0) return 0;
+            float expected = maxDensity * effectiveArea;
+            int n = Mathf.FloorToInt(expected);
+            if (random.NextDouble() < expected - n) n++;
+            n = Mathf.Min(n, 40);
             int made = 0;
-            for (int k = 0; k < count; k++)
+            for (int k = 0; k < n; k++)
             {
-                var prefab = prefabs[random.Next(prefabs.Length)];
                 float x = Range(random, x0, x1), z = Range(random, z0, z1);
                 float yaw = Range(random, 0f, 360f);
-                float scale = Range(random, scaleMin, scaleMax);
-                if (prefab == null || !TrySample(x, z, out float h) || h < 0.3f) continue;
-                var go = Instantiate(prefab, origin + new Vector3(x, h - 0.12f * scale, z), Quaternion.Euler(0f, yaw, 0f), root.transform);
+                float accept = (float)random.NextDouble();
+                int pick = random.Next(prefabs.Length);
+                float scaleRoll = (float)random.NextDouble();
+                float tiltAngle = Range(random, 0f, 5f), tiltAz = Range(random, 0f, 360f);
+                var prefab = prefabs[pick];
+                if (prefab == null) continue;
+                if (!Sample(x, z, out float h, out Vector3 normal, out float curv) || h < 0.2f) continue;
+                float steep = 1f - Mathf.Clamp01(normal.y);
+                if (accept > Density(kind, x, z, h, steep, curv) / maxDensity) continue;
+                if (kind != Kind.Bush && TooClose(placed, x, z, spacing * sizeBoost)) continue;
+
+                float scale;
+                Quaternion rotation;
+                Vector3 position;
+                var size = PrefabSize(prefab);
+                if (kind == Kind.Rock)
+                {
+                    scale = Mathf.Lerp(0.6f, 1.3f, scaleRoll) * (0.8f + 0.4f * steep) * sizeBoost;
+                    var up = Vector3.Slerp(Vector3.up, normal, 0.7f);
+                    rotation = Quaternion.FromToRotation(Vector3.up, up) * Quaternion.Euler(0f, yaw, 0f);
+                    // etwa ein Drittel der Höhe im Hang
+                    position = origin + new Vector3(x, h - 0.33f * size.x * scale - size.y * scale, z);
+                }
+                else
+                {
+                    scale = Mathf.Lerp(0.7f, 1.2f, scaleRoll) * sizeBoost;
+                    var axis = new Vector3(Mathf.Cos(tiltAz * Mathf.Deg2Rad), 0f, Mathf.Sin(tiltAz * Mathf.Deg2Rad));
+                    rotation = Quaternion.AngleAxis(tiltAngle, axis) * Quaternion.Euler(0f, yaw, 0f);
+                    // Fußpunkt unter der tiefsten Bodenhöhe der Stammfläche, der Stamm reicht ohnehin 0,25 m unter den Ursprung
+                    float r = (kind == Kind.Bush ? 0.3f : 0.3f) * scale;
+                    float low = h;
+                    for (int s = 0; s < 4; s++)
+                    {
+                        float a = s * Mathf.PI * 0.5f;
+                        if (TrySample(x + Mathf.Cos(a) * r, z + Mathf.Sin(a) * r, out float hs)) low = Mathf.Min(low, hs);
+                    }
+                    position = origin + new Vector3(x, low - (kind == Kind.Bush ? 0.08f : 0.04f) * scale, z);
+                }
+
+                var go = Instantiate(prefab, position, rotation, root.transform);
                 go.transform.localScale *= scale;
+                if (kind != Kind.Bush) Register(placed, x, z);
                 made++;
             }
             return made;
+        }
+
+        private static bool TooClose(Dictionary<Vector2Int, List<Vector3>> placed, float x, float z, float distance)
+        {
+            var key = new Vector2Int(Mathf.FloorToInt(x), Mathf.FloorToInt(z));
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++)
+                    if (placed.TryGetValue(new Vector2Int(key.x + dx, key.y + dz), out var list))
+                        foreach (var p in list)
+                        {
+                            float ddx = p.x - x, ddz = p.z - z;
+                            if (ddx * ddx + ddz * ddz < distance * distance) return true;
+                        }
+            return false;
+        }
+
+        private static void Register(Dictionary<Vector2Int, List<Vector3>> placed, float x, float z)
+        {
+            var key = new Vector2Int(Mathf.FloorToInt(x), Mathf.FloorToInt(z));
+            if (!placed.TryGetValue(key, out var list)) placed[key] = list = new List<Vector3>();
+            list.Add(new Vector3(x, 0f, z));
         }
     }
 }

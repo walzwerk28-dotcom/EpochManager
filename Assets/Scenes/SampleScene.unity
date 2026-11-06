@@ -1435,20 +1435,28 @@ MonoBehaviour:
   maxHeight: 14
   outerMaxHeight: 24
   fadeStart: 60
-  jitter: 0.3
   chunkSize: 16
+  oaks:
+  - {fileID: 6594447898569951438, guid: 14cee67607b852f45b7ccab6bcd01a1e, type: 3}
+  - {fileID: 3835965704334330998, guid: 08cdf1c029068bb4aa721771d949b88a, type: 3}
   pines:
   - {fileID: 4692700761507208854, guid: 69283cc7fdc80c046bdc663d4053130e, type: 3}
   - {fileID: 2299656186566020029, guid: a0df2f1b1b6ca454095e36ec42df105a, type: 3}
+  - {fileID: 3553887836572040950, guid: a9a6a8a2a6058174e9162527842b636e, type: 3}
+  - {fileID: 4867562237959263138, guid: 2268680f83004a54c80763930ec572f2, type: 3}
+  - {fileID: 8621361855490546005, guid: fc3d6ecf20f1a214287b2c167a6c40ca, type: 3}
   cypresses:
   - {fileID: 3832296537179660979, guid: 966e8ec3cae56c6469c6de19a2fa990c, type: 3}
+  - {fileID: 3557239741766647319, guid: 34df22b47083e0049aba46e6a976c3ce, type: 3}
   bushes:
   - {fileID: 5155372470572185683, guid: 1f682272a70cb5b45949c7d0e5650d5b, type: 3}
   - {fileID: 2098691883685455100, guid: 33452a4b4ddcf684fa9cd28ba1d3f701, type: 3}
+  - {fileID: 1003616824797940317, guid: ec2f18a167f4ef84b8d93ca38df8fc14, type: 3}
   rocks:
   - {fileID: 1431738181621175319, guid: 544eb69d4e453a14eb1bcb4c73d92c46, type: 3}
   - {fileID: 5711781642084699462, guid: fc06510fa40345c4fb0a21d28a890021, type: 3}
   - {fileID: 8020015045080142785, guid: a8b7f74f0a37e9f40b9f10a11237b906, type: 3}
+  - {fileID: 5165479634977636777, guid: cb81d2c541824b74ba9ec5b0b8660009, type: 3}
   outerDecorFactor: 0.2
 --- !u!1 &2116940968
 GameObject:

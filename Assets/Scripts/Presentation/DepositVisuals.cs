@@ -115,12 +115,23 @@ namespace EpochCity
                 // Fester Zufall je Feld, unabhängig von der Reihenfolge des Aufbaus
                 var random = new System.Random(c.x * 73856093 ^ c.y * 19349663);
                 int count = random.Next(deposit.decorPerCell.x, Mathf.Max(deposit.decorPerCell.x, deposit.decorPerCell.y) + 1);
-                float half = city.cellSize * spread;
+                // Das Feld in vier Viertel teilen und je Objekt ein eigenes Viertel nehmen (mit Versatz darin),
+                // damit Stämme und Felsen nicht ineinander stehen und der Bestand trotzdem natürlich wirkt
+                float half = city.cellSize * spread * 0.55f;
+                float quarter = city.cellSize * 0.25f;
+                var slots = new[] { 0, 1, 2, 3 };
+                for (int s = 3; s > 0; s--)
+                {
+                    int t = random.Next(s + 1);
+                    (slots[s], slots[t]) = (slots[t], slots[s]);
+                }
                 for (int i = 0; i < count; i++)
                 {
                     var prefab = prefabs[random.Next(prefabs.Length)];
                     if (prefab == null) continue;
-                    var offset = new Vector3(Range(random, -half, half), 0f, Range(random, -half, half));
+                    int slot = slots[i % 4];
+                    var offset = new Vector3((slot % 2 == 0 ? -quarter : quarter) + Range(random, -half, half), 0f,
+                        (slot / 2 == 0 ? -quarter : quarter) + Range(random, -half, half));
                     var decor = Instantiate(prefab, center + offset,
                         Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), root.transform);
                     decor.transform.localScale *= Range(random, deposit.decorScale.x, deposit.decorScale.y);
