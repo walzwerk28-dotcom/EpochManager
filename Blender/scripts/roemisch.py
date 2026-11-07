@@ -1144,6 +1144,223 @@ def wattle_fence(points, h=0.20, spacing=0.30):
             box((0.032, 0.032, h + 0.04), (xa + (xb - xa) * k / n, ya + (yb - ya) * k / n, (h + 0.04) / 2), material=WOOD_DARK)
 
 
+# ---------------------------------------------------------------- Fischerei (Fischer)
+
+FISH = mat("Fisch", (0.68, 0.72, 0.74), rough=0.35)
+FISH_DARK = mat("FischRuecken", (0.38, 0.47, 0.53), rough=0.4)
+ROPE = mat("Tau", (0.68, 0.58, 0.40))
+CORK = mat("Kork", (0.74, 0.56, 0.36))
+
+
+def fish(x, y, z0=0.0, yaw=0.0, flat=True):
+    """Fisch (etwa 16 cm lang): silbriger Körper mit dunklerem Rücken und Schwanzflosse. flat = liegend (Tisch, Korb);
+    sonst hängt er senkrecht mit dem Kopf nach oben, z0 ist dann die Höhe des Schwanzendes."""
+    a = math.radians(yaw)
+    c, s = math.cos(a), math.sin(a)
+    if flat:
+        sphere(0.07, (x, y, z0 + 0.015), (1.1, 0.38, 0.20), FISH, segs=6, rings=3, rot=(0, 0, yaw))
+        box((0.10, 0.012, 0.004), (x, y, z0 + 0.031), rot=(0, 0, yaw), material=FISH_DARK)         # dunkler Rückenstreifen
+        box((0.035, 0.034, 0.005), (x - c * 0.085, y - s * 0.085, z0 + 0.012), rot=(0, 0, yaw), material=FISH_DARK)
+    else:
+        zc = z0 + 0.09
+        sphere(0.07, (x, y, zc), (1.1, 0.2, 0.40), FISH, segs=6, rings=3, rot=(0, 90, yaw))
+        box((0.034, 0.005, 0.034), (x, y, z0 + 0.012), rot=(0, 0, yaw), material=FISH_DARK)
+        box((0.004, 0.004, 0.05), (x, y, zc + 0.10), material=ROPE)
+
+
+def net(p0, p1, drop, sag=0.04, mesh=0.075, seed=3):
+    """Hängendes Fischernetz an einer Leine von p0 nach p1 (gleiche Höhe): senkrechte Maschenfäden und waagerechte Reihen
+    als dünne Stäbe, leicht durchhängend, unten gerundet und ausgefranst; Kork-Schwimmer oben, Bleigewichte unten."""
+    rnd = random.Random(seed)
+    (x0, y0, z), (x1, y1, _) = p0, p1
+    length = math.hypot(x1 - x0, y1 - y0)
+    n = max(3, int(length / mesh))
+    rows = max(2, int(drop / mesh))
+    cols = []
+    for k in range(n + 1):
+        t = k / n
+        zt = z - sag * 4 * t * (1 - t)
+        d = drop * (1.0 - 0.45 * (2 * t - 1) ** 4) * rnd.uniform(0.94, 1.0)
+        cols.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, zt, d))
+    for cx, cy, zt, d in cols:
+        bar((cx, cy, zt), (cx, cy, zt - d), 0.006, ROPE)
+    for r in range(1, rows + 1):
+        f = r / (rows + 0.6)
+        for (ax, ay, az, ad), (bx, by, bz, bd) in zip(cols, cols[1:]):
+            bar((ax, ay, az - ad * f), (bx, by, bz - bd * f), 0.006, ROPE)
+    bar((x0, y0, z), (x1, y1, z), 0.012, ROPE)                                   # Oberleine
+    for k in range(0, n + 1, 2):                                                 # Kork-Schwimmer
+        cx, cy, zt, _ = cols[k]
+        sphere(0.017, (cx, cy, zt - 0.006), (1.0, 1.0, 1.35), CORK, segs=6, rings=4)
+    for k in range(1, n, 3):                                                     # Bleigewichte am Saum
+        cx, cy, zt, d = cols[k]
+        sphere(0.012, (cx, cy, zt - d * (rows / (rows + 0.6)) - 0.004), material=STONE, segs=5, rings=3)
+
+
+def reuse(x, y, yaw=0.0, z0=0.0, length=0.34, r=0.058):
+    """Reuse aus Weide (liegend): Rutenkörper mit dunklen Ringen, trichterförmiger Eingang an einem Ende mit dunkler
+    Öffnung, am anderen Ende zugebunden. Achse entlang yaw (0 = +x), Eingang bei +x."""
+    a = math.radians(yaw)
+    c, s = math.cos(a), math.sin(a)
+
+    def P(l, dz=0.0):
+        return (x + c * l, y + s * l, z0 + r + dz)
+    cyl(r, length, P(0), rot=(0, 90, yaw), material=WICKER, verts=10)
+    for k in (-0.40, -0.14, 0.12, 0.38):
+        cyl(r * 1.06, 0.014, P(k * length), rot=(0, 90, yaw), material=WICKER_DARK, verts=10)
+    cone(r * 0.35, r, 0.11, P(length / 2 + 0.05), WICKER_DARK, verts=10, rot=(0, 90, yaw))   # Trichter, innen schmal
+    cyl(r * 0.30, 0.006, P(length / 2 + 0.105), rot=(0, 90, yaw), material=DARK, verts=8)
+    sphere(r * 0.9, P(-length / 2 - 0.01), (0.7, 1.0, 1.0), WICKER, segs=8, rings=4, rot=(0, 0, yaw))
+    cone(r * 0.25, r * 0.08, 0.06, P(-length / 2 - 0.08), WICKER_DARK, verts=6, rot=(0, 90, yaw))   # Schnur am Ende
+
+
+def oar(p0, p1, shaft=0.014):
+    """Ruder: Schaft von p0 (Blattende) nach p1 (Griff) und ein flaches Blatt am Ende bei p0 (etwa 1,3 m lang)."""
+    a, b = Vector(p0), Vector(p1)
+    d = (b - a).normalized()
+    bar(a + d * 0.16, b, shaft, WOOD)
+    blade = box((0.06, 0.010, 0.24), tuple(a + d * 0.10), material=WOOD)
+    blade.rotation_mode = "QUATERNION"
+    blade.rotation_quaternion = d.to_track_quat("Z", "Y")
+    bar(a + d * 0.22, a + d * 0.24, shaft * 2.0, WOOD_DARK)                        # Wulst am Übergang
+
+
+def rope_coil(x, y, z0=0.0, r=0.06, layers=3):
+    """Aufgerolltes Tau: übereinanderliegende Ringe."""
+    for k in range(layers):
+        bpy.ops.mesh.primitive_torus_add(major_radius=r * (1.0 - 0.05 * k), minor_radius=0.011, major_segments=14,
+                                         minor_segments=5, location=(x, y, z0 + 0.011 + k * 0.021))
+        keep(bpy.context.active_object, ROPE)
+
+
+def stone_anchor(x, y, yaw=0.0):
+    """Steinanker: flacher Stein mit Tauring, daneben liegt das Tauende."""
+    box((0.13, 0.07, 0.07), (x, y, 0.035), rot=(0, 0, yaw), material=STONE)
+    box((0.09, 0.06, 0.05), (x, y, 0.095), rot=(2, 3, yaw + 12), material=ROCK_B)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.028, minor_radius=0.007, major_segments=10, minor_segments=5,
+                                     location=(x, y, 0.15), rotation=(math.radians(80), 0, math.radians(yaw)))
+    keep(bpy.context.active_object, ROPE)
+    a = math.radians(yaw + 70)
+    bar((x, y, 0.13), (x + 0.16 * math.cos(a), y + 0.16 * math.sin(a), 0.011), 0.011, ROPE)
+
+
+def bucket(x, y, z0=0.0, r=0.05, fish_inside=False):
+    """Holzeimer mit zwei Reifen und Henkel; wahlweise mit Fischen gefüllt."""
+    h = 0.10
+    cone(r * 0.82, r, h, (x, y, z0 + h / 2), WOOD, verts=10)
+    for k in (0.22, 0.78):
+        cyl(r * (0.82 + 0.18 * k) + 0.004, 0.010, (x, y, z0 + h * k), material=IRON, verts=10)
+    cyl(r * 0.88, 0.004, (x, y, z0 + h + 0.001), material=WATER if not fish_inside else FISH, verts=10)
+    for sgn in (-1, 1):
+        bar((x + sgn * r, y, z0 + h - 0.01), (x + sgn * r * 0.9, y, z0 + h + 0.07), 0.006, IRON)
+    bar((x - r * 0.9, y, z0 + h + 0.07), (x + r * 0.9, y, z0 + h + 0.07), 0.006, IRON)
+    if fish_inside:
+        sphere(0.045, (x, y, z0 + h), (1.0, 1.0, 0.45), FISH, segs=7, rings=4)
+        fish(x + 0.01, y, z0 + h + 0.01, yaw=25)
+
+
+def fish_basket(x, y, z0=0.0, r=0.10, yaw=0.0):
+    """Rundkorb aus Weide, bis zum Rand mit Fischen gefüllt; Köpfe und Schwänze ragen heraus."""
+    h = 0.15
+    cone(r * 0.8, r, h, (x, y, z0 + h / 2), WICKER, verts=12)
+    for k in (0.2, 0.55, 0.9):
+        cyl(r * (0.8 + 0.2 * k) + 0.004, 0.012, (x, y, z0 + h * k), material=WICKER_DARK, verts=12)
+    sphere(r * 0.95, (x, y, z0 + h), (1.0, 1.0, 0.5), FISH, segs=8, rings=4)
+    for i, ang in enumerate((30, 120, 215, 305)):
+        a = math.radians(ang + yaw)
+        fish(x + math.cos(a) * r * 0.45, y + math.sin(a) * r * 0.45, z0 + h + 0.005, yaw=ang + yaw + 20 * (i % 2))
+
+
+def row_boat(cx, cy, length=1.9, beam=0.54, depth=0.20, z_gunwale=0.26, yaw=0.0):
+    """Kieloben auf zwei Böcken liegendes Ruderboot (Klinkerplanken in vier Streifen, roter Zierstreifen am Dollbord,
+    Kielleiste, Dollbordleisten); die Außenhaut ist als Schale aus Querschnitten aufgebaut, innen eine zweite Schale."""
+    N, M = 17, 9
+    a = math.radians(yaw)
+    ca, sa = math.cos(a), math.sin(a)
+
+    def station(t):
+        tt = min(abs(t), 0.992)
+        w = beam / 2 * (1.0 - tt ** 2.3) ** 0.55
+        d = depth * (1.0 - tt ** 2.0) ** 0.6
+        z0 = z_gunwale - 0.10 * tt ** 2.2
+        return t * length / 2, w, d, z0
+
+    def vert(t, u, inset):
+        lx, w, d, z0 = station(t)
+        wy = u * w * (1.0 - inset * 3)
+        z = z0 + max(d - inset * 0.8, 0.0) * (1.0 - abs(u) ** 2.2) + (inset * 0.1 if abs(u) == 1 else 0.0)
+        return (cx + ca * lx - sa * wy, cy + sa * lx + ca * wy, z)
+
+    bands = [SOCLE_RED, WOOD, WOOD_DARK, WOOD]
+    for inset, flip in ((0.0, False), (0.02, True)):
+        verts, faces, mats = [], [], []
+        for i in range(N):
+            t = -1 + 2 * i / (N - 1)
+            for j in range(M):
+                verts.append(vert(t, -1 + 2 * j / (M - 1), inset))
+        for i in range(N - 1):
+            for j in range(M - 1):
+                v00, v01 = i * M + j, i * M + j + 1
+                v10, v11 = (i + 1) * M + j, (i + 1) * M + j + 1
+                faces.append((v00, v10, v11, v01) if not flip else (v00, v01, v11, v10))
+                mats.append(min(j, M - 2 - j))
+        mesh = bpy.data.meshes.new("Boot")
+        mesh.from_pydata(verts, [], faces)
+        mesh.update()
+        obj = bpy.data.objects.new("Boot", mesh)
+        bpy.context.collection.objects.link(obj)
+        if flip:
+            mesh.materials.append(WOOD_DARK)
+            for p in mesh.polygons:
+                p.material_index = 0
+        else:
+            for m in bands:
+                mesh.materials.append(m)
+            for p, mi in zip(mesh.polygons, mats):
+                p.material_index = mi
+        PARTS.append(obj)
+    # Kielleiste oben, Dollbordleisten unten an beiden Kanten
+    for i in range(N - 1):
+        t0, t1 = -1 + 2 * i / (N - 1), -1 + 2 * (i + 1) / (N - 1)
+        bar(vert(t0, 0, 0), vert(t1, 0, 0), 0.03, WOOD_DARK)
+        for u in (-1, 1):
+            p0, p1 = vert(t0, u, 0), vert(t1, u, 0)
+            bar((p0[0], p0[1], p0[2] + 0.005), (p1[0], p1[1], p1[2] + 0.005), 0.022, WOOD_DARK)
+    # zwei Böcke unter der Mitte
+    for t in (-0.42, 0.42):
+        lx, w, d, z0 = station(t)
+        px, py = cx + ca * lx, cy + sa * lx
+        top = z0 - 0.012
+        bar((px - sa * (w + 0.07), py + ca * (w + 0.07), top - 0.02), (px + sa * (w + 0.07), py - ca * (w + 0.07), top - 0.02),
+            0.05, WOOD_DARK)
+        for sgn in (-1, 1):
+            foot = w + 0.15
+            bar((px - sa * sgn * (w + 0.05), py + ca * sgn * (w + 0.05), top - 0.03),
+                (px - sa * sgn * foot, py + ca * sgn * foot, 0.0), 0.04, WOOD_DARK)
+            bar((px - sa * sgn * (w + 0.05) - ca * 0.05, py + ca * sgn * (w + 0.05) - sa * 0.05, top - 0.03),
+                (px - sa * sgn * foot - ca * 0.09, py + ca * sgn * foot - sa * 0.09, 0.0), 0.03, WOOD_DARK)
+            bar((px - sa * sgn * (w + 0.05) + ca * 0.05, py + ca * sgn * (w + 0.05) + sa * 0.05, top - 0.03),
+                (px - sa * sgn * foot + ca * 0.09, py + ca * sgn * foot + sa * 0.09, 0.0), 0.03, WOOD_DARK)
+
+
+def plank_pier(x0, x1, y0, y1, z=0.15):
+    """Kurzer Bohlensteg zum Wasser (nach +y): Querbohlen auf zwei Längsbalken, Pfähle an den Ecken, eine Stufe an der
+    Landseite y0. Endet genau bei y1 (äußere Kante der Bohlen und der Pfähle)."""
+    n = int((y1 - y0) / 0.092)
+    pitch = (y1 - y0) / n
+    for k in range(n):
+        yc = y0 + (k + 0.5) * pitch
+        box((x1 - x0, pitch - 0.012, 0.03), ((x0 + x1) / 2, yc, z - 0.015),
+            material=WOOD if k % 3 else WOOD_DARK)
+    for x in (x0 + 0.09, x1 - 0.09):
+        box((0.06, y1 - y0 - 0.02, 0.05), (x, (y0 + y1) / 2 - 0.0, z - 0.055), material=WOOD_DARK)
+    for x in (x0 + 0.04, x1 - 0.04):
+        for y in (y0 + 0.05, (y0 + y1) / 2, y1 - 0.045):
+            cyl(0.032, z + 0.03 if y > y0 + 0.1 else z - 0.07, (x, y, (z + 0.03) / 2 if y > y0 + 0.1 else (z - 0.07) / 2),
+                material=WOOD_DARK, verts=7)
+    box((x1 - x0 - 0.1, 0.10, 0.07), ((x0 + x1) / 2, y0 - 0.05, 0.035), material=WOOD)   # Stufe
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 

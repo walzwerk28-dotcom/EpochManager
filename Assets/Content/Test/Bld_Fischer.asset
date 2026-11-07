@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Fischer
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 2
-  prefab: {fileID: 3642902018013981201, guid: e054505af0d85bb4984ecc5c6b8ecbbf, type: 3}
+  prefab: {fileID: 2445207109932217041, guid: ba51aa1ce9c42054997b076c68e470de, type: 3}
   size: {x: 2, y: 2}
   zone: {fileID: 0}
   populationTier: {fileID: 0}
