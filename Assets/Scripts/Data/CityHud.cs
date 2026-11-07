@@ -150,6 +150,9 @@ namespace EpochCity
                 string lack = city.GetMissingCost(selected.buildCost, selected.materialCosts);
                 if (lack != null) return $"{selected.displayName}  |  fehlt: {lack}";
 
+                string shoreIssue = city.GetShoreIssue(selected, cell);
+                if (shoreIssue != null) return $"{selected.displayName}  |  {shoreIssue}";
+
                 // Vorkommen im Umkreis, z. B. „Wald im Umkreis: 9 / 16 → 56 %“
                 if (selected.requiredDeposit != null)
                 {
@@ -547,6 +550,8 @@ namespace EpochCity
             if (def.plantsDeposit != null)
                 sb.AppendLine($"Pflanzt {def.plantsDeposit.displayName} im Umkreis {def.depositRange}; dort wächst er in " +
                               $"{def.plantsDeposit.regrowMonthsTended} Monaten nach");
+            if (def.shoreCells > 0)
+                sb.AppendLine($"Braucht Ufer: {def.shoreCells} Wasserfelder an der Seite oder Rückseite");
             if (city.IsAvailable(def)) sb.Append(MissingLine(def.buildCost, def.materialCosts));
             string placementLock = city.GetPlacementLock(def);
             sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ??

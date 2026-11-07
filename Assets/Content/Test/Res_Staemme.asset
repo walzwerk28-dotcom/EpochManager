@@ -18,3 +18,4 @@ MonoBehaviour:
   isCurrency: 0
   isBuildingMaterial: 0
   unlimitedStorage: 0
+  tradePrice: 0.5

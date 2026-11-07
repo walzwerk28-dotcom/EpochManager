@@ -15,6 +15,7 @@ namespace EpochCity
     {
         [SerializeField] private CityController city;
         [SerializeField] private EconomySimulation economy;
+        [SerializeField] private TradeSystem trade;
         [SerializeField] private PopulationSimulation population;
         [Tooltip("Beim Start geöffnet")]
         [SerializeField] private bool startVisible;
@@ -67,8 +68,10 @@ namespace EpochCity
                 builder.AppendLine($"Steuern +{population.LastMonthTaxes:0}");
 
             // Prognose: bei dieser Bilanz ist die Kasse in X Monaten leer
+            if (trade == null) trade = FindAnyObjectByType<TradeSystem>();
             float balance = (economy != null ? economy.LastMonthIncome - economy.LastMonthUpkeep : 0f) +
-                            (population != null ? population.LastMonthTaxes : 0f);
+                            (population != null ? population.LastMonthTaxes : 0f) +
+                            (trade != null ? trade.LastMonthTradeNet : 0f);
             string danger = UiTheme.Hex(theme.danger);
             if (city.Money < 0f)
                 builder.AppendLine($"<color={danger}>Kasse leer: Gebäude mit Unterhalt arbeiten langsamer</color>");

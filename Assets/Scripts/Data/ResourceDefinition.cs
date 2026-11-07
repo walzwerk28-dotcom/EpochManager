@@ -21,5 +21,8 @@ namespace EpochCity
 
         [Tooltip("Ohne Obergrenze im Lager (z. B. Forschung). Geld ist immer unbegrenzt.")]
         public bool unlimitedStorage;
+
+        [Tooltip("Grundpreis beim Handel am Hafen (Verkauf und Kauf weichen davon ab); 0 = nicht handelbar")]
+        [Min(0f)] public float tradePrice;
     }
 }

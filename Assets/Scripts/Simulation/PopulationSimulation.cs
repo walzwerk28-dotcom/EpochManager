@@ -115,7 +115,11 @@ namespace EpochCity
             LastMonthTaxes = taxes;
             TotalResidents = residents;
             AverageSatisfaction = totalCapacity > 0 ? weightedSatisfaction / totalCapacity : 0f;
+            MonthSimulated?.Invoke();
         }
+
+        /// <summary>Am Ende von SimulateMonth (nach Verbrauch, Zuzug und Steuern); der Handel am Hafen hängt sich hier an.</summary>
+        public event System.Action MonthSimulated;
 
         /// <summary>
         /// Nach dem Laden: Summen aus den gespeicherten Werten der Häuser neu bilden, ohne einen Monat zu

@@ -32,6 +32,8 @@ MonoBehaviour:
   workAreaMaxDistance: 12
   workAreaMaxCells: 64
   workAreaFarFactor: 0.6
+  shoreCells: 0
+  tradeCapacity: 0
   buildCost: 80
   materialCosts: []
   upkeepPerMonth: 3

@@ -19,6 +19,8 @@ namespace EpochCity
         [SerializeField] private GameClock clock;
         [SerializeField] private EconomySimulation economy;
         [SerializeField] private PopulationSimulation population;
+        [Tooltip("Handel am Hafen für die Monatsbilanz (leer = wird in der Szene gesucht)")]
+        [SerializeField] private TradeSystem trade;
         [SerializeField] private ZoneDemand demand;
         [SerializeField] private SaveSystem saveSystem;
 
@@ -98,8 +100,10 @@ namespace EpochCity
             dateText.text = clock != null ? clock.DateString : "";
 
             string currency = city.currentEpoch != null ? city.currentEpoch.currencyName : "";
+            if (trade == null) trade = FindAnyObjectByType<TradeSystem>();
             float balance = (economy != null ? economy.LastMonthIncome - economy.LastMonthUpkeep : 0f) +
-                            (population != null ? population.LastMonthTaxes : 0f);
+                            (population != null ? population.LastMonthTaxes : 0f) +
+                            (trade != null ? trade.LastMonthTradeNet : 0f); // Handel am Hafen
             var balanceColor = balance >= 0f ? theme.positive : theme.danger;
             // Leere Kasse: Betrag rot (Gebäude mit Unterhalt arbeiten dann langsamer)
             string money = city.Money < 0f

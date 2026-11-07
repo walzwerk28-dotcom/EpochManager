@@ -61,6 +61,13 @@ namespace EpochCity
                  "(dazwischen linear): weite Wege kosten Zeit")]
         [Range(0f, 1f)] public float workAreaFarFactor = 0.6f;
 
+        [Header("Ufer und Handel (Hafen)")]
+        [Tooltip("Nur baubar mit so vielen Wasserfeldern direkt an der Grundfläche, aber nicht auf der Straßenseite " +
+                 "(Vorderseite); 0 = kein Ufer nötig")]
+        [Min(0)] public int shoreCells;
+        [Tooltip("Hafen: Einheiten Ware je Spielmonat, die er handeln kann (Summe aller Häfen in Betrieb); 0 = kein Handel")]
+        [Min(0)] public int tradeCapacity;
+
         [Header("Kosten")]
         public float buildCost = 100f;
         [Tooltip("Baumaterial aus dem Lager zusätzlich zum Geld (Zonengebäude wachsen trotzdem kostenlos)")]

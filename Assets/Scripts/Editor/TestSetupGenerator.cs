@@ -946,6 +946,28 @@ namespace EpochCity
             storageLarge.menuTier = scholars;
             storageMedium.layers = storageLarge.layers = storage.layers;
 
+            // Hafen (2026-11-07, Wasser Teil C, wie das Kontor in Anno): Lager am Ufer mit Handel; Wasser an Seite oder Rückseite
+            var harbor = StorageBuilding("Bld_Hafen", "Hafen", antike, new Vector2Int(3, 3),
+                400f, 4f, 50, 20f, farmers, 2, null, 0, new Color(0.45f, 0.38f, 0.30f));
+            harbor.materialCosts = Cost((boards, 12f), (stone, 8f));
+            harbor.requiredTechnology = barter;
+            harbor.menuTier = farmers;
+            harbor.layers = storage.layers;
+            harbor.shoreCells = 2;
+            harbor.tradeCapacity = 40;
+            harbor.fireRisk = 1f;
+
+            // Handelspreise am Hafen (Grundpreis; Verkauf × 0,75, Kauf × 1,25); Geld und Forschung nicht handelbar
+            foreach (var (res, price) in new[]
+            {
+                (wheat, 0.6f), (fish, 0.6f), (logs, 0.5f), (firewood, 0.5f), (clay, 0.5f), (olives, 0.6f), (grapes, 0.6f),
+                (boards, 1.2f), (stone, 1.0f), (oil, 1.6f), (ceramics, 1.6f), (wine, 2.2f), (coins, 0f), (research, 0f)
+            })
+            {
+                res.tradePrice = price;
+                EditorUtility.SetDirty(res);
+            }
+
             // Gutshof (2026-11-04, Idee des Entwicklers, wie Einflussbereiche in Anno): +25 % Ertrag für Felder im Umkreis 4
             var estate = GetOrCreate<BuildingDefinition>("Bld_Gutshof");
             estate.displayName = "Gutshof";
@@ -1017,7 +1039,7 @@ namespace EpochCity
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
                 grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater,
-                storageMedium, storageLarge, estate, herbGarden, sacredGrove, columnGarden, fish, fisher
+                storageMedium, storageLarge, estate, herbGarden, sacredGrove, columnGarden, fish, fisher, harbor
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten

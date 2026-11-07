@@ -20,6 +20,8 @@ namespace EpochCity
         [SerializeField] private EconomySimulation economy;
         [Tooltip("Für die Brand-Häufigkeit im Spielstand (leer = vom selben Objekt)")]
         [SerializeField] private FireSimulation fire;
+        [Tooltip("Für die Handelseinstellungen im Spielstand (leer = vom selben Objekt)")]
+        [SerializeField] private TradeSystem trade;
         public ContentRegistry registry;
         public const string QuickSaveSlot = "quicksave";
         public string quickSaveSlot = QuickSaveSlot;
@@ -161,6 +163,7 @@ namespace EpochCity
         private readonly HashSet<string> missing = new HashSet<string>();
 
         private FireSimulation Fire => fire != null ? fire : fire = GetComponent<FireSimulation>();
+        private TradeSystem Trade => trade != null ? trade : trade = GetComponent<TradeSystem>();
 
         // Einen Frame nach dem Start, damit alle Systeme und Darstellungen ihr Start schon hinter sich haben
         private System.Collections.IEnumerator Start()
@@ -315,6 +318,15 @@ namespace EpochCity
             {
                 data.lastMonthIncome = economy.LastMonthIncome;
                 data.lastMonthUpkeep = economy.LastMonthUpkeep;
+            }
+
+            if (Trade != null)
+            {
+                foreach (var s in Trade.Settings)
+                    data.tradeSettings.Add(new TradeSettingEntry
+                        { id = ContentRegistry.IdOf(s.Key), mode = (int)s.Value.mode, limit = s.Value.limit });
+                data.lastMonthTradeIncome = Trade.LastMonthTradeIncome;
+                data.lastMonthTradeExpense = Trade.LastMonthTradeExpense;
             }
 
             var grid = city.Grid;
@@ -479,6 +491,18 @@ namespace EpochCity
                 population.RestoreTotals(data.lastMonthTaxes);
             }
             if (economy != null) economy.Restore(data.lastMonthIncome, data.lastMonthUpkeep);
+
+            // Handel ab Version 9; ältere Stände: kein Handel (alles Aus)
+            if (Trade != null)
+            {
+                var loaded = new List<(ResourceDefinition, TradeMode, int)>();
+                if (data.version >= 9)
+                    foreach (var entry in data.tradeSettings)
+                        if (Resolve<ResourceDefinition>(entry.id, out var resource))
+                            loaded.Add((resource, (TradeMode)entry.mode, entry.limit));
+                Trade.Restore(loaded, data.version >= 9 ? data.lastMonthTradeIncome : 0f,
+                    data.version >= 9 ? data.lastMonthTradeExpense : 0f);
+            }
         }
 
         /// <summary>Löst einen gespeicherten Namen auf; fehlende Inhalte werden für die Meldung gesammelt.</summary>

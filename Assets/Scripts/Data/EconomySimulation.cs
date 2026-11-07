@@ -350,6 +350,7 @@ namespace EpochCity
         /// </summary>
         public float GetReserve(ResourceDefinition resource)
         {
+            if (city == null) return 0f;
             if (!reservesReady)
             {
                 reservesReady = true;
@@ -380,6 +381,13 @@ namespace EpochCity
                 }
             }
             return reserves.TryGetValue(resource, out float reserve) ? reserve : 0f;
+        }
+
+        /// <summary>Rücklagen neu berechnen lassen (sonst gelten die des letzten Schritts), z. B. vor dem Handel.</summary>
+        public void InvalidateReserves()
+        {
+            reserves.Clear();
+            reservesReady = false;
         }
 
         private readonly System.Collections.Generic.Dictionary<ResourceDefinition, float> reserves =

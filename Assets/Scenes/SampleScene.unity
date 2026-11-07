@@ -720,6 +720,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 25dae56928bd2c645aac4f81580bf96f, type: 2}
   - {fileID: 11400000, guid: 2862c34a54bc6a54eaf19a1d72aaef60, type: 2}
   - {fileID: 11400000, guid: 911b3c535dfd3894180a58eee9d20787, type: 2}
+  - {fileID: 11400000, guid: 3aa14b22555cd50469f0c72c338c7c50, type: 2}
   - {fileID: 11400000, guid: 614d5861f5fc28548959e233cd28bc8e, type: 2}
   - {fileID: 11400000, guid: 27f7d004954a2194cbbca082eddc76e4, type: 2}
   - {fileID: 11400000, guid: a7e0f07efedf69542a3b9942fb6c0646, type: 2}
@@ -850,6 +851,7 @@ GameObject:
   - component: {fileID: 1598712643}
   - component: {fileID: 1598712644}
   - component: {fileID: 1598712645}
+  - component: {fileID: 1598712646}
   m_Layer: 0
   m_Name: Simulation
   m_TagString: Untagged
@@ -1020,6 +1022,7 @@ MonoBehaviour:
   population: {fileID: 1598712641}
   economy: {fileID: 1598712635}
   fire: {fileID: 0}
+  trade: {fileID: 1598712646}
   registry: {fileID: 11400000, guid: e2bcbd24a7807b74890f5a89a4963f1f, type: 2}
   quickSaveSlot: quicksave
   autosaveMinutes: 5
@@ -1084,6 +1087,24 @@ MonoBehaviour:
   damagedMonths: 3
   extinguishedDamageMonths: 1
   seed: 0
+--- !u!114 &1598712646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1598712634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 913953405655e234a9ff2a57242db016, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.TradeSystem
+  city: {fileID: 440537052}
+  economy: {fileID: 1598712635}
+  population: {fileID: 1598712641}
+  registry: {fileID: 11400000, guid: e2bcbd24a7807b74890f5a89a4963f1f, type: 2}
+  sellFactor: 0.75
+  buyFactor: 1.25
 --- !u!1 &1627082945
 GameObject:
   m_ObjectHideFlags: 0
@@ -1262,6 +1283,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EpochCity.SimulationHud
   city: {fileID: 440537052}
   economy: {fileID: 1598712635}
+  trade: {fileID: 0}
   population: {fileID: 1598712641}
   startVisible: 0
   theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
@@ -1352,6 +1374,7 @@ MonoBehaviour:
   clock: {fileID: 2124652275}
   economy: {fileID: 1598712635}
   population: {fileID: 1598712641}
+  trade: {fileID: 0}
   demand: {fileID: 1598712643}
   saveSystem: {fileID: 1598712642}
   cityWindow: {fileID: 1732010458}

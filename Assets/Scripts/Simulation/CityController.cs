@@ -90,7 +90,40 @@ namespace EpochCity
             IsAvailable(def) && GetPlacementLock(def) == null &&
             Grid.CanPlace(def, origin) && Grid.TouchesRoad(origin, def.size) &&
             DepositAllows(def, origin, def.size) &&
-            (def.requiredDeposit == null || Grid.CountDeposit(def.requiredDeposit, origin, def.size, def.depositRange, true) > 0);
+            (def.requiredDeposit == null || Grid.CountDeposit(def.requiredDeposit, origin, def.size, def.depositRange, true) > 0) &&
+            (def.shoreCells <= 0 || CountShoreCells(def, origin, GetFacingAngle(def, origin)) >= def.shoreCells);
+
+        /// <summary>
+        /// Wasserfelder direkt an der Grundfläche (vier Nachbarn der Randfelder, nicht diagonal), ohne die
+        /// Vorderseite (Straßenseite) bei dieser Drehung. Für Gebäude mit shoreCells (Hafen).
+        /// </summary>
+        public int CountShoreCells(BuildingDefinition def, Vector2Int origin, float facing)
+        {
+            var size = def.GetFootprint(facing);
+            var front = FrontSide(facing);
+            int count = 0;
+            foreach (var side in new[] { Vector2Int.down, Vector2Int.up, Vector2Int.left, Vector2Int.right })
+            {
+                if (side == front) continue;
+                int length = side.x == 0 ? size.x : size.y;
+                for (int k = 0; k < length; k++)
+                {
+                    var c = side.x == 0
+                        ? new Vector2Int(origin.x + k, side.y > 0 ? origin.y + size.y : origin.y - 1)
+                        : new Vector2Int(side.x > 0 ? origin.x + size.x : origin.x - 1, origin.y + k);
+                    if (Grid.InBounds(c) && IsWater(c)) count++;
+                }
+            }
+            return count;
+        }
+
+        /// <summary>Warum fehlt das Ufer („braucht Ufer (2 Wasserfelder an der Seite oder Rückseite)“); null = passt oder nicht nötig.</summary>
+        public string GetShoreIssue(BuildingDefinition def, Vector2Int origin)
+        {
+            if (def == null || def.shoreCells <= 0) return null;
+            if (CountShoreCells(def, origin, GetFacingAngle(def, origin)) >= def.shoreCells) return null;
+            return $"braucht Ufer ({def.shoreCells} Wasserfelder an der Seite oder Rückseite)";
+        }
 
         /// <summary>
         /// Was das Bauen außer Epoche und Forschung noch sperrt: einmalige Gebäude, die schon stehen, und zu wenige

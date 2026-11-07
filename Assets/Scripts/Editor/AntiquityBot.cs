@@ -460,7 +460,7 @@ namespace EpochCity
             /// <summary>Baut das größte freigeschaltete Lager, das sich bezahlen lässt (Lagerstufen wie in Anno).</summary>
             private bool BuildStorage(Vector2Int near)
             {
-                var options = placer.hotbar.Where(d => d != null && d.category == BuildingCategory.Storage &&
+                var options = placer.hotbar.Where(d => d != null && d.category == BuildingCategory.Storage && d.shoreCells == 0 &&
                                                        city.IsAvailable(d) && city.GetPlacementLock(d) == null)
                                            .OrderByDescending(d => d.baseCapacity);
                 foreach (var def in options)

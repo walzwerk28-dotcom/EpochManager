@@ -21,8 +21,9 @@ namespace EpochCity
         /// 6: Bauphasen von Großbauten (BuildingEntry.stage, delivered, stageMoney, stageTimer); ältere: fertig.
         /// 7: Baustellen (BuildingEntry.buildTimer, −1 = fertig); ältere Stände: alle Gebäude fertig.
         /// 8: Arbeitsbereich von Holzfäller und Förster (BuildingEntry.workArea); ältere Stände: Standardbereich.
+        /// 9: Handel am Hafen (tradeSettings, lastMonthTradeIncome, lastMonthTradeExpense); ältere Stände: kein Handel.
         /// </summary>
-        public const int CurrentVersion = 8;
+        public const int CurrentVersion = 9;
 
         public int version = CurrentVersion;
         public string savedAt;
@@ -56,6 +57,11 @@ namespace EpochCity
         public float lastMonthIncome;
         public float lastMonthUpkeep;
 
+        [Header("Handel am Hafen (ab Version 9)")]
+        public List<TradeSettingEntry> tradeSettings = new List<TradeSettingEntry>();
+        public float lastMonthTradeIncome;
+        public float lastMonthTradeExpense;
+
         [Header("Karte")]
         public List<CellEntry> roads = new List<CellEntry>();
         public List<CellEntry> zones = new List<CellEntry>();
@@ -80,6 +86,15 @@ namespace EpochCity
             this.id = id;
             this.amount = amount;
         }
+    }
+
+    /// <summary>Handelseinstellung einer Ware: Modus (TradeMode) und Grenze.</summary>
+    [Serializable]
+    public struct TradeSettingEntry
+    {
+        public string id;
+        public int mode;
+        public int limit;
     }
 
     /// <summary>Ein Feld mit einem Inhalt (Straßentyp oder Zone).</summary>
