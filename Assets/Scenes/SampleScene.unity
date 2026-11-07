@@ -680,6 +680,7 @@ GameObject:
   - component: {fileID: 1216388728}
   - component: {fileID: 1216388729}
   - component: {fileID: 1216388730}
+  - component: {fileID: 1216388731}
   m_Layer: 0
   m_Name: BuildingPlacer
   m_TagString: Untagged
@@ -833,6 +834,31 @@ MonoBehaviour:
   limitColor: {r: 1, g: 1, b: 1, a: 0.45}
   outlineWidth: 0.14
   linkWidth: 0.22
+--- !u!114 &1216388731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1216388724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a62cf784b6b2694fa95d12c13ce6f7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.HarborVisuals
+  city: {fileID: 440537052}
+  trade: {fileID: 1598712646}
+  clock: {fileID: 2124652275}
+  shipPrefab: {fileID: 7627831655873165698, guid: 787b8b69ee709014dbd8b954988ddf60, type: 3}
+  water: {fileID: 1732010466}
+  arriveSeconds: 6
+  moorSeconds: 20
+  departSeconds: 6
+  quayGap: 0.3
+  halfBeam: 0.55
+  halfLength: 1.85
+  approachAlong: 5
+  approachOut: 3.5
 --- !u!1 &1598712634
 GameObject:
   m_ObjectHideFlags: 0

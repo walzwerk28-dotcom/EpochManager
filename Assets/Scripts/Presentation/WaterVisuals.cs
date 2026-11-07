@@ -26,6 +26,9 @@ namespace EpochCity
         [SerializeField] private float waterHeight = 0.04f;
         [SerializeField] private float shoreHeight = 0.01f;
 
+        /// <summary>Höhe der Wasseroberfläche über dem Boden (für Schiffe).</summary>
+        public float WaterHeight => waterHeight;
+
         [Header("Form")]
         [Tooltip("Ab diesem Feldwert (Wasser = 1, Land = 0) gilt der Sandstreifen; 0,3 = 0,4 m über die Wasserkante hinaus")]
         [Range(0.05f, 0.49f)] [SerializeField] private float shoreLevel = 0.3f;

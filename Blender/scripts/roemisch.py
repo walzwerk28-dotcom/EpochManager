@@ -1525,6 +1525,103 @@ def hoist_out(x, y_wall, z, reach=0.45, sign=1, sack_z=0.42):
     sack(x, y_wall + sign * (reach - 0.03), sack_z, 0.06)
 
 
+# ---------------------------------------------------------------- Schiffe
+
+TAR = mat("Pech", (0.17, 0.14, 0.12), rough=0.9)
+HULL_CREAM = mat("RumpfCreme", (0.90, 0.84, 0.66))
+SAIL_LINEN = mat("Segelleinen", (0.93, 0.89, 0.78))
+SAIL_RED = mat("SegelRot", (0.68, 0.22, 0.17))
+
+
+def loft(rings, mat_of_col, flip=False, name="Schale"):
+    """Fläche aus Punktreihen: rings[i][j] sind die Punkte des i-ten Querschnitts; zwischen benachbarten Querschnitten
+    und Punkten entsteht je ein Viereck, dessen Material mat_of_col(j) bestimmt (j = Spalte zwischen Punkt j und j+1).
+    flip dreht die Seite, die nach außen zeigt."""
+    cols = len(rings[0])
+    verts = [p for ring in rings for p in ring]
+    faces, mids = [], []
+    for i in range(len(rings) - 1):
+        for j in range(cols - 1):
+            a, b = i * cols + j, i * cols + j + 1
+            c, d = (i + 1) * cols + j + 1, (i + 1) * cols + j
+            faces.append((a, d, c, b) if flip else (a, b, c, d))
+            mids.append(j)
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    slots = {}
+    for k, j in enumerate(mids):
+        m = mat_of_col(j)
+        if m not in slots:
+            mesh.materials.append(m)
+            slots[m] = len(mesh.materials) - 1
+        mesh.polygons[k].material_index = slots[m]
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    PARTS.append(obj)
+    return obj
+
+
+def sail_panel(x0, x1, z0, z1, y, bulge=0.1, stripes=(), nx=14, nz=7, thick=0.008):
+    """Rahsegel in der Ebene y: Tuch von x0..x1 und z0..z1, nach -y gewölbt (in der Mitte am meisten), beidseitig;
+    stripes = ((u0, u1, Material), ...) senkrechte Streifen (u = 0..1 von links nach rechts)."""
+    def point(i, k, dy):
+        u, v = i / nx, k / nz
+        return (x0 + (x1 - x0) * u, y - bulge * math.sin(math.pi * u) * math.sin(math.pi * (0.15 + 0.85 * v)) + dy,
+                z0 + (z1 - z0) * v)
+
+    def color(i):
+        u = (i + 0.5) / nx
+        for a, b, m in stripes:
+            if a <= u <= b:
+                return m
+        return SAIL_LINEN
+
+    for dy, flip in ((0.0, False), (thick, True)):
+        rings = [[point(i, k, dy) for i in range(nx + 1)] for k in range(nz + 1)]
+        loft(rings, color, flip=flip, name="Segel")
+
+
+def goose_neck(x, y, z, r=0.34, sweep=165.0, thick=0.05):
+    """Gänsehals-Zier am Heck (Chenisköpfchen): Bogen, der vom Steven nach oben und dann nach innen (-y) schwingt,
+    mit Gänsekopf und Schnabel am Ende. (x, y, z) ist der Fuß; der Bogen liegt in der Ebene x."""
+    n = 10
+    pts = []
+    for i in range(n + 1):
+        a = math.radians(sweep) * i / n
+        pts.append((x, y - r + r * math.cos(a), z + r * math.sin(a)))
+    for i in range(n):
+        bar(pts[i], pts[i + 1], thick * (1.0 - 0.45 * i / n), WOOD_DARK)
+    end, prev = Vector(pts[-1]), Vector(pts[-2])
+    d = (end - prev).normalized()
+    sphere(thick * 0.95, tuple(end), (1.0, 1.1, 1.0), SOCLE_RED)
+    beak = cone(thick * 0.55, thick * 0.12, thick * 1.8, tuple(end + d * thick * 1.4), BRONZE, verts=7)
+    beak.rotation_mode = "QUATERNION"
+    beak.rotation_quaternion = (-d).to_track_quat("Z", "Y")
+    for sx in (-1, 1):
+        sphere(thick * 0.18, (end.x + sx * thick * 0.55, end.y, end.z + thick * 0.2), material=DARK, segs=5, rings=3)
+
+
+def ship_anchor(x, y, z0, yaw=0.0):
+    """Anker, wie er an Deck liegt: Schaft, zwei Arme mit Spitzen, Querstock aus Holz mit Bleikern und Ring."""
+    a = math.radians(yaw)
+    c, s = math.cos(a), math.sin(a)
+
+    def P(u, v, z):
+        return (x + c * u - s * v, y + s * u + c * v, z0 + z)
+
+    bar(P(0, -0.20, 0.04), P(0, 0.20, 0.04), 0.035, IRON)
+    bar(P(0, 0.20, 0.04), P(0.16, 0.12, 0.04), 0.03, IRON)
+    bar(P(0, 0.20, 0.04), P(-0.16, 0.12, 0.04), 0.03, IRON)
+    for sgn in (-1, 1):
+        cone(0.03, 0.0, 0.06, P(sgn * 0.17, 0.115, 0.04), IRON, verts=5, rot=(0, 90 * sgn, yaw + 25 * sgn))
+    box((0.34, 0.045, 0.045), P(0, -0.12, 0.085), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((0.12, 0.05, 0.05), P(0, -0.12, 0.09), rot=(0, 0, yaw), material=STONE)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.035, minor_radius=0.008, major_segments=10, minor_segments=5,
+                                     location=P(0, -0.21, 0.07), rotation=(math.radians(90), 0, a))
+    keep(bpy.context.active_object, IRON)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 
