@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Hafen
   epoch: {fileID: 11400000, guid: 4e4efe84d1da9394e9b64047716097eb, type: 2}
   category: 4
-  prefab: {fileID: 2150247522904103601, guid: 4898c3f796f4caf499e6b48210466a78, type: 3}
+  prefab: {fileID: 5460631777526105805, guid: b16ef077098f3a64aad00b3c5c0eb4fc, type: 3}
   size: {x: 3, y: 3}
   zone: {fileID: 0}
   populationTier: {fileID: 0}

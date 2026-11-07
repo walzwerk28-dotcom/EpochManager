@@ -1361,6 +1361,170 @@ def plank_pier(x0, x1, y0, y1, z=0.15):
     box((x1 - x0 - 0.1, 0.10, 0.07), ((x0 + x1) / 2, y0 - 0.05, 0.035), material=WOOD)   # Stufe
 
 
+# ---------------------------------------------------------------- Hafen (Kai, Poller, Tretkran, Waage)
+
+BRONZE = mat("Bronze", (0.72, 0.52, 0.24), rough=0.4)
+FLAME = mat("Flamme", (0.98, 0.62, 0.16), rough=0.5)
+
+
+def rope(p0, p1, sag=0.0, thick=0.012, segs=5, material=ROPE):
+    """Tau zwischen zwei Punkten, in der Mitte um sag durchhängend (Stücke aus Vierkantstäben)."""
+    a, b = Vector(p0), Vector(p1)
+    prev = a
+    for i in range(1, segs + 1):
+        t = i / segs
+        p = a + (b - a) * t
+        p.z -= sag * 4 * t * (1 - t)
+        bar(prev, p, thick, material)
+        prev = p
+
+
+def quay_platform(x0, x1, y0, y1, z=0.16, gaps=(), curb_z=0.24, curb_depth=0.30, batter=0.10):
+    """Kai aus Quadersteinen: Platte (Oberkante z) von y0 bis y1 mit einer Randkante (Oberkante curb_z) an der
+    Wasserseite y1; deren Außenseite fällt um batter nach innen ab, nichts ragt über y1. gaps = Lücken (x von, x bis) in
+    der Randkante für Stege. Quaderfugen als dünne Leisten."""
+    xs = [x0]
+    for g0, g1 in gaps:
+        xs += [g0, g1]
+    xs.append(x1)
+    theta = math.degrees(math.atan2(batter, curb_z))
+
+    def yface(zz):
+        return y1 - batter * zz / curb_z
+
+    for xa, xb in zip(xs[0::2], xs[1::2]):
+        slab([(y0, 0.0), (y1, 0.0), (y1 - batter, curb_z), (y1 - curb_depth, curb_z), (y1 - curb_depth, z), (y0, z)],
+             "yz", xa, xb - xa, LIME)
+        xm = (xa + xb) / 2
+        for zz in (0.08, 0.16):                                                # Lagerfugen der Außenseite
+            box((xb - xa, 0.012, 0.012), (xm, yface(zz) - 0.004, zz), rot=(theta, 0, 0), material=LIME_DARK)
+        for row, zc in enumerate((0.04, 0.12, 0.20)):                          # Stoßfugen, versetzt
+            x = xa + 0.17 + (0.17 if row % 2 else 0.0)
+            while x < xb - 0.05:
+                box((0.012, 0.012, 0.070), (x, yface(zc) - 0.004, zc), rot=(theta, 0, 0), material=LIME_DARK)
+                x += 0.34
+        for yy in (y0 + 0.45, y0 + 0.90):                                      # Längsfugen der Platte
+            if yy < y1 - curb_depth - 0.05:
+                box((xb - xa, 0.012, 0.004), (xm, yy, z + 0.001), material=LIME_DARK)
+    for ga, gb in gaps:
+        slab([(y0, 0.0), (y1 - curb_depth, 0.0), (y1 - curb_depth, z), (y0, z)], "yz", ga, gb - ga, LIME)
+
+
+def bollard(x, y, z0, h=0.13, r=0.040, wraps=2):
+    """Poller aus Stein mit Kappe und um den Hals gelegtem Tau."""
+    cyl(r, h, (x, y, z0 + h / 2), material=LIME_DARK, verts=10)
+    cyl(r * 1.45, 0.03, (x, y, z0 + h + 0.015), material=LIME_DARK, verts=10)
+    for k in range(wraps):
+        bpy.ops.mesh.primitive_torus_add(major_radius=r * 1.08, minor_radius=0.010, major_segments=12,
+                                         minor_segments=5, location=(x, y, z0 + h * (0.42 + 0.22 * k)))
+        keep(bpy.context.active_object, ROPE)
+
+
+def amphora_load(x, y, z_bottom, hook_z):
+    """Lastnetz mit vier Amphoren: Holzpalette, zwei Seilringe um die Bäuche, vier Seile zum Haken."""
+    box((0.25, 0.25, 0.02), (x, y, z_bottom + 0.01), material=WOOD)
+    for px, py in ((-0.055, -0.055), (0.055, -0.055), (-0.055, 0.055), (0.055, 0.055)):
+        amphora(x + px, y + py, z_bottom + 0.02)
+    for z in (0.13, 0.20):
+        box((0.19, 0.19, 0.008), (x, y, z_bottom + z), material=ROPE)
+    for px, py in ((-0.105, -0.105), (0.105, -0.105), (-0.105, 0.105), (0.105, 0.105)):
+        bar((x + px, y + py, z_bottom + 0.02), (x, y, hook_z), 0.007, ROPE)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.03, minor_radius=0.007, major_segments=10, minor_segments=5,
+                                     location=(x, y, hook_z + 0.02), rotation=(math.radians(90), 0, 0))
+    keep(bpy.context.active_object, IRON)
+
+
+def treadwheel_crane(cx, cy, z0, jib_back=0.55, jib_front=0.75, hook_z=0.86, tall=1.7):
+    """Hölzerner Tretkran, Ausleger nach +y: zwei Masten mit Streben und Querbalken, dazwischen das Laufrad mit
+    Trittbrettern, daneben auf der Achse eine Seiltrommel; das Seil läuft über die Mastrolle zur Rolle am Auslegerende,
+    daran das Lastseil. Das Rad liegt zwischen den Masten (x von cx - 0.27 bis cx + 0.05). Gibt (x, y, z) der Rolle
+    am Auslegerende zurück."""
+    r, zc = 0.40, z0 + 0.42
+
+    def Z(h):
+        """Höhe über dem Boden; oberhalb des Rads um den Faktor tall gestreckt (hoher Mast, im Spiel lesbar)."""
+        return z0 + (h if h <= 0.9 else 0.9 + (h - 0.9) * tall)
+
+    mx = (cx - 0.36, cx + 0.36)
+    for x in mx:
+        box((0.07, 0.07, Z(1.52) - z0), (x, cy, (z0 + Z(1.52)) / 2), material=WOOD_DARK)
+        for dy in (-0.40, 0.40):                                                  # Streben nach vorn und hinten
+            bar((x, cy + dy, z0), (x, cy, Z(0.90)), 0.05, WOOD_DARK)
+        box((0.12, 0.12, 0.05), (x, cy, z0 + 0.025), material=LIME_DARK)
+    bar((mx[0], cy, Z(1.38)), (mx[1], cy, Z(1.38)), 0.06, WOOD)                    # Querbalken, trägt den Ausleger
+    bar((mx[0], cy, Z(1.00)), (mx[1], cy, Z(1.00)), 0.05, WOOD)
+    bar((mx[0] - 0.04, cy, zc), (mx[1] + 0.04, cy, zc), 0.045, WOOD_DARK)           # Achse
+    wx0, wx1 = cx - 0.27, cx + 0.05
+    for xs in (wx0, wx1):
+        bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=0.018, major_segments=20, minor_segments=5,
+                                         location=(xs, cy, zc), rotation=(0, math.radians(90), 0))
+        keep(bpy.context.active_object, WOOD_DARK)
+        for k in range(8):
+            a = math.radians(k * 45 + 11)
+            bar((xs, cy, zc), (xs, cy + r * math.cos(a), zc + r * math.sin(a)), 0.03, WOOD)
+    for k in range(16):                                                            # Trittbretter
+        a = math.radians(k * 22.5)
+        box((wx1 - wx0, 0.055, 0.02), ((wx0 + wx1) / 2, cy + r * math.cos(a), zc + r * math.sin(a)),
+            rot=(math.degrees(a) - 90, 0, 0), material=WOOD if k % 2 else WOOD_DARK)
+    cyl(0.06, 0.12, (cx + 0.20, cy, zc), rot=(0, 90, 0), material=WOOD, verts=10)    # Seiltrommel
+    cyl(0.063, 0.06, (cx + 0.20, cy, zc), rot=(0, 90, 0), material=ROPE, verts=10)
+    # Ausleger: liegt auf dem Querbalken, hinten Gegengewicht, vorn Rolle
+    ytip, ztip = cy + jib_front, Z(1.62)
+    yback, zback = cy - jib_back, Z(1.30)
+
+    def jib_z(y):
+        return zback + (y - yback) / (ytip - yback) * (ztip - zback)
+
+    bar((cx, yback, zback), (cx, ytip, ztip), 0.06, WOOD)
+    bar((cx, cy + 0.10, Z(1.00)), (cx, cy + 0.42, jib_z(cy + 0.42) - 0.03), 0.04, WOOD_DARK)   # Stütze unter dem Ausleger
+    box((0.14, 0.10, 0.14), (cx, yback - 0.02, zback - 0.24), material=LIME_DARK)    # Gegengewicht
+    bar((cx, yback, zback - 0.01), (cx, yback - 0.02, zback - 0.17), 0.012, ROPE)
+    cyl(0.04, 0.05, (cx, ytip, ztip - 0.03), rot=(0, 90, 0), material=WOOD, verts=10)
+    for dx in (-0.035, 0.035):
+        box((0.012, 0.07, 0.10), (cx + dx, ytip, ztip - 0.03), material=IRON)
+    # Seile: Trommel -> Mastrolle -> Auslegerende, Lastseil zum Haken
+    cyl(0.035, 0.05, (cx + 0.20, cy, Z(1.50)), rot=(0, 90, 0), material=WOOD, verts=8)
+    bar((cx + 0.20, cy - 0.06, zc + 0.06), (cx + 0.20, cy - 0.01, Z(1.47)), 0.014, ROPE)
+    bar((cx + 0.20, cy, Z(1.53)), (cx, ytip, ztip + 0.012), 0.014, ROPE)
+    bar((cx, ytip + 0.035, ztip - 0.03), (cx, ytip + 0.035, hook_z + 0.04), 0.014, ROPE)
+    return cx, ytip + 0.035, ztip
+
+
+def scale_balance(x, y, z0, arm=0.17):
+    """Balkenwaage auf einem Tisch (Oberkante z0): Ständer, Waagebalken aus Eisen, zwei Schalen an Schnüren."""
+    cyl(0.04, 0.02, (x, y, z0 + 0.01), material=WOOD_DARK, verts=8)
+    cyl(0.011, 0.26, (x, y, z0 + 0.15), material=IRON, verts=6)
+    tilt = 0.012
+    bar((x - arm, y, z0 + 0.275 - tilt), (x + arm, y, z0 + 0.275 + tilt), 0.012, IRON)
+    sphere(0.016, (x, y, z0 + 0.29), material=IRON, segs=6, rings=4)
+    for s, dz in ((-1, -tilt), (1, tilt)):
+        px, pz = x + s * arm, z0 + 0.275 + dz
+        for q in (-0.045, 0.045):
+            bar((px, y, pz), (px + q, y, pz - 0.115), 0.004, ROPE)
+            bar((px, y, pz), (px, y + q, pz - 0.115), 0.004, ROPE)
+        cyl(0.055, 0.008, (px, y, pz - 0.12), material=BRONZE, verts=12)
+
+
+def brazier(x, y, z0=0.0, h=0.46):
+    """Feuerschale auf einem Kalksteinpfeiler (Signalfeuer am Kai)."""
+    box((0.16, 0.16, 0.05), (x, y, z0 + 0.025), material=LIME_DARK)
+    box((0.11, 0.11, h), (x, y, z0 + 0.05 + h / 2), material=LIME)
+    box((0.15, 0.15, 0.03), (x, y, z0 + 0.05 + h + 0.015), material=LIME_DARK)
+    cone(0.04, 0.10, 0.07, (x, y, z0 + h + 0.115), BRONZE, verts=10)
+    cone(0.075, 0.0, 0.14, (x, y, z0 + h + 0.22), FLAME, verts=8)
+    cone(0.04, 0.0, 0.18, (x, y, z0 + h + 0.24), BLOOM_YELLOW, verts=6)
+
+
+def hoist_out(x, y_wall, z, reach=0.45, sign=1, sack_z=0.42):
+    """Kranbalken aus einer Längswand nach +y (sign 1) oder -y (sign -1) mit Strebe, Rolle, Seil und hängendem Sack."""
+    box((0.06, reach + 0.10, 0.06), (x, y_wall + sign * (reach / 2 - 0.05), z), material=WOOD_DARK)
+    box((0.04, 0.30, 0.04), (x, y_wall + sign * 0.14, z - 0.13), rot=(-sign * 45, 0, 0), material=WOOD_DARK)
+    cyl(0.035, 0.03, (x, y_wall + sign * (reach - 0.03), z - 0.05), rot=(0, 90, 0), material=WOOD, verts=10)
+    rope_end = sack_z + 0.305
+    box((0.008, 0.008, z - rope_end), (x, y_wall + sign * (reach - 0.03), (z + rope_end) / 2), material=SACK)
+    sack(x, y_wall + sign * (reach - 0.03), sack_z, 0.06)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 
