@@ -554,6 +554,21 @@ namespace EpochCity
             waterDeposit.decorPrefabs = new GameObject[0];
             waterDeposit.decorPerCell = Vector2Int.zero;
 
+            // Fischer (2026-11-07, Wasser Teil C): Fisch ersetzt Weizen bei der Nahrung (Verbrauch teilt sich nach Vorrat);
+            // der Fischer braucht Wasser im Umkreis 3 (12 Felder = 100 %), steht aber nie auf Wasser
+            var fish = Resource("Res_Fisch", "Fisch", antike, false);
+            food.alternativeResources = new[] { fish };
+            var fisher = ProductionBuilding("Bld_Fischer", "Fischer", antike, 80f, 1f,
+                "Fischen", null, 0f, fish, 3f, 5f, new Color(0.35f, 0.55f, 0.7f));
+            fisher.materialCosts = Cost((boards, 2f));
+            fisher.workerTier = farmers;
+            fisher.workers = 2;
+            fisher.requiredDeposit = waterDeposit;
+            fisher.depositRange = 3;
+            fisher.depositCellsForFull = 12;
+            fisher.fellsDeposit = false;
+            fisher.plantsDeposit = null;
+
             // Berge (2026-11-06): nicht bebaubar, keine Straßen, nie gerodet; Relief zeigt MountainVisuals (Teil B)
             var mountainDeposit = GetOrCreate<DepositDefinition>("Dep_Berg");
             mountainDeposit.displayName = "Berg";
@@ -971,7 +986,7 @@ namespace EpochCity
 
             // Reiter der Bauleiste (wie in Anno): die Stufe, deren Kette ein Gebäude dient, nicht die seiner Arbeiter
             mill.menuTier = null; // nur Testgebäude fürs Mittelalter: Reiter „Sonstiges“
-            foreach (var def in new[] { field, woodcutter, forester, carpentry, woodChopper, quarry, storage, market, school, well, temple, fireStation })
+            foreach (var def in new[] { field, fisher, woodcutter, forester, carpentry, woodChopper, quarry, storage, market, school, well, temple, fireStation })
                 def.menuTier = farmers;
             foreach (var def in new[] { oliveGrove, oilPress, clayPit, pottery, library })
                 def.menuTier = artisans;
@@ -1002,7 +1017,7 @@ namespace EpochCity
                 clay, ceramics, clayPit, pottery, ceramicNeed,
                 topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
                 grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater,
-                storageMedium, storageLarge, estate, herbGarden, sacredGrove, columnGarden
+                storageMedium, storageLarge, estate, herbGarden, sacredGrove, columnGarden, fish, fisher
             };
 
             // Balancing nach dem Antike-Durchlauf (2026-10-31): Geld war nie knapp. Unterhalt aller einzeln gesetzten

@@ -20,6 +20,8 @@ MonoBehaviour:
   kind: 0
   resource: {fileID: 11400000, guid: b9da7e50e2a7d754e81441b65fc186b3, type: 2}
   amountPerResidentPerMonth: 0.5
+  alternativeResources:
+  - {fileID: 11400000, guid: a9723cc5af3b40847bca14b2e8733246, type: 2}
   providers: []
   range: 15
   coverageByDistance:

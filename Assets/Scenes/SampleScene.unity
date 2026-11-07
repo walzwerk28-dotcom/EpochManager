@@ -703,6 +703,7 @@ MonoBehaviour:
   cam: {fileID: 330585545}
   hotbar:
   - {fileID: 11400000, guid: d97ff8f5a84926f41bc3547377b6fe28, type: 2}
+  - {fileID: 11400000, guid: cdd7d574d36fa9546be25afc435067d6, type: 2}
   - {fileID: 11400000, guid: d2aa19a2337dea4408dcdabd143c993d, type: 2}
   - {fileID: 11400000, guid: 972329bce9a46bf48969b65af4bd1add, type: 2}
   - {fileID: 11400000, guid: 066d121d90d288948b30c42d1adef6b5, type: 2}
@@ -1458,6 +1459,7 @@ MonoBehaviour:
   - {fileID: 8020015045080142785, guid: a8b7f74f0a37e9f40b9f10a11237b906, type: 3}
   - {fileID: 5165479634977636777, guid: cb81d2c541824b74ba9ec5b0b8660009, type: 3}
   outerDecorFactor: 0.2
+  decorDensity: 0.65
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

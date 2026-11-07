@@ -353,6 +353,7 @@ namespace EpochCity
             if (!reservesReady)
             {
                 reservesReady = true;
+                needDemand.Clear();
                 foreach (var b in city.Buildings)
                 {
                     if (b.Tier == null || b.Residents <= 0 || b.Tier.needs == null) continue;
@@ -360,8 +361,21 @@ namespace EpochCity
                     {
                         if (need == null || need.kind != NeedKind.Goods || need.resource == null) continue;
                         if (!city.IsUnlocked(need.requiredTechnology) || !city.IsEpochReached(need.epoch)) continue;
-                        reserves.TryGetValue(need.resource, out float r);
-                        reserves[need.resource] = r + b.Residents * need.amountPerResidentPerMonth;
+                        needDemand.TryGetValue(need, out float d);
+                        needDemand[need] = d + b.Residents * need.amountPerResidentPerMonth;
+                    }
+                }
+                // Bedürfnisse mit mehreren Waren: Monatsbedarf nach Vorratsanteil auf die Waren verteilen
+                foreach (var entry in needDemand)
+                {
+                    var resources = entry.Key.GetResources();
+                    float total = 0f;
+                    foreach (var res in resources) total += city.Stock.Get(res);
+                    foreach (var res in resources)
+                    {
+                        float share = resources.Count == 1 || total <= 0f ? 1f : city.Stock.Get(res) / total;
+                        reserves.TryGetValue(res, out float r);
+                        reserves[res] = r + entry.Value * share;
                     }
                 }
             }
@@ -371,6 +385,8 @@ namespace EpochCity
         private readonly System.Collections.Generic.Dictionary<ResourceDefinition, float> reserves =
             new System.Collections.Generic.Dictionary<ResourceDefinition, float>();
         private bool reservesReady;
+        private readonly System.Collections.Generic.Dictionary<NeedDefinition, float> needDemand =
+            new System.Collections.Generic.Dictionary<NeedDefinition, float>();
 
         /// <summary>Holzfäller: nach cyclesPerFelling Zyklen ein Feld des Vorkommens fällen (es wächst nach).</summary>
         private void Fell(BuildingInstance building)

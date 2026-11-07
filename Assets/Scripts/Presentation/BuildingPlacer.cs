@@ -233,7 +233,10 @@ namespace EpochCity
             }
             var deposit = selected.requiredDeposit != null ? selected.requiredDeposit : selected.plantsDeposit;
             bool planting = selected.requiredDeposit == null;
-            if (deposit == null || deposit.tilePrefab == null)
+            // Wasser hat keine Bodenkachel (WaterVisuals zeichnet die Fläche): Ersatz ist die Zonenkachel, eingefärbt
+            var tile = deposit != null && deposit.tilePrefab != null ? deposit.tilePrefab
+                : deposit != null && residentialZone != null ? residentialZone.tilePrefab : null;
+            if (tile == null)
             {
                 depositGhosts.Hide();
                 return;
@@ -246,7 +249,7 @@ namespace EpochCity
                     var c = new Vector2Int(x, y);
                     if (city.Grid.InBounds(c)) depositCells.Add(c);
                 }
-            depositGhosts.Show(city, deposit.tilePrefab, depositCells,
+            depositGhosts.Show(city, tile, depositCells,
                 c => city.Grid.GetDeposit(c) == deposit && (planting || !city.Grid.IsYoung(c)),
                 GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
         }

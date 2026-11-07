@@ -272,6 +272,8 @@ namespace EpochCity
             {
                 foreach (var good in goods)
                 {
+                    // Alternativen eines Bedürfnisses (Fisch für Nahrung) laufen über die Hauptware (siehe unten)
+                    if (IsAlternativeGood(good)) continue;
                     var producer = ProducerOf(good);
                     if (producer == null || !city.IsAvailable(producer) || Recently(producer.displayName, 1)) continue;
                     // Fehlen den vorhandenen Betrieben Arbeitskräfte, hilft ein weiterer nicht (dafür sorgt EnsureHousing)
@@ -279,8 +281,10 @@ namespace EpochCity
                     bool material = good.isBuildingMaterial;
                     float need = MonthlyNeed(good);
                     if (need <= 0f && !material) continue;
-                    float prod = MonthlyProduction(good);
-                    float stock = city.Stock.Get(good);
+                    // Nahrung: Weizen und Fisch zählen zusammen gegen den Bedarf
+                    var group = GroupOf(good);
+                    float prod = group.Sum(g => MonthlyProduction(g));
+                    float stock = group.Sum(g => city.Stock.Get(g));
                     bool waiting = city.Buildings.Any(b => b.Status.Contains("wartet: " + good.displayName));
                     // Wartet ein vorhandener Betrieb auf seine Eingänge, hilft ein weiterer nicht (dafür sorgt dessen Kette)
                     bool producerWaiting = city.Buildings.Any(b => b.Definition == producer && b.Status.Contains("wartet"));
@@ -289,9 +293,46 @@ namespace EpochCity
                           (materialShort.TryGetValue(good, out int m) && Month - m < 3 && !producerWaiting)
                         : need > prod * 0.95f && (stock < need || waiting);
                     if (!shortage) continue;
+                    // Mit Wasser in der Nähe zuerst Fischer (bis etwa ein Fischer je drei Felder), sonst Felder
+                    foreach (var alt in group)
+                    {
+                        if (alt == good) continue;
+                        var altProducer = ProducerOf(alt);
+                        if (altProducer == null || !city.IsAvailable(altProducer) || Recently(altProducer.displayName, 1)) continue;
+                        if (city.Buildings.Any(b => b.Definition == altProducer && b.WorkforceFactor < 0.9f)) continue;
+                        int fishers = city.Buildings.Count(b => b.Definition == altProducer);
+                        int fields = city.Buildings.Count(b => b.Definition == producer);
+                        if (fishers * 3 <= fields && Build(altProducer.displayName, Center)) return true;
+                    }
                     if (Build(producer.displayName, Center)) return true;
                 }
                 return false;
+            }
+
+            /// <summary>Waren, die dasselbe Bedürfnis decken wie good (inklusive good selbst).</summary>
+            private List<ResourceDefinition> GroupOf(ResourceDefinition good)
+            {
+                var group = new List<ResourceDefinition> { good };
+                foreach (var tier in population.tiers)
+                    foreach (var n in tier.needs)
+                        if (n != null && n.kind == NeedKind.Goods && n.GetResources().Contains(good))
+                            foreach (var r in n.GetResources())
+                                if (!group.Contains(r)) group.Add(r);
+                return group;
+            }
+
+            /// <summary>Ware, die nur als Alternative eines Bedürfnisses dient (z. B. Fisch), nie als Hauptware.</summary>
+            private bool IsAlternativeGood(ResourceDefinition good)
+            {
+                bool alt = false;
+                foreach (var tier in population.tiers)
+                    foreach (var n in tier.needs)
+                    {
+                        if (n == null || n.kind != NeedKind.Goods) continue;
+                        if (n.resource == good) return false;
+                        if (n.GetResources().Contains(good)) alt = true;
+                    }
+                return alt;
             }
 
             /// <summary>Dienste (Markt, Tempel, Brunnen …): wo Häuser sie vermissen, ein Anbieter in ihrer Mitte.</summary>
@@ -770,7 +811,7 @@ namespace EpochCity
                 {
                     int residents = population.CountResidents(tier);
                     foreach (var n in tier.needs)
-                        if (n != null && n.kind == NeedKind.Goods && n.resource == good && city.IsUnlocked(n.requiredTechnology))
+                        if (n != null && n.kind == NeedKind.Goods && n.GetResources().Contains(good) && city.IsUnlocked(n.requiredTechnology))
                             need += residents * n.amountPerResidentPerMonth;
                 }
                 foreach (var b in city.Buildings)

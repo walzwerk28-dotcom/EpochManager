@@ -157,15 +157,19 @@ namespace EpochCity
 
             foreach (var entry in demand)
             {
-                var resource = entry.Key.resource;
-                float available = city.Stock.Get(resource);
+                var resources = entry.Key.GetResources();
+                float available = 0f;
+                foreach (var r in resources) available += city.Stock.Get(r);
                 if (entry.Value <= 0f)
                 {
                     goodsRatio[entry.Key] = available > 0f ? 1f : 0f;
                     continue;
                 }
+                // Verbrauch teilt sich nach Vorrat auf die Waren auf (Weizen und Fisch decken Nahrung gemeinsam)
                 float used = Mathf.Min(available, entry.Value);
-                city.Stock.Add(resource, -used);
+                if (used > 0f)
+                    foreach (var r in resources)
+                        city.Stock.Add(r, -used * city.Stock.Get(r) / available);
                 goodsRatio[entry.Key] = used / entry.Value;
             }
         }

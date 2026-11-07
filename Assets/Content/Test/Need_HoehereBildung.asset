@@ -20,6 +20,7 @@ MonoBehaviour:
   kind: 1
   resource: {fileID: 0}
   amountPerResidentPerMonth: 0.5
+  alternativeResources: []
   providers:
   - {fileID: 11400000, guid: 431f110eb0d44b440822a951a0019a8c, type: 2}
   range: 20

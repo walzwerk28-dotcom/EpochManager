@@ -29,6 +29,29 @@ namespace EpochCity
         [Header("Ware")]
         public ResourceDefinition resource;
         [Min(0f)] public float amountPerResidentPerMonth = 0.5f;
+        [Tooltip("Weitere Waren, die dieses Bedürfnis ebenso decken (z. B. Fisch für Nahrung); der Verbrauch teilt sich nach Vorrat")]
+        public ResourceDefinition[] alternativeResources;
+
+        /// <summary>Alle Waren, die dieses Bedürfnis decken (Hauptware zuerst, ohne null und Duplikate).</summary>
+        public System.Collections.Generic.List<ResourceDefinition> GetResources()
+        {
+            var list = new System.Collections.Generic.List<ResourceDefinition>(2);
+            if (resource != null) list.Add(resource);
+            if (alternativeResources != null)
+                foreach (var r in alternativeResources)
+                    if (r != null && !list.Contains(r)) list.Add(r);
+            return list;
+        }
+
+        public bool HasAlternatives => alternativeResources != null && alternativeResources.Length > 0;
+
+        /// <summary>Namen aller Waren, z. B. „Weizen oder Fisch“.</summary>
+        public string ResourceNames()
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var r in GetResources()) parts.Add(r.displayName);
+            return string.Join(" oder ", parts);
+        }
 
         [Header("Dienst")]
         [Tooltip("Gebäude, die dieses Bedürfnis erfüllen")]
