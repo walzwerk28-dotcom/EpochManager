@@ -212,7 +212,9 @@ namespace EpochCity
             purse.AddComponent<LayoutElement>().preferredWidth = 290f;
             moneyText = Text(purse.transform, "Money", theme.bodySize + 4f, theme.text, 290f);
             moneyText.alignment = TextAlignmentOptions.MidlineRight;
-            materialsText = Text(purse.transform, "Materials", theme.smallSize, theme.text, 290f);
+            moneyText.raycastTarget = true; // für den Tooltip
+            Tooltip.Attach(moneyText.gameObject, MoneyTooltip);
+            materialsText =Text(purse.transform, "Materials", theme.smallSize, theme.text, 290f);
             materialsText.alignment = TextAlignmentOptions.MidlineRight;
             materialsText.raycastTarget = true; // für den Tooltip
             Tooltip.Attach(materialsText.gameObject, () => "<b>Baumaterial</b>\nVorrat / Lagerplatz je Ware; Gebäude " +
@@ -256,6 +258,24 @@ namespace EpochCity
         }
 
         /// <summary>Arbeitskräfte je Stufe: verfügbar, benötigt, besetzter Anteil.</summary>
+        /// <summary>Posten der Monatsbilanz (letzter Monat), der Handel am Hafen als eigener Posten.</summary>
+        private string MoneyTooltip()
+        {
+            string currency = city.currentEpoch != null ? city.currentEpoch.currencyName : "";
+            var sb = new System.Text.StringBuilder($"<b>Monatsbilanz</b> (letzter Monat, {currency})");
+            if (economy != null)
+            {
+                sb.Append($"\nEinnahmen {economy.LastMonthIncome:+0;-0;0}");
+                sb.Append($"\nUnterhalt -{economy.LastMonthUpkeep:0}");
+            }
+            if (population != null) sb.Append($"\nSteuern {population.LastMonthTaxes:+0;-0;0}");
+            if (trade == null) trade = FindAnyObjectByType<TradeSystem>();
+            if (trade != null && (trade.Capacity > 0 || trade.LastMonthTradeUsed > 0))
+                sb.Append($"\nHandel {trade.LastMonthTradeNet:+0;-0;±0} (+{trade.LastMonthTradeIncome:0} verkauft, " +
+                          $"-{trade.LastMonthTradeExpense:0} gekauft)");
+            return sb.ToString();
+        }
+
         private string WorkersTooltip()
         {
             var sb = new System.Text.StringBuilder("<b>Arbeitskräfte</b>\nBesetzte Arbeitsplätze / Arbeitsplätze; " +

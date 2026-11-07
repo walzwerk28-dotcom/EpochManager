@@ -1262,6 +1262,7 @@ GameObject:
   - component: {fileID: 1732010465}
   - component: {fileID: 1732010466}
   - component: {fileID: 1732010467}
+  - component: {fileID: 1732010468}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -1335,6 +1336,8 @@ MonoBehaviour:
   placer: {fileID: 1216388725}
   economy: {fileID: 1598712635}
   fire: {fileID: 1598712645}
+  trade: {fileID: 1598712646}
+  tradeWindow: {fileID: 1732010468}
   theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!114 &1732010462
 MonoBehaviour:
@@ -1483,6 +1486,22 @@ MonoBehaviour:
   - {fileID: 5165479634977636777, guid: cb81d2c541824b74ba9ec5b0b8660009, type: 3}
   outerDecorFactor: 0.2
   decorDensity: 0.65
+--- !u!114 &1732010468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732010457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d6918a0db9592b449cb3e995a4a486e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EpochCity.TradeWindow
+  city: {fileID: 440537052}
+  trade: {fileID: 1598712646}
+  registry: {fileID: 11400000, guid: e2bcbd24a7807b74890f5a89a4963f1f, type: 2}
+  theme: {fileID: 11400000, guid: 3f550989263e9ff429d6b3f884a30069, type: 2}
 --- !u!1 &2116940968
 GameObject:
   m_ObjectHideFlags: 0

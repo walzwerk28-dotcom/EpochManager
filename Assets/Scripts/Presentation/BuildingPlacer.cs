@@ -226,6 +226,11 @@ namespace EpochCity
         /// </summary>
         private void ShowDepositRange()
         {
+            if (selected.shoreCells > 0)
+            {
+                ShowShoreRange();
+                return;
+            }
             if (selected.HasBoost)
             {
                 ShowBoostRange();
@@ -252,6 +257,50 @@ namespace EpochCity
             depositGhosts.Show(city, tile, depositCells,
                 c => city.Grid.GetDeposit(c) == deposit && (planting || !city.Grid.IsYoung(c)),
                 GhostColor(validColor), new Color(1f, 1f, 1f, 0.12f));
+        }
+
+        /// <summary>
+        /// Hafen: die Randfelder an den Seiten und an der Rückseite (nicht die Straßenseite); Wasserfelder, die für die
+        /// Uferpflicht zählen, grün, die übrigen blass. Gleicher Pool wie die Vorkommen.
+        /// </summary>
+        private void ShowShoreRange()
+        {
+            var tile = residentialZone != null ? residentialZone.tilePrefab : null;
+            if (tile == null)
+            {
+                depositGhosts.Hide();
+                return;
+            }
+            depositCells.Clear();
+            float facing = city.GetFacingAngle(selected, hoverCell);
+            var size = selected.GetFootprint(facing);
+            var front = CityController.FrontSide(facing);
+            foreach (var side in new[] { Vector2Int.down, Vector2Int.up, Vector2Int.left, Vector2Int.right })
+            {
+                if (side == front) continue;
+                int length = side.x == 0 ? size.x : size.y;
+                for (int k = 0; k < length; k++)
+                {
+                    var c = side.x == 0
+                        ? new Vector2Int(hoverCell.x + k, side.y > 0 ? hoverCell.y + size.y : hoverCell.y - 1)
+                        : new Vector2Int(side.x > 0 ? hoverCell.x + size.x : hoverCell.x - 1, hoverCell.y + k);
+                    if (city.Grid.InBounds(c)) depositCells.Add(c);
+                }
+            }
+            depositGhosts.Show(city, tile, depositCells, c => city.IsWater(c), GhostColor(validColor),
+                new Color(1f, 1f, 1f, 0.12f));
+        }
+
+        /// <summary>Wasserfelder am Ufer in der Vorschau des Hafens (für Tests).</summary>
+        public int ShorePreviewCount
+        {
+            get
+            {
+                if (selected == null || selected.shoreCells <= 0 || !hasHover) return 0;
+                int n = 0;
+                foreach (var c in depositCells) if (city.IsWater(c)) n++;
+                return n;
+            }
         }
 
         /// <summary>

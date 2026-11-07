@@ -152,6 +152,9 @@ namespace EpochCity
 
                 string shoreIssue = city.GetShoreIssue(selected, cell);
                 if (shoreIssue != null) return $"{selected.displayName}  |  {shoreIssue}";
+                if (selected.shoreCells > 0)
+                    return $"{selected.displayName}  |  Ufer: " +
+                           $"{city.CountShoreCells(selected, cell, city.GetFacingAngle(selected, cell))} Wasserfelder";
 
                 // Vorkommen im Umkreis, z. B. „Wald im Umkreis: 9 / 16 → 56 %“
                 if (selected.requiredDeposit != null)
@@ -552,6 +555,8 @@ namespace EpochCity
                               $"{def.plantsDeposit.regrowMonthsTended} Monaten nach");
             if (def.shoreCells > 0)
                 sb.AppendLine($"Braucht Ufer: {def.shoreCells} Wasserfelder an der Seite oder Rückseite");
+            if (def.tradeCapacity > 0)
+                sb.AppendLine($"Handel: {def.tradeCapacity} Einheiten je Monat (Waren verkaufen und kaufen)");
             if (city.IsAvailable(def)) sb.Append(MissingLine(def.buildCost, def.materialCosts));
             string placementLock = city.GetPlacementLock(def);
             sb.AppendLine(LockReason(def.epoch, def.requiredTechnology) ??

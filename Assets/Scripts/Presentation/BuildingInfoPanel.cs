@@ -23,6 +23,9 @@ namespace EpochCity
         [SerializeField] private EconomySimulation economy;
         [Tooltip("Für Brandzustand und Brandschutz")]
         [SerializeField] private FireSimulation fire;
+        [Tooltip("Für Handelszeilen und den Button „Handel“ am Hafen (leer = wird in der Szene gesucht)")]
+        [SerializeField] private TradeSystem trade;
+        [SerializeField] private TradeWindow tradeWindow;
 
         [Header("Aussehen")]
         [Tooltip("Gemeinsames Farbschema; leer = Standardwerte")]
@@ -37,7 +40,7 @@ namespace EpochCity
         private Button protectButton;
         private TextMeshProUGUI protectLabel;
         private Button demolishButton;
-        private GameObject workAreaRow;
+        private GameObject workAreaRow, tradeRow;
         private Button drawButton, doneButton, resetAreaButton;
         private readonly List<Action> updaters = new List<Action>();
         private BuildingInstance shown;
@@ -91,6 +94,7 @@ namespace EpochCity
         {
             bool hasArea = b.Definition.HasWorkArea;
             bool editing = placer.WorkAreaEditing == b;
+            tradeRow.SetActive(b.Definition.tradeCapacity > 0);
             workAreaRow.SetActive(hasArea);
             drawButton.gameObject.SetActive(hasArea && !editing);
             doneButton.gameObject.SetActive(hasArea && editing);
@@ -298,6 +302,27 @@ namespace EpochCity
                         ? $"Feuerwache: Reichweite {def.fireProtectionRange:0} Straßenfelder  ·  " : "";
                     return b.Fire == FireState.None && def.fireRisk > 0f
                         ? $"{own}Brandschutz {fire.GetProtection(b) * 100f:0} %" : own.TrimEnd(' ', '·');
+                });
+            }
+
+            // Hafen: Kapazität, Grund für Stillstand und die Bilanz des letzten Monats (alle Häfen zusammen)
+            if (def.tradeCapacity > 0)
+            {
+                Line(theme.text, () =>
+                {
+                    string text = $"Handel: {def.tradeCapacity} Einheiten je Monat";
+                    string reason = b.UnderConstruction ? "er gebaut wird"
+                        : b.IsPaused ? "er stillgelegt ist" : b.Fire == FireState.Burning ? "er brennt"
+                        : b.Fire == FireState.Damaged ? "er beschädigt ist" : null;
+                    return reason != null ? text + $" – handelt nicht, solange {reason}" : text;
+                });
+                Line(theme.textMuted, () =>
+                {
+                    if (trade == null) trade = FindAnyObjectByType<TradeSystem>();
+                    if (trade == null) return "";
+                    string c = Currency();
+                    return $"Handel im letzten Monat: +{trade.LastMonthTradeIncome:0.0} {c} Einnahmen · " +
+                           $"−{trade.LastMonthTradeExpense:0.0} {c} Ausgaben · {trade.LastMonthTradeUsed} / {trade.Capacity} Einheiten";
                 });
             }
 
@@ -521,6 +546,16 @@ namespace EpochCity
             Tooltip.Attach(resetAreaButton.gameObject, () => "<b>Zurücksetzen</b>\nWieder der Umkreis um das Gebäude.");
             areaRow.SetActive(false);
 
+            // Hafen: Handelsfenster öffnen
+            tradeRow = new GameObject("TradeActions", typeof(RectTransform));
+            tradeRow.transform.SetParent(panel, false);
+            UiFactory.AddRow(tradeRow, TextAnchor.MiddleLeft, 0, 10f);
+            var tradeButton = UiFactory.CreateButton(tradeRow.transform, "Trade", "Handel", new Vector2(136f, 44f),
+                theme.smallSize + 1f, theme.accent, theme.text, OpenTrade, icons != null ? icons.commerce : null);
+            Tooltip.Attach(tradeButton.gameObject, () =>
+                "<b>Handel</b>\nWaren je Monat an die Händler verkaufen oder bei ihnen kaufen.");
+            tradeRow.SetActive(false);
+
             var actions = new GameObject("Actions", typeof(RectTransform));
             actions.transform.SetParent(panel, false);
             UiFactory.AddRow(actions, TextAnchor.MiddleLeft, 0, 10f);
@@ -541,6 +576,12 @@ namespace EpochCity
                 icons != null ? icons.demolish : null);
 
             panel.gameObject.SetActive(false);
+        }
+
+        private void OpenTrade()
+        {
+            if (tradeWindow == null) tradeWindow = FindAnyObjectByType<TradeWindow>();
+            if (tradeWindow != null) tradeWindow.Show();
         }
 
         private void TogglePause()

@@ -67,8 +67,16 @@ namespace EpochCity
             if (population != null)
                 builder.AppendLine($"Steuern +{population.LastMonthTaxes:0}");
 
-            // Prognose: bei dieser Bilanz ist die Kasse in X Monaten leer
+            // Handel am Hafen: Netto des letzten Monats, nur wenn es einen Hafen gibt oder gehandelt wurde
             if (trade == null) trade = FindAnyObjectByType<TradeSystem>();
+            if (trade != null && (trade.Capacity > 0 || trade.LastMonthTradeIncome > 0f || trade.LastMonthTradeExpense > 0f))
+            {
+                float net = trade.LastMonthTradeNet;
+                builder.AppendLine($"Handel <color={UiTheme.Hex(net >= 0f ? theme.positive : theme.danger)}>{net:+0;-0;±0}</color>" +
+                                   $" <size=80%><color={muted}>(+{trade.LastMonthTradeIncome:0} verkauft, -{trade.LastMonthTradeExpense:0} gekauft)</color></size>");
+            }
+
+            // Prognose: bei dieser Bilanz ist die Kasse in X Monaten leer
             float balance = (economy != null ? economy.LastMonthIncome - economy.LastMonthUpkeep : 0f) +
                             (population != null ? population.LastMonthTaxes : 0f) +
                             (trade != null ? trade.LastMonthTradeNet : 0f);
