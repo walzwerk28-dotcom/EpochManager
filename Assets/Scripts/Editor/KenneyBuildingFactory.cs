@@ -61,10 +61,10 @@ namespace EpochCity
             Assign("Bld_Laden", Make("Laden", 1, antique, Shop));
             // Markt: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Lager: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
+            // Bibliothek: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Tempel und Brunnen: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Schreibschule", Make("Schreibschule", 2, antique, School));
-            Assign("Bld_Feuerwache", Make("Feuerwache", 2, antique, FireStation));
+            // Schreibschule: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
+            // Feuerwache: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Feld: vier Wachstumsstufen als Varianten in fester Reihenfolge; CropStages zeigt die passende
             var field = Make("Feld", 2, original,
                 b => Field(b, FieldStage.Stubble), b => Field(b, FieldStage.Sown),
@@ -105,7 +105,7 @@ namespace EpochCity
             Assign("Bld_Zunfthaus", Make("Zunfthaus", 3, antique, GuildHall, GuildCourt));
 
             // Gelehrtenzone und Akademie: Steinbauten mit Säulen, Innenhöfen und Gärten, auf Pflaster
-            Assign("Bld_Akademie", Make("Akademie", new Vector2Int(2, 3), antique, Academy));
+            // Akademie: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Großes Theater (Wunderbau): fünf Baustufen in fester Reihenfolge, ConstructionStages zeigt die zur Bauphase
             var theater = Make("GrossesTheater", 4, antique,
                 b => Theater(b, 0), b => Theater(b, 1), b => Theater(b, 2), b => Theater(b, 3), b => Theater(b, 4));
@@ -430,16 +430,6 @@ namespace EpochCity
             GableRoof(b, w, d, storeys, "roof");
         }
 
-        /// <summary>Akademie 2 × 3: breite Säulenhalle hinten, davor ein gepflasterter Hof mit Bänken und Brunnen.</summary>
-        private static void Academy(Builder b)
-        {
-            PorticoHall(b.At(0f, 1f), 4, 4);
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", new Vector3(0f, 0f, -2.2f), 0f, 0.6f);
-            b.Put(FT + "stall-bench", new Vector3(-1.5f, 0f, -2.2f), 0f);
-            b.Put(FT + "stall-bench", new Vector3(1.5f, 0f, -2.2f), 0f);
-        }
-
         /// <summary>Gelehrtenhaus 1 × 2: einstöckiger Steinbau mit Säulenvorhalle, Garten mit Baum dahinter.</summary>
         private static void ScholarHouseGarden(Builder b)
         {
@@ -599,45 +589,6 @@ namespace EpochCity
             return (i + j) % 2 == 0 ? $"{wall}-window-small" : wall;
         }
 
-        /// <summary>Bibliothek: Steinbau 2 × 2 mit Säulenvorhalle nach Süden, wie ein kleiner Tempel.</summary>
-        private static void Library(Builder b)
-        {
-            const int w = 2, d = 3;
-            // Wände nur um die hinteren zwei Reihen; die vordere Reihe ist die offene Vorhalle
-            for (int i = 0; i < w; i++)
-                for (int j = 1; j < d; j++)
-                    foreach (var dir in Sides)
-                    {
-                        var n = new Vector2Int(i, j) + dir;
-                        bool outside = n.x < 0 || n.x >= w || n.y < 1 || n.y >= d;
-                        if (!outside) continue;
-                        string part = dir == Vector2Int.down ? (i == 0 ? "wall-door" : "wall-window-stone") :
-                            dir == Vector2Int.up ? "wall" : "wall-window-stone";
-                        b.Put(FT + part, Cell(n.x, n.y, w, d), WallRot(dir));
-                    }
-            // Säulen an der Vorderkante der Vorhalle
-            for (int k = 0; k <= w; k++)
-                b.Put(FT + "pillar-stone", Cell(0, 0, w, d) + new Vector3(k - 0.5f, 0f, -0.5f), 0f);
-            GableRoof(b, w, d, 1, "roof");
-        }
-
-        /// <summary>
-        /// Schreibschule 2 × 2: kleiner Steinbau hinten mit Tür und Fenstern, davor ein Hof mit zwei Bänken unter
-        /// freiem Himmel (Unterricht im Freien) und einer Laterne.
-        /// </summary>
-        private static void School(Builder b)
-        {
-            const int w = 2, d = 2;
-            var hall = b.At(0f, 0.8f);
-            Walls(hall, w, d, 0, (i, j, dir) =>
-                dir == Vector2Int.down ? (i == 0 ? "wall-door" : "wall-window-stone") :
-                dir == Vector2Int.up ? "wall" : "wall-window-stone");
-            GableRoof(hall, w, d, 1, "roof");
-            b.Put(FT + "stall-bench", new Vector3(-0.8f, 0f, -1.4f), 0f);
-            b.Put(FT + "stall-bench", new Vector3(0.8f, 0f, -1.4f), 0f);
-            b.Put(FT + "lantern", new Vector3(1.7f, 0f, -0.6f), 0f);
-        }
-
         /// <summary>
         /// Großes Theater 4 × 4 in einer Baustufe (0 = Baustelle, 1 = Fundament, 2 = Sitzränge, 3 = Bühnenhaus,
         /// 4 = fertig): halbrunde Sitzränge hinten (+z), Orchestra in der Mitte, Bühnenhaus mit Säulen vorn zur Straße
@@ -747,27 +698,6 @@ namespace EpochCity
             b.Put(FT + "lantern", new Vector3(3.6f, 0f, -2.0f), 0f);
             foreach (var x in new[] { -3.6f, 3.6f })
                 b.Put(NK + "plant_bushLarge", new Vector3(x, 0f, 1.6f), 0f, 0.8f);
-        }
-
-        /// <summary>Feuerwache: zweistöckiges Wachhaus mit zwei Bogentoren und rotem Banner, davor Wasserbecken, Eimer und Karren.</summary>
-        private static void FireStation(Builder b)
-        {
-            NatureColors(b);
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            const int w = 2, d = 2;
-            var hall = b.At(0f, 0.7f);
-            Walls(hall, w, d, 0, (i, j, dir) =>
-                dir == Vector2Int.down ? "wall-doorway-round" : "wall");
-            Walls(hall, w, d, 1, (i, j, dir) =>
-                dir == Vector2Int.down || j == 0 ? "wall-window-stone" : "wall");
-            GableRoof(hall, w, d, 2, "roof-high");
-            Side(hall, "banner-red", 0, 0, Vector2Int.down, 1, w, d);
-
-            b.Put(FT + "fountain-square", new Vector3(-1.1f, 0f, -1.35f), 0f, 0.45f);
-            for (int k = 0; k < 3; k++)
-                b.Put(NK + "stump_round", new Vector3(0.3f + k * 0.35f, 0f, -1.5f), k * 40f, 0.55f);
-            b.Put(FT + "cart", new Vector3(1.55f, 0f, -0.9f), 90f);
-            b.Put(FT + "lantern", new Vector3(-1.75f, 0f, -0.3f), 0f);
         }
 
         /// <summary>Laden: zwei Marktstände auf Holzboden.</summary>

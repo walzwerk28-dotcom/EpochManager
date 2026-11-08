@@ -1881,6 +1881,272 @@ def grand_stairs(x, y_top, width, height, steps, run, cheek=0.14, material=LIME)
         sphere(0.055, (xa + s * cheek / 2, y_top - front - 0.04, rise * steps + 0.14 + 0.05), material=LIME, segs=8, rings=5)
 
 
+# ---------------------------------------------------------------- Dienstgebäude (Feuerwache, Schule, Bibliothek, Akademie)
+
+PAPYRUS = mat("Papyrus", (0.90, 0.83, 0.62))
+WAX = mat("Wachs", (0.34, 0.20, 0.14), rough=0.5)
+WOOL_BLUE = mat("WolleBlau", (0.32, 0.40, 0.58))
+WOOL_GREY = mat("WolleGrau", (0.60, 0.58, 0.54))
+SAIL_AWNING = mat("Sonnensegel", (0.92, 0.88, 0.76))
+
+
+def arc_pts(cx, cz, r, a0, a1, step=15):
+    """Punkte (x, z) auf einem Kreisbogen von a0 bis a1 Grad (beide eingeschlossen), z. B. für Bogenöffnungen."""
+    count = max(1, round(abs(a1 - a0) / step))
+    return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * k / count)),
+             cz + r * math.sin(math.radians(a0 + (a1 - a0) * k / count))) for k in range(count + 1)]
+
+
+def wheel_yz(x, y, z, r, thick=0.035, spokes=3):
+    """Speichenrad mit Eisenreif, Nabe und Speichen; die Achse läuft in x-Richtung (Rad steht in der yz-Ebene)."""
+    bpy.ops.mesh.primitive_torus_add(major_radius=r - 0.008, minor_radius=0.011, major_segments=16, minor_segments=5,
+                                     location=(x, y, z), rotation=(0, math.radians(90), 0))
+    keep(bpy.context.active_object, IRON)
+    cyl(r - 0.004, thick, (x, y, z), rot=(0, 90, 0), material=WOOD_DARK, verts=16)
+    cyl(r * 0.62, thick + 0.006, (x, y, z), rot=(0, 90, 0), material=WOOD, verts=14)       # Speichenfeld heller
+    for k in range(spokes):
+        box((thick + 0.008, 2 * (r - 0.012), 0.016), (x, y, z), rot=(k * 180.0 / spokes, 0, 0), material=WOOD_DARK)
+    cyl(0.026, thick + 0.03, (x, y, z), rot=(0, 90, 0), material=WOOD, verts=8)               # Nabe
+
+
+def scroll(x, y, z, yaw=0.0, length=0.12, r=0.012, tag=True):
+    """Schriftrolle (Papyrus) mit hölzernen Stabknöpfen; liegt waagerecht, Achse bei yaw 0 in x-Richtung. Mit tag ein
+    heller Anhänger (Titelschild) am Ende."""
+    cyl(r, length, (x, y, z), rot=(0, 90, yaw), material=PAPYRUS, verts=8)
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for k in (-1, 1):
+        cyl(r * 0.55, 0.016, (x + c * k * (length / 2 + 0.007), y + s * k * (length / 2 + 0.007), z), rot=(0, 90, yaw),
+            material=WOOD_DARK, verts=6)
+    if tag:
+        box((0.006, 0.016, 0.018), (x + c * (length / 2 + 0.012), y + s * (length / 2 + 0.012), z - r - 0.006),
+            rot=(0, 0, yaw), material=CLOTH_RED)
+
+
+def scroll_rack(x, y, yaw=0.0, w=0.46, h=0.62, d=0.16, rows=4, cols=3, floor_z=0.0):
+    """Rollenschrank (Armarium) mit Fächern wie Taubenschläge, in jedem Fach liegen zwei Schriftrollen mit Ende zur
+    Vorderseite (bei yaw 0 nach -y). Mittelpunkt der Rückwand-Unterkante bei (x, y)."""
+    at = placed((x, y), yaw)
+    z0 = floor_z
+    t = 0.022
+    box((w + 0.04, d + 0.03, 0.03), at((0, 0, z0 + 0.015)), rot=(0, 0, yaw), material=LIME_DARK)             # Sockel
+    box((w, 0.02, h), at((0, d / 2 - 0.01, z0 + 0.03 + h / 2)), rot=(0, 0, yaw), material=WOOD_DARK)          # Rückwand
+    for sx in (-1, 1):
+        box((t, d, h), at((sx * (w / 2 - t / 2), 0, z0 + 0.03 + h / 2)), rot=(0, 0, yaw), material=WOOD)
+    box((w + 0.03, d + 0.02, 0.025), at((0, 0, z0 + 0.03 + h + 0.012)), rot=(0, 0, yaw), material=WOOD)     # Deckplatte
+    cw, ch = (w - 2 * t) / cols, (h - 0.02) / rows
+    for i in range(1, cols):
+        box((t * 0.7, d, h), at((-w / 2 + t + i * cw, 0, z0 + 0.03 + h / 2)), rot=(0, 0, yaw), material=WOOD)
+    for j in range(rows):
+        zz = z0 + 0.03 + j * ch
+        box((w, d, 0.016), at((0, 0, zz + 0.008)), rot=(0, 0, yaw), material=WOOD)
+    for j in range(rows):
+        for i in range(cols):
+            cx = -w / 2 + t + (i + 0.5) * cw
+            zb = z0 + 0.03 + j * ch + 0.016
+            rr = min(0.017, ch * 0.2)
+            for k, off in enumerate((-0.28, 0.28)):
+                px, py, _ = at((cx + off * cw, -d / 2 + 0.035, 0))
+                cyl(rr, d - 0.07, (px, py, zb + rr), rot=(90, 0, yaw),
+                    material=PAPYRUS if (i + j + k) % 3 else CLOTH, verts=7)
+                ex, ey, _ = at((cx + off * cw, -d / 2 + 0.03, 0))
+                cyl(rr * 0.65, 0.01, (ex, ey, zb + rr), rot=(90, 0, yaw), material=WOOD_DARK, verts=6)
+
+
+def school_bench(x, y, yaw=0.0, length=0.62, tablets=2, seed=0):
+    """Schulbank: lange Sitzbohle auf zwei Brettfüßen, davor (bei yaw 0 nach +y) ein schräges Pult mit Wachstafeln
+    (Holzrahmen, dunkles Wachs) und Griffel. Die Kinder sitzen mit dem Rücken zur Straße (-y)."""
+    rnd = random.Random(seed)
+    at = placed((x, y), yaw)
+    for k in (-1, 1):
+        px, py, _ = at((k * length * 0.42, 0.04, 0))
+        box((0.03, 0.17, 0.20), (px, py, 0.10), rot=(0, 0, yaw), material=WOOD_DARK)
+    px, py, _ = at((0, 0, 0))
+    box((length, 0.11, 0.025), (px, py, 0.21), rot=(0, 0, yaw), material=WOOD)
+    dx, dy, _ = at((0, 0.17, 0))
+    box((length, 0.15, 0.02), (dx, dy, 0.285), rot=(-12, 0, yaw), material=WOOD)                           # Pult, zu den Kindern geneigt
+    for k in (-1, 1):
+        lx, ly, _ = at((k * length * 0.44, 0.17, 0))
+        box((0.025, 0.04, 0.27), (lx, ly, 0.135), rot=(0, 0, yaw), material=WOOD_DARK)
+    for i in range(tablets):
+        u = (-0.18 + 0.36 * i / max(1, tablets - 1)) * length / 0.62 if tablets > 1 else 0.0
+        tx, ty, _ = at((u, 0.17, 0))
+        tz = 0.299
+        box((0.085, 0.060, 0.010), (tx, ty, tz), rot=(-12, 0, yaw + rnd.uniform(-6, 6)), material=WOOD_DARK)
+        box((0.068, 0.045, 0.004), (tx, ty, tz + 0.006), rot=(-12, 0, yaw + rnd.uniform(-6, 6)), material=WAX)
+    sx, sy, _ = at((length * 0.30, 0.20, 0))
+    box((0.07, 0.006, 0.006), (sx, sy, 0.298), rot=(-12, 0, yaw + 20), material=IRON)                       # Griffel
+
+
+def cathedra(x, y, yaw=0.0, z0=0.0):
+    """Lehrerstuhl (Cathedra): Korbsessel aus Weide mit gewölbter Rückenlehne, Sitzkissen und Fußschemel; steht bei z0."""
+    at = placed((x, y), yaw)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            px, py, _ = at((sx * 0.085, sy * 0.075, 0))
+            cyl(0.014, 0.20, (px, py, z0 + 0.10), material=WICKER_DARK, verts=6)
+    px, py, _ = at((0, 0, 0))
+    box((0.21, 0.19, 0.035), (px, py, z0 + 0.205), rot=(0, 0, yaw), material=WICKER)
+    bx, by, _ = at((0, 0.08, 0))
+    sphere(0.115, (bx, by, z0 + 0.34), (1.0, 0.22, 0.95), WICKER, segs=12, rings=6, rot=(0, 0, yaw))       # Lehne, rund
+    for sx in (-1, 1):
+        ax, ay, _ = at((sx * 0.105, 0.0, 0))
+        box((0.018, 0.17, 0.016), (ax, ay, z0 + 0.285), rot=(0, 0, yaw), material=WICKER_DARK)            # Armlehnen
+        cyl(0.011, 0.085, (ax, ay, z0 + 0.24), material=WICKER_DARK, verts=6)
+    kx, ky, _ = at((0, -0.01, 0))
+    box((0.17, 0.15, 0.025), (kx, ky, z0 + 0.235), rot=(0, 0, yaw), material=CLOTH_RED)                    # Kissen
+    fx, fy, _ = at((0, -0.20, 0))
+    box((0.15, 0.08, 0.05), (fx, fy, z0 + 0.025), rot=(0, 0, yaw), material=WOOD_DARK)                     # Fußschemel
+
+
+def ladder(p_bottom, p_top, across, width=0.24, rung_gap=0.115, rail=0.016):
+    """Leiter von p_bottom nach p_top; across ist die waagerechte Richtung quer zur Leiter (Einheitsvektor)."""
+    a, b = Vector(p_bottom), Vector(p_top)
+    u = Vector(across).normalized() * (width / 2)
+    bar(tuple(a + u), tuple(b + u), rail, WOOD)
+    bar(tuple(a - u), tuple(b - u), rail, WOOD)
+    length = (b - a).length
+    n = max(2, int(length / rung_gap))
+    for k in range(1, n + 1):
+        t = k / (n + 1)
+        c = a + (b - a) * t
+        bar(tuple(c - u), tuple(c + u), rail * 0.8, WOOD_DARK)
+
+
+def fire_hook(p_bottom, p_top, across):
+    """Feuerhaken: langer Holzstab mit eisernem Haken (zum Einreißen brennender Dächer und Balken) an der Spitze, die
+    zur Wand lehnt; across = waagerechte Richtung, in die der Haken zeigt."""
+    a, b = Vector(p_bottom), Vector(p_top)
+    rod(tuple(a), tuple(b), 0.011, WOOD, verts=6)
+    d = (b - a).normalized()
+    h = Vector(across).normalized()
+    c1 = b + d * 0.02
+    c2 = c1 + h * 0.045
+    bar(tuple(b - d * 0.03), tuple(c1), 0.014, IRON)
+    bar(tuple(c1), tuple(c2), 0.012, IRON)
+    bar(tuple(c2), tuple(c2 - d * 0.045), 0.012, IRON)
+    cyl(0.017, 0.03, tuple(b - d * 0.04), material=IRON, verts=6)
+
+
+def fire_cart(x, y):
+    """Löschkarren der Vigiles: zweirädriger Karren mit liegendem Wasserfass, dahinter eine Druckpumpe (Siphon: zwei
+    Bronzezylinder und ein Schwengelbalken auf einem Bock), Standrohr mit Spritzdüse, aufgerollter Lederschlauch, vorn
+    die Deichsel zum Ziehen. Zeigt nach -y, Breite 0,62 m, Länge etwa 1,0 m."""
+    zb = 0.25
+    box((0.42, 0.86, 0.035), (x, y, zb), material=WOOD)
+    for sx in (-1, 1):
+        box((0.035, 0.96, 0.045), (x + sx * 0.18, y + 0.0, zb - 0.036), material=WOOD_DARK)                  # Langbäume
+        wheel_yz(x + sx * 0.285, y + 0.10, 0.155, 0.155)
+    cyl(0.016, 0.64, (x, y + 0.10, 0.155), rot=(0, 90, 0), material=WOOD_DARK, verts=6)                      # Achse
+    for sx in (-1, 1):                                                                                      # Deichsel
+        rod((x + sx * 0.17, y - 0.30, zb - 0.04), (x + sx * 0.05, y - 0.62, 0.11), 0.016, WOOD_DARK, verts=6)
+    box((0.14, 0.03, 0.03), (x, y - 0.58, 0.115), material=WOOD)
+    # Wasserfass liegend, in zwei Holzlagern, mit Reifen und Einfüllstutzen
+    fy = y - 0.17
+    cyl(0.128, 0.46, (x, fy, zb + 0.018 + 0.128), rot=(90, 0, 0), material=WOOD, verts=14)
+    for k in (-0.17, -0.06, 0.06, 0.17):
+        cyl(0.134, 0.016, (x, fy + k, zb + 0.146), rot=(90, 0, 0), material=IRON, verts=14)
+    for sy in (-0.16, 0.16):
+        box((0.20, 0.03, 0.045), (x, fy + sy, zb + 0.033), material=WOOD_DARK)
+    cyl(0.026, 0.05, (x, fy - 0.05, zb + 0.30), material=WOOD_DARK, verts=8)
+    cyl(0.030, 0.012, (x, fy - 0.05, zb + 0.33), material=IRON, verts=8)
+    # Pumpe: Doppelzylinder aus Bronze auf dem Hinterteil, Schwengel quer, Standrohr mit Düse nach hinten
+    py = y + 0.27
+    box((0.24, 0.12, 0.03), (x, py, zb + 0.032), material=WOOD_DARK)
+    for sx in (-1, 1):
+        cyl(0.034, 0.20, (x + sx * 0.060, py, zb + 0.145), material=BRONZE, verts=10)
+        cyl(0.041, 0.018, (x + sx * 0.060, py, zb + 0.255), material=BRONZE, verts=10)
+        cyl(0.011, 0.07, (x + sx * 0.060, py, zb + 0.30), material=IRON, verts=6)
+    box((0.045, 0.045, 0.07), (x, py, zb + 0.30), material=WOOD_DARK)                                      # Bock
+    bar((x - 0.24, py, zb + 0.352), (x + 0.24, py, zb + 0.352), 0.026, WOOD)                               # Schwengel
+    for sx in (-1, 1):
+        bar((x + sx * 0.24, py, zb + 0.352), (x + sx * 0.24, py, zb + 0.46), 0.017, WOOD_DARK)
+        bar((x + sx * 0.28, py, zb + 0.46), (x + sx * 0.20, py, zb + 0.46), 0.021, WOOD_DARK)
+    rod((x, py, zb + 0.20), (x, py + 0.22, zb + 0.16), 0.016, BRONZE, verts=8)                             # Standrohr
+    cone(0.020, 0.008, 0.06, (x, py + 0.255, zb + 0.15), BRONZE, verts=8, rot=(-90, 0, 0))
+    # Lederschlauch als Spirale auf dem Karren
+    for k in range(3):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.07 - k * 0.006, minor_radius=0.012, major_segments=14,
+                                         minor_segments=5, location=(x + 0.10, y - 0.38, zb + 0.030 + k * 0.022))
+        keep(bpy.context.active_object, WOOD_DARK)
+
+
+def sun_sail(corners, sag=0.05, bands=8, colors=(None, None), nu=16, nv=6, thick=0.006):
+    """Gespanntes Sonnensegel (Velum) über vier Eckpunkte (3D, der Reihe nach p0 p1 p2 p3): die Kante p0 -> p1 und die
+    Kante p3 -> p2 liegen gegenüber; zwischen den Ecken hängt das Tuch um sag durch. Das Tuch ist in bands Streifen
+    längs der Richtung p0 -> p3 geteilt, die abwechselnd colors[0] und colors[1] haben (None = Segeltuch)."""
+    p = [Vector(c) for c in corners]
+
+    def point(i, k, dz):
+        u, v = i / nu, k / nv
+        a = p[0] + (p[1] - p[0]) * u
+        b = p[3] + (p[2] - p[3]) * u
+        q = a + (b - a) * v
+        return (q.x, q.y, q.z - sag * math.sin(math.pi * u) * math.sin(math.pi * v) + dz)
+
+    def color(i):
+        return colors[int((i + 0.5) / nu * bands) % 2] or SAIL_AWNING
+
+    for dz, flip in ((0.0, False), (thick, True)):
+        rings = [[point(i, k, dz) for i in range(nu + 1)] for k in range(nv + 1)]
+        loft(rings, color, flip=flip, name="Segel")
+
+
+def exedra(cx, cy, r, a0, a1, yaw=0.0, seat_z=0.17, step=12, back=True):
+    """Halbrunde Marmorbank (Exedra): Sitzfläche auf einem Sockel entlang des Kreisbogens von a0 bis a1 Grad um
+    (cx, cy) im Abstand r, wahlweise mit niedriger Lehne außen. yaw dreht den Bogen um den Mittelpunkt."""
+    n = max(2, round(abs(a1 - a0) / step))
+    for k in range(n):
+        am = a0 + (a1 - a0) * (k + 0.5) / n + yaw
+        chord = 2 * r * math.sin(math.radians(abs(a1 - a0) / n / 2)) + 0.012
+        ca, sa = math.cos(math.radians(am)), math.sin(math.radians(am))
+        rot = am + 90
+        box((chord, 0.075, seat_z - 0.04), (cx + (r - 0.02) * ca, cy + (r - 0.02) * sa, (seat_z - 0.04) / 2),
+            rot=(0, 0, rot), material=LIME)
+        box((chord, 0.14, 0.035), (cx + r * ca, cy + r * sa, seat_z - 0.0175), rot=(0, 0, rot), material=MARBLE)
+        if back:
+            bx, by = cx + (r + 0.075) * ca, cy + (r + 0.075) * sa
+            box((chord, 0.03, 0.14), (bx, by, seat_z + 0.07), rot=(0, 0, rot), material=MARBLE)
+            box((chord, 0.045, 0.02), (bx, by, seat_z + 0.15), rot=(0, 0, rot), material=LIME_DARK)
+
+
+def philosopher(x, y, yaw=0.0):
+    """Marmorstatue eines Philosophen auf Sockel (Gewand mit Mantelfalten, Kopf mit Bart, Schriftrolle in der Hand);
+    etwa 0,80 m hoch, blickt bei yaw 0 nach -y."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+    def at(dx, dy):
+        return (x + dx * c - dy * s, y + dx * s + dy * c)
+    box((0.26, 0.26, 0.05), (x, y, 0.025), material=LIME_DARK)
+    box((0.20, 0.20, 0.26), (x, y, 0.05 + 0.13), rot=(0, 0, yaw), material=LIME)
+    box((0.25, 0.25, 0.04), (x, y, 0.05 + 0.26 + 0.02), rot=(0, 0, yaw), material=LIME_DARK)
+    z0 = 0.37
+    cone(0.085, 0.055, 0.30, (x, y, z0 + 0.15), MARBLE, verts=10)                        # Tunika und Mantel
+    px, py = at(0.0, -0.045)
+    sphere(0.045, (x, y, z0 + 0.31), (1.35, 0.8, 0.9), MARBLE, segs=8, rings=5, rot=(0, 0, yaw))   # Schultern
+    sphere(0.036, (x, y, z0 + 0.375), material=MARBLE, segs=8, rings=5)                   # Kopf
+    bx, by = at(0.0, -0.025)
+    sphere(0.024, (bx, by, z0 + 0.345), (1.0, 0.7, 1.2), MARBLE, segs=6, rings=4)         # Bart
+    ax, ay = at(-0.07, -0.04)
+    bar((x - 0.0 + (ax - x), y + (ay - y), z0 + 0.27), (ax, ay, z0 + 0.15), 0.022, MARBLE)  # Arm mit Mantelfalte
+    scx, scy = at(-0.075, -0.07)
+    scroll(scx, scy, z0 + 0.14, yaw=yaw + 90, length=0.10, r=0.014, tag=False)
+    ex, ey = at(0.08, -0.03)
+    bar((ex, ey, z0 + 0.26), (ex, ey, z0 + 0.12), 0.022, MARBLE)                           # herabhängender Mantelzipfel
+
+
+def sundial(x, y, h=0.5):
+    """Sonnenuhr auf einer Säule: Fuß, Schaft, Platte mit Stundenlinien (dünne dunkle Leisten) und bronzenem Zeiger."""
+    box((0.17, 0.17, 0.05), (x, y, 0.025), material=LIME_DARK)
+    cyl(0.044, h - 0.12, (x, y, 0.05 + (h - 0.12) / 2), material=LIME, verts=10)
+    cyl(0.07, 0.03, (x, y, h - 0.065), material=LIME_DARK, verts=10)
+    cyl(0.125, 0.025, (x, y, h - 0.04), material=MARBLE, verts=16)
+    cyl(0.113, 0.006, (x, y, h - 0.025), material=LIME, verts=16)
+    for k in range(7):
+        a = math.radians(-90 + 30 * k)
+        bar((x, y, h - 0.020), (x + 0.108 * math.cos(a), y + 0.108 * math.sin(a), h - 0.020), 0.005, LIME_DARK)
+    bar((x, y - 0.07, h - 0.02), (x, y + 0.01, h + 0.05), 0.011, BRONZE)                                  # Zeiger (Gnomon)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 
@@ -1932,7 +2198,12 @@ def export(spacing):
         scene.collection.objects.link(cam)
         width = spacing * len(VARIANTS)
         cam.location = (width * 0.35, -width * 0.95, width * 0.55)
-        cam.rotation_euler = (Vector((0.0, 0.0, 0.5)) - cam.location).to_track_quat("-Z", "Y").to_euler()
+        import os                                                # optional: PREVIEW_YAW=180 PREVIEW_ZOOM=0.6 PREVIEW_AIM=0.5
+        yaw = math.radians(float(os.environ.get("PREVIEW_YAW", "0")))
+        zoom = float(os.environ.get("PREVIEW_ZOOM", "1"))
+        cam.location = ((cam.location.x * math.cos(yaw) - cam.location.y * math.sin(yaw)) * zoom,
+                        (cam.location.x * math.sin(yaw) + cam.location.y * math.cos(yaw)) * zoom, cam.location.z * zoom)
+        cam.rotation_euler = (Vector((0.0, 0.0, float(os.environ.get("PREVIEW_AIMZ", "0.5")))) - cam.location).to_track_quat("-Z", "Y").to_euler()
         cam_data.lens = 40
         scene.camera = cam
         scene.render.filepath = PREVIEW
