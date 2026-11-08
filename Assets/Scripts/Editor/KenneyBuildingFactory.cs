@@ -49,10 +49,10 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Feuerwache", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
-                         "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei", "GrossesTheater" })
+                         "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "GrossesTheater" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Weinberg" })
+                         "Holzfaeller" })
                 grounds[n] = earth;
             grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
 
@@ -74,8 +74,7 @@ namespace EpochCity
             // Holzfäller: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Holzhacker, Förster, Zimmerei und Steinbruch: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Olivenhain, Ölpresse, Lehmgrube und Töpferei: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Weinberg", Make("Weinberg", 2, antique, Vineyard));
-            Assign("Bld_Kelterei", Make("Kelterei", 2, antique, WinePress));
+            // Weinberg und Kelterei: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
 
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
             // Stadthaus, Hofhaus, Langhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
@@ -790,35 +789,6 @@ namespace EpochCity
                 b.PutBox(new Vector3(0f, y, edge), new Vector3(edge * 2f, 0.04f, 0.03f), wood);
                 b.PutBox(new Vector3(-edge, y, 0f), new Vector3(0.03f, 0.04f, edge * 2f), wood);
             }
-        }
-
-        /// <summary>Weinberg: vier Rebzeilen parallel zur Straße (Hecken mit Pfosten an den Enden), vorn Karren und Bank.</summary>
-        private static void Vineyard(Builder b)
-        {
-            NatureColors(b);
-            for (int row = 0; row < 4; row++)
-            {
-                float z = -0.6f + row * 0.7f;
-                for (int k = 0; k < 4; k++)
-                    b.Put(FT + "hedge", new Vector3(-1.35f + k * 0.9f, 0f, z), 90f, 0.85f);
-                b.Put(FT + "pillar-wood", new Vector3(-1.8f, 0f, z), 0f, 0.35f);
-                b.Put(FT + "pillar-wood", new Vector3(1.8f, 0f, z), 0f, 0.35f);
-            }
-            b.Put(FT + "cart", new Vector3(-0.8f, 0f, -1.65f), 0f, 0.8f);
-            b.Put(FT + "stall-bench", new Vector3(1f, 0f, -1.65f), 0f, 0.8f);
-        }
-
-        /// <summary>Kelterei: Steinbau hinten, vorn Bottiche mit Wein (Baumstümpfe in dunklem Holz) und ein Rad der Presse.</summary>
-        private static void WinePress(Builder b)
-        {
-            Hall(b.At(0f, 0.8f), 2, 2, 1, "roof", (i, j, dir, level) =>
-                dir == Vector2Int.down ? (i == 1 ? "wall-door" : "wall-window-shutters") :
-                dir == Vector2Int.up ? "wall" : "wall-window-small");
-            b.Overrides["woodBark"] = Solid("Fassholz", new Color(0.42f, 0.26f, 0.16f));
-            b.Overrides["woodInner"] = Solid("Weinrot", new Color(0.45f, 0.12f, 0.18f));
-            for (int k = 0; k < 3; k++)
-                b.Put(NK + "stump_round", new Vector3(-1.4f + k * 0.6f, 0f, -1.35f), k * 40f, 1.4f);
-            b.Put(FT + "wheel", new Vector3(1.1f, 0f, -1.35f), 90f, 1.2f);
         }
 
         /// <summary>

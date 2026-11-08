@@ -3199,12 +3199,13 @@ def donkey(x, y, yaw=0.0, baskets=True):
             rod(P(0.0, sv * 0.075, 0.50), P(0.0, sv * 0.17, 0.40), 0.008, ROPE, verts=4)
 
 
-def lever_press(u_pier, u_free, v, z=0.62, u_press=-0.55, axis="x"):
+def lever_press(u_pier, u_free, v, z=0.62, u_press=-0.55, axis="x", fill=None):
     """Balkenpresse (Prelum): Der lange Hebelbalken steckt am Ende u_pier in einem Mauerpfeiler, liegt bei u_press auf
     dem Stapel aus Flechtkörben (Fiscinae) auf einem Steinbett mit Rinne und trägt am freien Ende u_free zwischen zwei
     Pfosten einen hängenden Gegengewichtsstein. axis 'x': Der Balken liegt parallel zur x-Achse bei y = v; axis 'y':
     parallel zur y-Achse bei x = v (u ist dann die y-Koordinate). Gibt die Höhe der Balkenoberkante zurück."""
     sg = 1 if u_free > u_pier else -1
+    fill = fill or PASTE                           # Füllung der Körbe und der Rinne (bei Wein Maische)
 
     def G(a, b):                                   # (entlang, quer) -> (x, y)
         return (a, b) if axis == "x" else (b, a)
@@ -3225,11 +3226,11 @@ def lever_press(u_pier, u_free, v, z=0.62, u_press=-0.55, axis="x"):
     for k in range(4):                                                                              # Eisenbänder
         box(Z(0.012, 0.13, 0.13), At(u_pier + sg * (0.55 + k * 0.55), v, z), material=IRON)
     box(Z(0.70, 0.62, 0.07), At(u_press, v, 0.035), material=LIME_DARK)                               # Pressbett
-    box(Z(0.62, 0.04, 0.012), At(u_press, v - 0.20, 0.076), material=PASTE)                           # Rinne
+    box(Z(0.62, 0.04, 0.012), At(u_press, v - 0.20, 0.076), material=fill)                           # Rinne
     for k in range(4):                                                                              # Fiscinae
         disc = 0.22 - 0.01 * (k % 2)
         cyl(disc, 0.065, At(u_press, v, 0.105 + k * 0.075), material=WICKER if k % 2 else WICKER_DARK, verts=12)
-        sphere(disc * 0.97, At(u_press, v, 0.138 + k * 0.075), (1.0, 1.0, 0.18), PASTE, segs=10, rings=3)
+        sphere(disc * 0.97, At(u_press, v, 0.138 + k * 0.075), (1.0, 1.0, 0.18), fill, segs=10, rings=3)
     box((0.30, 0.30, 0.06), At(u_press, v, 0.435), material=WOOD)                                    # Pressplatte
     box((0.22, 0.22, 0.08), At(u_press, v, 0.505), material=WOOD_DARK)                               # Pressklotz
     for s_ in (-1, 1):                                                                              # Gegengewicht
@@ -3428,3 +3429,273 @@ def vessel_shelf(x, y, yaw=0.0, w=1.2, tiers=3, fired=True, seed=0, d=0.16):
                 pot(c[0], c[1], z + 0.012, 0.050, mat_v)
             else:
                 bowl(c[0], c[1], z + 0.012, 0.062, mat_v)
+
+
+# ================================================================ Betriebe Paket 3: Weinberg und Kelterei
+
+GRAPE_LEAF_A = mat("RebLaubA", (0.33, 0.49, 0.19))
+GRAPE_LEAF_B = mat("RebLaubB", (0.22, 0.38, 0.17))
+GRAPE_LEAF_C = mat("RebLaubC", (0.50, 0.57, 0.24))
+GRAPE_BLUE = mat("TraubeBlau", (0.20, 0.19, 0.44), rough=0.4)
+GRAPE_VIOLET = mat("TraubeViolett", (0.42, 0.17, 0.50), rough=0.4)
+GRAPE_RED = mat("TraubeRot", (0.60, 0.13, 0.22), rough=0.4)
+GRAPE_MASS = mat("Maische", (0.32, 0.09, 0.20), rough=0.45)
+MUST = mat("Most", (0.38, 0.05, 0.09), rough=0.22)
+VINE_BARK = mat("RebRinde", (0.34, 0.25, 0.18))
+GRAPES = (GRAPE_BLUE, GRAPE_VIOLET, GRAPE_RED)
+
+
+def grape_cluster(x, y, z_top, g=0.026, seed=0, colors=GRAPES[:2]):
+    """Hängendes Traubenbüschel: kleine Kugeln in drei Lagen (3, 2, 1), unten spitz zulaufend."""
+    rnd = random.Random(seed)
+    m = colors[rnd.randrange(len(colors))]
+    cyl(0.003, 0.03, (x, y, z_top - 0.005), material=VINE_BARK, verts=4)
+    z = z_top - 0.03
+    a0 = rnd.uniform(0, math.tau)
+    for li, (n, rr) in enumerate(((3, 0.021), (1, 0.0))):
+        for i in range(n):
+            a = a0 + math.tau * i / n + li
+            sphere(g, (x + math.cos(a) * rr, y + math.sin(a) * rr, z - li * g * 1.5), (1, 1, 1.1), m, segs=4, rings=3)
+
+
+def grape_pile(cx, cy, z, w, d, n, seed=0, colors=GRAPES, g=0.021):
+    """Haufen loser Trauben (Kugeln in drei Farben) in einer Ellipse w x d, in der Mitte höher."""
+    rnd = random.Random(seed)
+    for k in range(n):
+        a = rnd.uniform(0, math.tau)
+        rr = math.sqrt(rnd.random())
+        u, v = math.cos(a) * rr * w / 2, math.sin(a) * rr * d / 2
+        sphere(g * rnd.uniform(0.85, 1.15), (cx + u, cy + v, z + 0.045 * (1 - rr * rr) + g * 0.6), (1, 1, 0.9),
+               colors[rnd.randrange(len(colors))], segs=4, rings=3)
+
+
+def grapevine(x, y, size=1.0, seed=0, clusters=2):
+    """Rebstock am Spalier (Zeile längs y): knorriger, gedrehter Stamm bis zum mittleren Draht (z = 0,5), Draht hochgeführt,
+    dichtes Laubband in drei Grüntönen (satt und kräftig) und hängende Trauben an beiden Seiten."""
+    rnd = random.Random(seed)
+    s = size
+    pts = [(x, y, 0.0), (x + 0.020, y - 0.014, 0.22), (x + 0.004, y, 0.50)]
+    for i in range(2):
+        log_piece(pts[i], pts[i + 1], 0.030 - 0.004 * i, sides=5, bark=VINE_BARK, grain=VINE_BARK, r1=0.026 - 0.004 * i)
+    mats = (GRAPE_LEAF_A, GRAPE_LEAF_B, GRAPE_LEAF_C)
+    k0 = rnd.randrange(3)
+    sphere(1.0, (x, y - 0.10, 0.50), (0.17 * s, 0.27 * s, 0.23 * s), mats[k0 % 3], segs=6, rings=4)
+    sphere(1.0, (x, y + 0.14, 0.52), (0.17 * s, 0.27 * s, 0.23 * s), mats[(k0 + 1) % 3], segs=6, rings=4)
+    sphere(1.0, (x + rnd.uniform(-0.02, 0.02), y, 0.74), (0.12 * s, 0.22 * s, 0.10 * s), mats[(k0 + 2) % 3], segs=6, rings=4)
+    for c in range(clusters):
+        side = -1 if c % 2 == 0 else 1
+        grape_cluster(x + side * 0.19, y + rnd.uniform(-0.16, 0.16), 0.40, seed=seed * 7 + c)
+
+
+def trellis(x, y0, y1, h=0.80, spacing=0.54):
+    """Spalier einer Rebzeile längs y bei x: Holzpfähle mit Spitze und drei Querdrähten auf 0,3 / 0,5 / 0,7 m."""
+    n = max(1, round((y1 - y0) / spacing))
+    for k in range(n + 1):
+        y = y0 + k * (y1 - y0) / n
+        box((0.04, 0.04, h), (x, y, h / 2 - 0.03), material=WOOD_DARK)
+        cone(0.026, 0.0, 0.05, (x, y, h - 0.005), WOOD_DARK, verts=4)
+    for z in (0.30, 0.50, 0.70):
+        box((0.014, y1 - y0, 0.014), (x, (y0 + y1) / 2, z), material=WOOD if z == 0.50 else IRON)
+
+
+def grape_basket(x, y, z0=0.0, r=0.085, seed=0):
+    """Lesekorb aus Weide, gehäuft voll mit blauen und violetten Trauben."""
+    h = r * 1.15
+    cone(r * 0.8, r, h, (x, y, z0 + h / 2), WICKER, verts=10)
+    for k in (0.3, 0.7):
+        cyl(r * (0.8 + 0.2 * k) + 0.003, 0.012, (x, y, z0 + h * k), material=WICKER_DARK, verts=10)
+    cyl(r * 1.02, 0.014, (x, y, z0 + h), material=WICKER_DARK, verts=10)
+    sphere(r * 0.95, (x, y, z0 + h), (1.0, 1.0, 0.45), GRAPE_MASS, segs=8, rings=4)
+    grape_pile(x, y, z0 + h + 0.005, r * 1.5, r * 1.5, 9, seed=seed, g=0.021)
+
+
+def vat(x, y, z0=0.0, r=0.10, h=0.17, seed=0):
+    """Bütte: schwach kegeliger Holzbottich mit drei Eisenreifen, bis über den Rand voll Trauben."""
+    cone(r * 0.88, r, h, (x, y, z0 + h / 2), WOOD, verts=12)
+    for k in (0.15, 0.50, 0.88):
+        cyl(r * (0.88 + 0.12 * k) + 0.004, 0.012, (x, y, z0 + h * k), material=IRON, verts=12)
+    cyl(r * 1.02, 0.014, (x, y, z0 + h), material=WOOD_DARK, verts=12)
+    sphere(r * 0.95, (x, y, z0 + h), (1.0, 1.0, 0.5), GRAPE_MASS, segs=8, rings=4)
+    grape_pile(x, y, z0 + h + 0.01, r * 1.7, r * 1.7, 16, seed=seed)
+
+
+def sickle(x, y, z, flat=False, yaw=0.0):
+    """Rebmesser (Sichel): kurzer Holzgriff, gekrümmte Eisenklinge; an der Wand in der xz-Ebene (flat False) oder
+    flach auf dem Boden bzw. einem Gegenstand in der xy-Ebene (flat True, um yaw gedreht)."""
+    c, s_ = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+    def P(u, v):
+        return (x + (u * c - v * s_), y + (u * s_ + v * c), z) if flat else (x + u, y, z + v)
+    rod(P(-0.06, 0.0), P(0.0, 0.0), 0.011, WOOD_DARK, verts=6)
+    prev = P(0.0, 0.0)
+    for k in range(1, 5):
+        a = math.radians(-20 + k * 38)
+        cur = P(0.05 * math.sin(a), 0.05 * (1 - math.cos(a)))
+        rod(prev, cur, 0.0055, IRON, verts=4)
+        prev = cur
+
+
+def _basin_walls(x0, x1, y0, y1, h, wall, cap_h):
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, wall, h), (cx, y0 + wall / 2, h / 2), material=LIME)
+    box((x1 - x0, wall, h), (cx, y1 - wall / 2, h / 2), material=LIME)
+    box((wall, y1 - y0 - 2 * wall, h), (x0 + wall / 2, cy, h / 2), material=LIME)
+    box((wall, y1 - y0 - 2 * wall, h), (x1 - wall / 2, cy, h / 2), material=LIME)
+    box((x1 - x0 + 0.03, wall + 0.03, cap_h), (cx, y0 + wall / 2, h + cap_h / 2), material=LIME_DARK)
+    box((x1 - x0 + 0.03, wall + 0.03, cap_h), (cx, y1 - wall / 2, h + cap_h / 2), material=LIME_DARK)
+    box((wall + 0.03, y1 - y0 - 2 * wall, cap_h), (x0 + wall / 2, cy, h + cap_h / 2), material=LIME_DARK)
+    box((wall + 0.03, y1 - y0 - 2 * wall, cap_h), (x1 - wall / 2, cy, h + cap_h / 2), material=LIME_DARK)
+
+
+def tread_basin(x0, x1, y0, y1, h=0.30, wall=0.08, spout_x=None, seed=0):
+    """Calcatorium: gemauertes Tretbecken (Kalkstein mit Ziegelbändern), gehäuft voll roter und violetter Trauben, an
+    der Vorderwand ein Ausguss aus Stein. Gibt den Austritt des Mostes (x, y, z) zurück."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, y1 - y0, 0.05), (cx, cy, 0.025), material=LIME_DARK)
+    _basin_walls(x0, x1, y0, y1, h, wall, 0.03)
+    brick_bands(x0, x1, y0, y1, (0.10, 0.20))
+    iw, idp = x1 - x0 - 2 * wall, y1 - y0 - 2 * wall
+    zf = h - 0.075
+    sphere(1.0, (cx, cy, zf), (iw / 2 * 0.98, idp / 2 * 0.98, 0.085), GRAPE_MASS, segs=12, rings=4)
+    grape_pile(cx, cy, zf + 0.03, iw * 0.9, idp * 0.9, 62, seed=seed, colors=(GRAPE_RED, GRAPE_VIOLET, GRAPE_BLUE, GRAPE_RED))
+    sx = cx if spout_x is None else spout_x
+    box((0.07, 0.15, 0.06), (sx, y0 - 0.045, h - 0.14), material=LIME)                         # Ausguss
+    box((0.04, 0.05, 0.012), (sx, y0 - 0.095, h - 0.108), material=MUST)
+    return sx, y0 - 0.12, h - 0.11
+
+
+def must_basin(x0, x1, y0, y1, h=0.14, wall=0.06):
+    """Niedriges, gemauertes Mostbecken, bis fast zum Rand voll dunkelrotem Most."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, y1 - y0, 0.04), (cx, cy, 0.02), material=LIME_DARK)
+    _basin_walls(x0, x1, y0, y1, h, wall, 0.025)
+    brick_bands(x0, x1, y0, y1, (0.07,))
+    box((x1 - x0 - 2 * wall + 0.01, y1 - y0 - 2 * wall + 0.01, 0.02), (cx, cy, h - 0.035), material=MUST)
+
+
+def buried_dolium(x, y, r=0.17, open_lid=False, yaw=0.0):
+    """Eingegrabenes Dolium: nur Hals, Wulstrand und Deckel ragen aus dem Boden, ein Steinkranz liegt darum.
+    open_lid: Deckel schräg angelehnt, dunkler Most in der Öffnung."""
+    lathe([(r * 0.78, 0.0), (r * 1.32, 0.0), (r * 1.32, 0.022), (r * 1.05, 0.045), (r * 0.82, 0.05)], x, y, 0.0, LIME_DARK,
+          segs=14, name="Kranz")
+    lathe([(r * 0.80, 0.04), (r * 0.76, 0.085), (r * 0.60, 0.115), (r * 0.54, 0.145), (r * 0.64, 0.165), (r * 0.58, 0.178),
+           (r * 0.46, 0.178)], x, y, 0.0, TERRACOTTA, segs=14, name="DoliumHals")
+    if open_lid:
+        cyl(r * 0.47, 0.004, (x, y, 0.172), material=MUST, verts=12)
+        cyl(r * 0.60, 0.02, (x + r * 0.55, y, 0.20), rot=(0, 62, yaw), material=WOOD, verts=12)
+    else:
+        cyl(r * 0.62, 0.022, (x, y, 0.19), material=WOOD, verts=12)
+        cyl(0.024, 0.03, (x, y, 0.22), material=WOOD_DARK, verts=6)
+
+
+def vine_row(x, y0, y1, seed=0, vine_gap=0.55, mid_post_gap=0.55):
+    """Rebzeile am Spalier längs y bei x (von y0 bis y1): kräftige Endpfähle mit Querholz, schmalere Pfähle dazwischen,
+    drei Drähte zwischen den Endpfählen; kurze, knorrige Stämme (0,3 m), die sich oben in zwei Arme (Kordon) entlang des
+    untersten Drahts teilen. Darüber ein zusammenhängendes Laubband (0,31..0,78 m, etwa 0,17 m breit) aus fünf Lagen
+    kleiner, flacher, stark überlappender Büschel (jede Lage überlappt die darunter um etwa ein Drittel, die unterste
+    sitzt auf dem Kordon); dünne grüne und braune Triebe laufen senkrecht vom Kordon durch das Laub und liegen an den
+    Drähten an. Unter dem Band hängen an Stielen Trauben."""
+    rnd = random.Random(seed)
+    length = y1 - y0
+    for y in (y0, y1):                                                            # Endpfähle mit Querholz
+        box((0.05, 0.05, 0.80), (x, y, 0.37), material=WOOD_DARK)
+        box((0.20, 0.035, 0.035), (x, y, 0.70), material=WOOD)
+    n = max(1, round(length / mid_post_gap))
+    for k in range(1, n):                                                         # Zwischenpfähle, Köpfe im Laub
+        box((0.04, 0.04, 0.66), (x, y0 + k * length / n, 0.30), material=WOOD_DARK)
+    for z, m in ((0.30, IRON), (0.52, IRON), (0.68, WOOD)):                       # Drähte
+        box((0.012, length, 0.012), (x, (y0 + y1) / 2, z), material=m)
+    mats = (GRAPE_LEAF_A, GRAPE_LEAF_B, GRAPE_LEAF_C)
+    nv = max(2, int(length / vine_gap))
+    for k in range(nv):                                                           # Rebstöcke mit Kordon
+        y = y0 + (k + 0.5) * length / nv
+        p0, p2 = (x, y, 0.0), (x, y, 0.30)
+        log_piece(p0, p2, 0.028, sides=5, bark=VINE_BARK, grain=VINE_BARK, r1=0.022)
+        for sg in (-1, 1):
+            rod((x, y, 0.29), (x, y + sg * vine_gap * 0.5, 0.31), 0.011, VINE_BARK, verts=4)
+    step = 0.13
+    ny = int(length / step)
+    for layer, z in enumerate((0.37, 0.455, 0.54, 0.625, 0.71)):                 # Laubband: kleine, überlappende Büschel
+        for i in range(ny + 1):
+            y = y0 + 0.02 + (i + (0.5 if layer % 2 else 0.0)) * (length - 0.04) / ny
+            if y > y1 - 0.01:
+                continue
+            sphere(1.0, (x + rnd.uniform(-0.02, 0.02), y, z + rnd.uniform(-0.012, 0.012)),
+                   (rnd.uniform(0.055, 0.065), rnd.uniform(0.09, 0.105), 0.06),
+                   mats[(i + layer + rnd.randrange(2)) % 3], segs=4, rings=2, rot=(0, 0, rnd.uniform(0, 80)))
+    for i in range(ny):                                                           # Triebe oben, im Laub verankert
+        if rnd.random() < 0.4:
+            sphere(1.0, (x + rnd.uniform(-0.02, 0.02), y0 + 0.1 + i * (length - 0.2) / ny, 0.77),
+                   (0.05, 0.07, 0.045), mats[rnd.randrange(3)], segs=4, rings=2)
+    nt = max(3, int(length / 0.26))
+    for i in range(nt):                                                           # Triebe vom Kordon durchs Laub
+        y = y0 + 0.12 + i * (length - 0.24) / (nt - 1)
+        dx = rnd.uniform(-0.012, 0.012)
+        rod((x + dx, y, 0.31), (x + dx * 0.4, y + rnd.uniform(-0.02, 0.02), 0.77), 0.0075,
+            GRAPE_LEAF_B if i % 2 else VINE_BARK, verts=4)
+    for side in (-1, 1):                                                          # Trauben an Stielen unter dem Band
+        for i in range(3):
+            grape_cluster(x + side * rnd.uniform(0.03, 0.05), y0 + 0.25 + (i + rnd.uniform(-0.2, 0.2)) * (length - 0.5) / 2,
+                          0.345, g=0.03, seed=seed * 31 + i * 2 + (side > 0))
+
+
+FIELD_STONE_A = mat("FeldsteinA", (0.64, 0.60, 0.52), rough=0.95)
+FIELD_STONE_B = mat("FeldsteinB", (0.68, 0.64, 0.56), rough=0.95)
+FIELD_STONE_C = mat("FeldsteinC", (0.60, 0.56, 0.49), rough=0.95)
+FIELD_CAP = mat("FeldsteinDeck", (0.70, 0.66, 0.58), rough=0.95)
+
+
+def field_wall(points, h=0.26, t=0.16, seed=0, ext_start=False, ext_end=False):
+    """Niedrige, durchgehende Trockenmauer entlang der Punkte: drei Lagen kleiner, unregelmäßiger Bruchsteine (leicht
+    verformte Quader, Läuferverband, eng geschichtet bis zum Boden) in drei eng beieinanderliegenden Kalkstein-Tönen,
+    oben flache Decksteine. An inneren Knickpunkten laufen die Stücke bis zur Außenkante, damit die Ecken geschlossen
+    sind; ext_start / ext_end tun das auch an den Enden."""
+    rnd = random.Random(seed)
+    mats = (FIELD_STONE_A, FIELD_STONE_B, FIELD_STONE_C)
+    layers = 3
+    lh = (h - 0.035) / layers
+    n_seg = len(points) - 1
+    for si in range(n_seg):
+        (xa, ya), (xb, yb) = points[si], points[si + 1]
+        length = math.hypot(xb - xa, yb - ya)
+        ux, uy = (xb - xa) / length, (yb - ya) / length
+        yaw = math.degrees(math.atan2(uy, ux))
+        s0 = -t / 2 if (si > 0 or ext_start) else 0.0
+        s1 = length + t / 2 if (si < n_seg - 1 or ext_end) else length
+
+        def put(w, s, hh, z, d, material, tilt=2.0):
+            c = s + w / 2
+            off = rnd.uniform(-0.01, 0.01)
+            box((w, d, hh), (xa + ux * c - uy * off, ya + uy * c + ux * off, z + hh / 2),
+                rot=(rnd.uniform(-tilt, tilt), rnd.uniform(-tilt, tilt), yaw + rnd.uniform(-3, 3)), material=material)
+        for j in range(layers):
+            s = s0
+            while s < s1 - 0.01:
+                w = rnd.uniform(0.17, 0.26)
+                if j % 2 and s == s0:
+                    w = rnd.uniform(0.08, 0.12)
+                if s1 - (s + w) < 0.08:
+                    w = s1 - s
+                put(w - 0.004, s, lh * rnd.uniform(0.96, 1.06), j * lh, t * rnd.uniform(0.88, 1.0), mats[rnd.randrange(3)])
+                s += w
+        s = s0
+        while s < s1 - 0.01:                                                       # flache Decksteine
+            w = rnd.uniform(0.25, 0.35)
+            if s1 - (s + w) < 0.10:
+                w = s1 - s
+            put(w - 0.006, s, 0.035, h - 0.035, t * 1.12, FIELD_CAP, tilt=1.0)
+            s += w
+
+
+def field_pillar(x, y, h=0.42, w=0.20, yaw=0.0, seed=0):
+    """Gemauerter Torpfosten: fünf Lagen verformter Quader mit leicht verdrehten Fugen und flachem Deckstein."""
+    rnd = random.Random(seed)
+    mats = (FIELD_STONE_A, FIELD_STONE_B, FIELD_STONE_C)
+    layers = 5
+    lh = (h - 0.04) / layers
+    for j in range(layers):
+        ww = w * rnd.uniform(0.97, 1.0)
+        box((ww, ww * rnd.uniform(0.97, 1.0), lh * 1.02), (x + rnd.uniform(-0.004, 0.004), y + rnd.uniform(-0.004, 0.004), j * lh + lh / 2),
+            rot=(rnd.uniform(-1, 1), rnd.uniform(-1, 1), yaw + rnd.uniform(-1.5, 1.5)),
+            material=mats[(j + rnd.randrange(2)) % 3])
+    box((w * 1.28, w * 1.28, 0.04), (x, y, h - 0.02), rot=(0, 0, yaw + 2), material=FIELD_CAP)
