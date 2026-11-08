@@ -67,6 +67,7 @@ IRON = mat("Eisen", (0.24, 0.23, 0.22), rough=0.6)
 TILE = mat("Ziegel", (0.74, 0.37, 0.22))
 TILE_DARK = mat("ZiegelDunkel", (0.62, 0.29, 0.17))
 TERRACOTTA = mat("Terrakotta", (0.76, 0.46, 0.30))
+TERRACOTTA_LIGHT = mat("TerrakottaHell", (0.84, 0.58, 0.42))
 SOIL = mat("Erde", (0.45, 0.33, 0.22))
 LEAF = mat("Laub", (0.38, 0.55, 0.26))
 LEAF_DARK = mat("LaubDunkel", (0.27, 0.42, 0.20))
@@ -341,13 +342,16 @@ def window(face, plane, u, z, w=0.20, h=0.26, shutters=WOOD, open_shutters=True,
 
 
 def amphora(x, y, z0=0.0):
-    """Spitzamphore nach Dressel 1 (in Wirklichkeit 0,55 m): ein Rotationskörper aus Fuß, schlankem Bauch, Schulter, langem
-    Hals und Lippenwulst, dazu zwei gebogene Bandhenkel, die unter der Lippe am Hals ansetzen und auf der Schulter enden."""
-    segs = 10
+    """Spitzamphore nach Dressel 1 bis 2-4 (in Wirklichkeit 0,55 m): ein weich schattierter Rotationskörper aus kurzem Fußzapfen
+    mit Knopf, oben breitem Bauch, gerundeter Schulter, zylindrischem Hals und rundem Lippenwulst (Lippe und Henkel in hellerem
+    Ton), dazu zwei kräftige Bandhenkel, die unter der Lippe am Hals ansetzen und im Bogen auf der Schulter enden."""
+    segs = 14
     # Profil (Radius, Höhe) in Metern der echten Amphore; die Maße werden danach mit S verkleinert
-    profile = ((0.012, 0.000), (0.026, 0.080), (0.070, 0.190), (0.092, 0.300), (0.074, 0.395),
-               (0.032, 0.450), (0.030, 0.505), (0.047, 0.520), (0.047, 0.550))
-    verts, faces = [], []
+    profile = ((0.020, 0.000), (0.026, 0.012), (0.034, 0.075), (0.066, 0.160), (0.090, 0.250), (0.099, 0.320),
+               (0.088, 0.385), (0.058, 0.425), (0.034, 0.455), (0.031, 0.505), (0.044, 0.522), (0.045, 0.540),
+               (0.034, 0.550))
+    light_from = 9                                           # ab diesem Ring (Hals oben): Lippe in hellem Ton
+    verts, faces, mat_ids = [], [], []
     for r, h in profile:
         for j in range(segs):
             a = 2.0 * math.pi * j / segs
@@ -356,19 +360,24 @@ def amphora(x, y, z0=0.0):
         for j in range(segs):
             j2 = (j + 1) % segs
             faces.append((i * segs + j, i * segs + j2, (i + 1) * segs + j2, (i + 1) * segs + j))
+            mat_ids.append(1 if i >= light_from else 0)
     top = (len(profile) - 1) * segs
-    faces.append(tuple(range(top, top + segs)))              # Mündung (oben)
-    faces.append(tuple(reversed(range(segs))))               # Fußknopf (unten)
+    faces.append(tuple(range(top, top + segs)))              # Mündung (oben), flach
+    mat_ids.append(1)
     mesh = bpy.data.meshes.new("Amphore")
     mesh.from_pydata(verts, [], faces)
     mesh.update()
     mesh.materials.append(TERRACOTTA)
+    mesh.materials.append(TERRACOTTA_LIGHT)
+    for k, p in enumerate(mesh.polygons):
+        p.material_index = mat_ids[k]
+        p.use_smooth = k < len(mat_ids) - 1                  # Körper weich, Mündungsfläche flach
     obj = bpy.data.objects.new("Amphore", mesh)
     bpy.context.collection.objects.link(obj)
     PARTS.append(obj)
-    # Henkel: flaches Band entlang einer Kurve (Abstand von der Achse, Höhe), links und rechts
-    path = ((0.025, 0.500), (0.056, 0.508), (0.074, 0.470), (0.076, 0.425), (0.068, 0.388))
-    width, thick = 0.020, 0.011
+    # Henkel: kräftiges Band entlang einer Kurve (Abstand von der Achse, Höhe), links und rechts; Enden stecken in Hals und Schulter
+    path = ((0.027, 0.505), (0.064, 0.497), (0.080, 0.452), (0.080, 0.395))
+    width, thick = 0.030, 0.015
     last = len(path) - 1
     for s in (-1, 1):
         hv = []
@@ -379,29 +388,23 @@ def amphora(x, y, z0=0.0):
             nx, nz = -tz / n, tx / n                           # Normale in der Ebene des Henkels
             for dy, dn in ((-width / 2, -thick / 2), (width / 2, -thick / 2), (width / 2, thick / 2), (-width / 2, thick / 2)):
                 hv.append((x + s * (r + nx * dn) * S, y + dy * S, z0 + (h + nz * dn) * S))
-
-        def ring_mean(a_, b_):
-            pts = [Vector(hv[i]) for i in range(a_ * 4, b_ * 4 + 4)]
-            return sum(pts, Vector()) / len(pts)
-
-        faces_h = []                                           # (Fläche, Punkt innerhalb des Bandes)
+        mid_of = lambda k: sum((Vector(hv[i]) for i in range(k * 4, k * 4 + 4)), Vector()) / 4
+        fixed = []
         for k in range(last):
-            mid = ring_mean(k, k + 1)
+            mid = (mid_of(k) + mid_of(k + 1)) / 2
             for e in range(4):
                 e2 = (e + 1) % 4
-                faces_h.append(([k * 4 + e, k * 4 + e2, (k + 1) * 4 + e2, (k + 1) * 4 + e], mid))
-        faces_h.append(([3, 2, 1, 0], ring_mean(1, 1)))
-        faces_h.append(([last * 4 + e for e in range(4)], ring_mean(last - 1, last - 1)))
-        fixed = []
-        for f, mid in faces_h:                                 # Flächen nach außen drehen
-            pts = [Vector(hv[i]) for i in f]
-            c = sum(pts, Vector()) / len(pts)
-            nrm = (pts[1] - pts[0]).cross(pts[2] - pts[1])
-            fixed.append(f if nrm.dot(c - mid) >= 0 else list(reversed(f)))
+                f = [k * 4 + e, k * 4 + e2, (k + 1) * 4 + e2, (k + 1) * 4 + e]
+                pts = [Vector(hv[i]) for i in f]
+                c = sum(pts, Vector()) / 4
+                nrm = (pts[1] - pts[0]).cross(pts[2] - pts[1])
+                # nach außen drehen, bezogen auf die Mittellinie des Bandes an dieser Stelle
+                ctr = (mid_of(k) + mid_of(k + 1)) / 2
+                fixed.append(f if nrm.dot(c - ctr) >= 0 else list(reversed(f)))
         hmesh = bpy.data.meshes.new("AmphorenHenkel")
         hmesh.from_pydata(hv, [], fixed)
         hmesh.update()
-        hmesh.materials.append(TERRACOTTA)
+        hmesh.materials.append(TERRACOTTA_LIGHT)
         hobj = bpy.data.objects.new("AmphorenHenkel", hmesh)
         bpy.context.collection.objects.link(hobj)
         PARTS.append(hobj)
