@@ -113,7 +113,7 @@ def amphora(x, y, z0):
     Ton), dazu zwei kräftige Bandhenkel, die unter der Lippe am Hals ansetzen und im Bogen auf der Schulter enden."""
     segs = 14
     # Profil (Radius, Höhe) in Metern der echten Amphore; die Maße werden danach mit S verkleinert
-    profile = ((0.020, 0.000), (0.026, 0.012), (0.034, 0.075), (0.066, 0.160), (0.090, 0.250), (0.099, 0.320),
+    profile = ((0.036, 0.000), (0.045, 0.014), (0.040, 0.050), (0.068, 0.140), (0.090, 0.250), (0.099, 0.320),
                (0.088, 0.385), (0.058, 0.425), (0.034, 0.455), (0.031, 0.505), (0.044, 0.522), (0.045, 0.540),
                (0.034, 0.550))
     light_from = 9                                           # ab diesem Ring (Hals oben): Lippe in hellem Ton
