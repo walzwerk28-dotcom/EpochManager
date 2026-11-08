@@ -3010,3 +3010,421 @@ def export(spacing):
         scene.camera = cam
         scene.render.filepath = PREVIEW
         bpy.ops.render.render(write_still=True)
+
+
+# ================================================================ Betriebe Paket 2: Olivenhain, Ölpresse, Lehmgrube, Töpferei
+
+OLIVE_BARK = mat("OlivenRinde", (0.42, 0.37, 0.31))
+OLIVE_LEAF_LIGHT = mat("OlivenlaubHell", (0.68, 0.74, 0.60))
+OLIVE_LEAF_DARK = mat("OlivenlaubDunkel", (0.40, 0.47, 0.32))
+OLIVE_FRUIT = mat("OlivenDunkel", (0.24, 0.17, 0.26))
+OLIVE_GREEN = mat("OlivenGruen", (0.46, 0.52, 0.22))
+NET = mat("Erntenetz", (0.58, 0.52, 0.38))
+OIL = mat("OelGold", (0.78, 0.64, 0.18), rough=0.25)
+PASTE = mat("Olivenpaste", (0.30, 0.25, 0.17))
+CLAY = mat("Lehm", (0.66, 0.40, 0.26))
+CLAY_DARK = mat("LehmDunkel", (0.52, 0.31, 0.20))
+CLAY_BRICK = mat("Lehmziegel", (0.74, 0.55, 0.38))
+CLAY_UNFIRED = mat("TonHell", (0.80, 0.68, 0.54))
+SLURRY = mat("Schlamm", (0.62, 0.45, 0.33), rough=0.35)
+KILN_BRICK = mat("OfenZiegel", (0.64, 0.36, 0.25))
+KILN_PLASTER = mat("OfenLehm", (0.76, 0.58, 0.42))
+SOOT = mat("Russ", (0.13, 0.11, 0.10))
+DONKEY = mat("Esel", (0.54, 0.49, 0.43))
+DONKEY_LIGHT = mat("EselHell", (0.80, 0.75, 0.68))
+
+
+def lathe(profile, x, y, z0=0.0, material=TERRACOTTA, segs=12, scale=1.0, name="Gefaess"):
+    """Rotationskörper aus einem Profil (Radius, Höhe) von unten nach oben; ein Profil, das bei Radius 0 beginnt und
+    endet, ergibt einen geschlossenen Körper (Krüge, Becken, Schalen)."""
+    rings = len(profile)
+    verts, faces = [], []
+    for r, z in profile:
+        for i in range(segs):
+            t = math.tau * i / segs
+            verts.append((x + math.cos(t) * r * scale, y + math.sin(t) * r * scale, z0 + z * scale))
+    for k in range(rings - 1):
+        for i in range(segs):
+            j = (i + 1) % segs
+            a, b, c, d = k * segs + i, k * segs + j, (k + 1) * segs + j, (k + 1) * segs + i
+            if profile[k][0] == 0 and profile[k + 1][0] == 0:
+                continue
+            if profile[k][0] == 0:
+                faces.append((a, c, d))
+            elif profile[k + 1][0] == 0:
+                faces.append((a, b, c))
+            else:
+                faces.append((a, b, c, d))
+    return solid_mesh(verts, faces, [0] * len(faces), [material], name)
+
+
+def bowl(x, y, z0, r, material=TERRACOTTA):
+    """Flache Schale mit Standring und Rand."""
+    lathe([(0, 0), (r * 0.40, 0), (r * 0.42, r * 0.06), (r * 0.85, r * 0.30), (r, r * 0.42), (r * 0.93, r * 0.42),
+           (r * 0.80, r * 0.28), (r * 0.40, r * 0.10), (0, r * 0.10)], x, y, z0, material, segs=10, name="Schale")
+
+
+def pot(x, y, z0, r, material=TERRACOTTA):
+    """Bauchiger Topf mit weiter Öffnung."""
+    lathe([(0, 0), (r * 0.55, 0), (r * 0.95, r * 0.55), (r, r * 0.95), (r * 0.80, r * 1.35), (r * 0.78, r * 1.50),
+           (r * 0.90, r * 1.55), (r * 0.74, r * 1.55), (r * 0.62, r * 1.30), (0, r * 1.30)], x, y, z0, material,
+          segs=10, name="Topf")
+
+
+def dolium(x, y, h=0.40, r=0.17, lid=True):
+    """Dolium: großes bauchiges Vorratsgefäß aus Ton mit Wulstrand, dazu ein Holzdeckel."""
+    lathe([(0, 0), (r * 0.45, 0), (r * 0.85, h * 0.12), (r, h * 0.45), (r * 0.82, h * 0.82), (r * 0.62, h * 0.93),
+           (r * 0.70, h * 0.97), (r * 0.62, h * 1.0), (0, h * 1.0)], x, y, 0.0, TERRACOTTA, segs=14, name="Dolium")
+    if lid:
+        cyl(r * 0.60, 0.02, (x, y, h + 0.01), material=WOOD, verts=12)
+        cyl(0.025, 0.03, (x, y, h + 0.035), material=WOOD_DARK, verts=6)
+
+
+def grass_tuft(x, y, h=0.10, seed=0):
+    """Grasbüschel aus fünf schlanken Kegeln."""
+    rnd = random.Random(seed)
+    for k in range(5):
+        a = rnd.uniform(0, math.tau)
+        d = rnd.uniform(0.0, 0.025)
+        cone(0.010, 0.0, h * rnd.uniform(0.7, 1.2), (x + math.cos(a) * d, y + math.sin(a) * d, h * 0.5),
+             LEAF if k % 2 else LEAF_DARK, verts=4, rot=(rnd.uniform(-15, 15), rnd.uniform(-15, 15), 0))
+
+
+def olives_scatter(cx, cy, w, d, n, z=0.012, seed=0, yaw=0.0):
+    """Verstreute Oliven (dunkelviolett und grün) in einer Fläche w x d."""
+    rnd = random.Random(seed)
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for k in range(n):
+        u, v = rnd.uniform(-w / 2, w / 2), rnd.uniform(-d / 2, d / 2)
+        sphere(0.014, (cx + u * c - v * s, cy + u * s + v * c, z + 0.010), (1.0, 0.8, 1.15),
+               OLIVE_FRUIT if rnd.random() > 0.3 else OLIVE_GREEN, segs=5, rings=3, rot=(0, 0, rnd.uniform(0, 180)))
+
+
+def gnarled_olive(x, y, size=1.0, seed=0, lean=0.0):
+    """Alter, knorriger Olivenbaum (Höhe etwa 1,3 m bei size 1): kräftiger, gedrehter Stamm, der sich in Gabelhöhe in
+    zwei, drei Äste spaltet, silbrig graugrünes Laub in mehreren flachen Ballen (hell, mittel und dunkel gemischt)."""
+    rnd = random.Random(seed)
+    s = size
+    cone(0.14 * s, 0.095 * s, 0.07 * s, (x, y, 0.035 * s), OLIVE_BARK, verts=8)                  # Wurzelanlauf
+    for k in range(3):                                                                            # Wurzeln
+        a = k * 2.1 + rnd.uniform(0, 1)
+        rod((x + math.cos(a) * 0.05 * s, y + math.sin(a) * 0.05 * s, 0.05 * s),
+            (x + math.cos(a) * 0.16 * s, y + math.sin(a) * 0.16 * s, 0.012), 0.022 * s, OLIVE_BARK, verts=5)
+    pts = [(0.0, 0.0, 0.0), (0.035, -0.03, 0.10), (-0.03, 0.035, 0.20), (0.02, 0.0, 0.30)]         # gedrehter Stamm
+    pts = [(x + (px + lean * pz) * s, y + py * s, pz * s) for px, py, pz in pts]
+    radii = [0.105 * s, 0.088 * s, 0.078 * s, 0.07 * s]
+    for i in range(3):
+        log_piece(pts[i], pts[i + 1], radii[i], sides=7, bark=OLIVE_BARK, grain=OLIVE_BARK, r1=radii[i + 1])
+    fork = Vector(pts[-1])
+    tops = []
+    for ang, reach, up in ((rnd.uniform(150, 200), 0.19, 0.48), (rnd.uniform(-30, 20), 0.20, 0.52), (rnd.uniform(80, 110), 0.09, 0.42)):
+        a = math.radians(ang)
+        mid = fork + Vector((math.cos(a) * reach * 0.35 * s, math.sin(a) * reach * 0.35 * s, 0.22 * s))
+        mid.x += rnd.uniform(-0.03, 0.03) * s
+        top = fork + Vector((math.cos(a) * reach * s, math.sin(a) * reach * s, up * s))
+        log_piece(tuple(fork), tuple(mid), 0.050 * s, sides=6, bark=OLIVE_BARK, grain=OLIVE_BARK, r1=0.040 * s)
+        log_piece(tuple(mid), tuple(top), 0.040 * s, sides=6, bark=OLIVE_BARK, grain=OLIVE_BARK, r1=0.022 * s)
+        tops.append(top)
+    mats = (OLIVE_LEAF, OLIVE_LEAF_LIGHT, OLIVE_LEAF_DARK)
+    for i, top in enumerate(tops):
+        for k in range(3):
+            dx, dy = rnd.uniform(-0.10, 0.10) * s, rnd.uniform(-0.10, 0.10) * s
+            dz = rnd.uniform(-0.10, 0.10) * s
+            r = rnd.uniform(0.17, 0.24) * s
+            lump(top.x + dx, top.y + dy, top.z + dz, r, r * rnd.uniform(0.9, 1.1), r * 0.52, mats[(i + k) % 3], rnd,
+                 segs=7, rings=4)
+    lump(fork.x, fork.y, fork.z + 0.40 * s, 0.20 * s, 0.20 * s, 0.12 * s, OLIVE_LEAF_DARK, rnd, segs=7, rings=4)
+
+
+def harvest_net(cx, cy, w, d, yaw=0.0, olives=46, seed=0):
+    """Ausgebreitetes Erntenetz (Tuch auf dem Boden, vier Heringe an den Ecken) mit heruntergeschlagenen Oliven."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    box((w, d, 0.008), (cx, cy, 0.006), rot=(0, 0, yaw), material=NET)
+    for k in range(1, 5):                                                  # Maschenlinien
+        u = -w / 2 + w * k / 5
+        box((0.005, d, 0.004), (cx + u * c, cy + u * s, 0.011), rot=(0, 0, yaw), material=WOOD_DARK)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            u, v = sx * w / 2, sy * d / 2
+            cyl(0.012, 0.07, (cx + u * c - v * s, cy + u * s + v * c, 0.03), rot=(sy * 12, -sx * 12, yaw), material=WOOD_DARK, verts=5)
+    olives_scatter(cx, cy, w * 0.9, d * 0.9, olives, z=0.008, seed=seed, yaw=yaw)
+
+
+def olive_basket(x, y, z0=0.0, r=0.085, fill=True, seed=0):
+    """Erntekorb aus Weide, bis zum Rand voll dunkler Oliven."""
+    rnd = random.Random(seed)
+    h = r * 1.15
+    cone(r * 0.8, r, h, (x, y, z0 + h / 2), WICKER, verts=10)
+    for k in (0.3, 0.7):
+        cyl(r * (0.8 + 0.2 * k) + 0.003, 0.012, (x, y, z0 + h * k), material=WICKER_DARK, verts=10)
+    cyl(r * 1.02, 0.014, (x, y, z0 + h), material=WICKER_DARK, verts=10)
+    if fill:
+        sphere(r * 0.95, (x, y, z0 + h), (1.0, 1.0, 0.45), OLIVE_FRUIT, segs=8, rings=4)
+        for k in range(7):
+            a = rnd.uniform(0, math.tau)
+            d = rnd.uniform(0, r * 0.6)
+            sphere(0.015, (x + math.cos(a) * d, y + math.sin(a) * d, z0 + h + r * 0.40),
+                   material=OLIVE_FRUIT if k % 3 else OLIVE_GREEN, segs=5, rings=3)
+
+
+def donkey(x, y, yaw=0.0, baskets=True):
+    """Esel (Maßstab 0,55, Kopfhöhe etwa 0,65 m) in Seitenansicht entlang der lokalen +x-Richtung, mit Packsattel und zwei
+    Tragkörben voller Oliven."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    sphere(1.0, P(0.0, 0.0, 0.36), (0.30, 0.125, 0.145), DONKEY, rot=(0, 0, yaw))                    # Rumpf
+    sphere(1.0, P(0.02, 0.0, 0.30), (0.24, 0.10, 0.10), DONKEY_LIGHT, rot=(0, 0, yaw))               # heller Bauch
+    for su in (-1, 1):                                                                              # Beine
+        for sv in (-1, 1):
+            rod(P(su * 0.20, sv * 0.065, 0.28), P(su * 0.205, sv * 0.065, 0.015), 0.024, DONKEY, verts=6)
+            cyl(0.026, 0.03, P(su * 0.205, sv * 0.065, 0.015), material=IRON, verts=6)
+    rod(P(0.24, 0.0, 0.42), P(0.36, 0.0, 0.58), 0.062, DONKEY, verts=7)                              # Hals
+    sphere(1.0, P(0.43, 0.0, 0.61), (0.105, 0.052, 0.058), DONKEY, rot=(0, -22, yaw))               # Kopf
+    sphere(1.0, P(0.495, 0.0, 0.585), (0.04, 0.042, 0.04), DONKEY_LIGHT, rot=(0, -22, yaw))         # Maul
+    for sv in (-1, 1):
+        cone(0.022, 0.006, 0.12, P(0.37, sv * 0.035, 0.70), DONKEY, verts=5, rot=(sv * -10, 6, yaw))   # Ohren
+    box((0.12, 0.012, 0.04), P(0.31, 0.0, 0.56), rot=(0, -50, yaw), material=IRON)                  # Mähne (dunkel)
+    rod(P(-0.29, 0.0, 0.42), P(-0.32, 0.0, 0.22), 0.012, DONKEY, verts=5)                            # Schwanz
+    sphere(0.028, P(-0.32, 0.0, 0.20), (1.0, 1.0, 1.6), IRON, segs=6, rings=4)
+    box((0.30, 0.22, 0.035), P(-0.01, 0.0, 0.50), rot=(0, 0, yaw), material=WOOD_DARK)               # Packsattel
+    for su in (-0.10, 0.12):                                                                        # Gurt
+        box((0.025, 0.25, 0.20), P(su, 0.0, 0.36), rot=(0, 0, yaw), material=WOOD)
+    if baskets:
+        for sv in (-1, 1):
+            c = P(0.0, sv * 0.17, 0.0)
+            olive_basket(c[0], c[1], 0.27, r=0.095, seed=sv + 5)
+            rod(P(0.0, sv * 0.075, 0.50), P(0.0, sv * 0.17, 0.40), 0.008, ROPE, verts=4)
+
+
+def lever_press(u_pier, u_free, v, z=0.62, u_press=-0.55, axis="x"):
+    """Balkenpresse (Prelum): Der lange Hebelbalken steckt am Ende u_pier in einem Mauerpfeiler, liegt bei u_press auf
+    dem Stapel aus Flechtkörben (Fiscinae) auf einem Steinbett mit Rinne und trägt am freien Ende u_free zwischen zwei
+    Pfosten einen hängenden Gegengewichtsstein. axis 'x': Der Balken liegt parallel zur x-Achse bei y = v; axis 'y':
+    parallel zur y-Achse bei x = v (u ist dann die y-Koordinate). Gibt die Höhe der Balkenoberkante zurück."""
+    sg = 1 if u_free > u_pier else -1
+
+    def G(a, b):                                   # (entlang, quer) -> (x, y)
+        return (a, b) if axis == "x" else (b, a)
+
+    def Z(a, b, c):                                # Maße (entlang, quer, Höhe) -> Maße in x, y, z
+        return (a, b, c) if axis == "x" else (b, a, c)
+
+    def At(a, b, h):
+        return (*G(a, b), h)
+    box(Z(0.30, 0.34, 1.10), At(u_pier + sg * 0.07, v, 0.55), material=LIME)                         # Mauerpfeiler
+    lat = ("-y", "+y") if axis == "x" else ("-x", "+x")
+    end = (("+x" if sg > 0 else "-x") if axis == "x" else ("+y" if sg > 0 else "-y"),)
+    px0, py0 = G(u_pier + sg * 0.07 - 0.15, v - 0.17)
+    px1, py1 = G(u_pier + sg * 0.07 + 0.15, v + 0.17)
+    brick_bands(min(px0, px1), max(px0, px1), min(py0, py1), max(py0, py1), (0.30, 0.60, 0.90), faces=lat + end)
+    box(Z(0.14, 0.18, 0.15), At(u_pier + sg * 0.24, v, z), material=DARK)                            # Balkenschlitz
+    bar(At(u_pier + sg * 0.10, v, z), At(u_free + sg * 0.15, v, z), 0.12, WOOD_DARK)                 # Hebelbalken
+    for k in range(4):                                                                              # Eisenbänder
+        box(Z(0.012, 0.13, 0.13), At(u_pier + sg * (0.55 + k * 0.55), v, z), material=IRON)
+    box(Z(0.70, 0.62, 0.07), At(u_press, v, 0.035), material=LIME_DARK)                               # Pressbett
+    box(Z(0.62, 0.04, 0.012), At(u_press, v - 0.20, 0.076), material=PASTE)                           # Rinne
+    for k in range(4):                                                                              # Fiscinae
+        disc = 0.22 - 0.01 * (k % 2)
+        cyl(disc, 0.065, At(u_press, v, 0.105 + k * 0.075), material=WICKER if k % 2 else WICKER_DARK, verts=12)
+        sphere(disc * 0.97, At(u_press, v, 0.138 + k * 0.075), (1.0, 1.0, 0.18), PASTE, segs=10, rings=3)
+    box((0.30, 0.30, 0.06), At(u_press, v, 0.435), material=WOOD)                                    # Pressplatte
+    box((0.22, 0.22, 0.08), At(u_press, v, 0.505), material=WOOD_DARK)                               # Pressklotz
+    for s_ in (-1, 1):                                                                              # Gegengewicht
+        box((0.07, 0.07, 1.12), At(u_free + sg * 0.02, v + s_ * 0.16, 0.56), material=WOOD_DARK)
+    box(Z(0.12, 0.44, 0.08), At(u_free + sg * 0.02, v, 1.14), material=WOOD_DARK)
+    stone_z = 0.30
+    box(Z(0.26, 0.24, 0.30), At(u_free - sg * 0.12, v, stone_z), rot=(0, 0, 4), material=LIME_DARK)
+    rod(At(u_free - sg * 0.12, v, stone_z + 0.15), At(u_free - sg * 0.12, v, z - 0.04), 0.012, ROPE, verts=5)
+    rod(At(u_free - sg * 0.18, v, stone_z + 0.15), At(u_free - sg * 0.12, v, z - 0.04), 0.008, ROPE, verts=4)
+    return z + 0.06
+
+
+def settling_basin(x, y, r=0.17, fill=OIL):
+    """Rundes Absetzbecken aus Stein, bis kurz unter den Rand mit goldenem Öl gefüllt."""
+    lathe([(0, 0), (r, 0), (r + 0.025, 0.03), (r + 0.025, 0.14), (r - 0.025, 0.14), (r - 0.025, 0.05), (0, 0.05)],
+          x, y, 0.0, LIME_DARK, segs=14, name="Becken")
+    cyl(r - 0.024, 0.008, (x, y, 0.118), material=fill, verts=14)
+
+
+def trapetum(x, y, yaw=0.0, r=0.50):
+    """Trapetum: runder Steintrog mit mittlerer Säule, an der ein Holzbalken umläuft; auf dem Balken zwei halbkugelige
+    Mahlsteine rollen durch die Olivenpaste (Griffe an den Balkenenden)."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    lathe([(0, 0), (r, 0), (r + 0.03, 0.03), (r + 0.03, 0.25), (r - 0.05, 0.25), (r - 0.07, 0.12), (0, 0.12)],
+          x, y, 0.0, LIME, segs=18, name="Trapetum")
+    cyl(r - 0.07, 0.012, (x, y, 0.118), material=PASTE, verts=18)
+    olives_scatter(x, y, r * 1.2, r * 1.2, 14, z=0.12, seed=3)
+    cone(0.10, 0.06, 0.12, (x, y, 0.18), LIME_DARK, verts=10)                                         # Säulenfuß
+    cyl(0.055, 0.50, (x, y, 0.40), material=LIME, verts=10)                                           # Säule
+    box((0.13, 0.13, 0.05), (x, y, 0.675), rot=(0, 0, yaw), material=LIME_DARK)
+    box((1.18, 0.065, 0.07), (x, y, 0.32), rot=(0, 0, yaw), material=WOOD_DARK)                      # Balken
+    box((0.09, 0.09, 0.09), (x, y, 0.32), rot=(0, 0, yaw), material=IRON)
+    for s_ in (-1, 1):
+        c = P(s_ * 0.30, 0.0, 0.0)
+        sphere(0.17, (c[0], c[1], 0.285), (0.42, 1.0, 1.0), LIME_DARK, segs=12, rings=7, rot=(0, 0, yaw))  # Mahlstein
+        cyl(0.075, 0.03, (c[0], c[1], 0.285), rot=(0, 90, yaw), material=IRON, verts=8)
+        g = P(s_ * 0.58, 0.0, 0.0)
+        cyl(0.018, 0.30, (g[0], g[1], 0.46), material=WOOD, verts=6)                                    # Griff
+        sphere(0.026, (g[0], g[1], 0.62), material=WOOD, segs=6, rings=4)
+
+
+def clay_mound(x, y, r=0.30, h=0.22, seed=0):
+    """Lehmhaufen: breiter, dunkler Haufen mit helleren Brocken."""
+    rnd = random.Random(seed)
+    cone(r, r * 0.55, h * 0.55, (x, y, h * 0.275), CLAY, verts=10)
+    sphere(r * 0.55, (x, y, h * 0.55), (1.0, 1.0, h * 0.45 / (r * 0.55)), CLAY, segs=9, rings=4, rot=(0, 0, rnd.uniform(0, 90)))
+    for k in range(5):
+        a = rnd.uniform(0, math.tau)
+        d = rnd.uniform(0.2, 0.8) * r
+        rr = rnd.uniform(0.18, 0.30) * r
+        sphere(rr, (x + math.cos(a) * d, y + math.sin(a) * d, h * (1 - d / r) * 0.6 + rr * 0.72),
+               (1.0, rnd.uniform(0.8, 1.1), 0.7), CLAY_DARK if k % 2 else CLAY_BRICK, segs=6, rings=4)
+
+
+def mud_brick_row(x0, y0, count, yaw=0.0, gap=0.025, rows=1, row_gap=0.10):
+    """Reihen geformter Lehmziegel, die zum Trocknen flach auf dem Boden liegen (von x0,y0 aus entlang yaw)."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for j in range(rows):
+        for i in range(count):
+            u, v = i * (0.135 + gap), j * (0.08 + row_gap)
+            box((0.135, 0.08, 0.04), (x0 + u * c - v * s, y0 + u * s + v * c, 0.02),
+                rot=(0, 0, yaw + (1.5 if (i + j) % 2 else -1.5)), material=CLAY_BRICK if (i + j) % 3 else CLAY)
+
+
+def brick_hurdle(x, y, yaw=0.0, layers=5):
+    """Trockenstapel: Lehmziegel kreuzweise geschichtet, damit die Luft hindurchstreicht."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for k in range(layers):
+        rot = yaw + (90 if k % 2 else 0)
+        for i in range(2):
+            off = (i - 0.5) * 0.115
+            ox, oy = (-s * off, c * off) if k % 2 == 0 else (c * off, s * off)
+            box((0.135, 0.08, 0.04), (x + ox, y + oy, 0.02 + k * 0.042), rot=(0, 0, rot),
+                material=CLAY_BRICK if k % 2 else CLAY)
+
+
+def clay_basin(x0, x1, y0, y1, fill=SLURRY, h=0.12):
+    """Schlämmbecken: Bohlenwände mit Pfosten an den Ecken, außen ein Lehmwall, innen glänzend nasse Lehmbrühe."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, y1 - y0, 0.012), (cx, cy, h * 0.74), material=fill)
+    for y, sy in ((y0, -1), (y1, 1)):
+        box((x1 - x0 + 0.10, 0.07, h), (cx, y, h / 2), material=WOOD)
+        box((x1 - x0 + 0.20, 0.10, 0.05), (cx, y + sy * 0.04, 0.025), material=CLAY_DARK)
+    for x, sx in ((x0, -1), (x1, 1)):
+        box((0.07, y1 - y0, h), (x, cy, h / 2), material=WOOD)
+        box((0.10, y1 - y0 + 0.20, 0.05), (x + sx * 0.04, cy, 0.025), material=CLAY_DARK)
+    for x in (x0, x1):
+        for y in (y0, y1):
+            box((0.075, 0.075, h + 0.07), (x, y, (h + 0.07) / 2), material=WOOD_DARK)
+
+
+def potters_wheel(x, y, yaw=0.0, vessel=True):
+    """Töpferscheibe mit Fußantrieb: Gestell mit Tischplatte, unten die schwere Schwungscheibe, durch die Platte die
+    Achse zur oberen Wurfscheibe, darauf ein Gefäß in Arbeit; dazu ein Hocker und ein Wassereimer."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    box((0.36, 0.30, 0.025), P(0.0, 0.0, 0.27), rot=(0, 0, yaw), material=WOOD)
+    for su in (-1, 1):
+        for sv in (-1, 1):
+            rod(P(su * 0.15, sv * 0.12, 0.0), P(su * 0.14, sv * 0.11, 0.26), 0.02, WOOD_DARK, verts=5)
+    for sv in (-1, 1):
+        box((0.30, 0.025, 0.025), P(0.0, sv * 0.12, 0.10), rot=(0, 0, yaw), material=WOOD_DARK)
+    c0 = P(0.0, 0.0, 0.0)
+    cyl(0.17, 0.035, (c0[0], c0[1], 0.115), material=WOOD_DARK, verts=16)                       # Schwungscheibe
+    cyl(0.018, 0.22, (c0[0], c0[1], 0.22), material=IRON, verts=6)                               # Achse
+    cyl(0.075, 0.022, (c0[0], c0[1], 0.305), material=WOOD, verts=12)                            # Wurfscheibe
+    if vessel:
+        lathe([(0, 0), (0.05, 0), (0.07, 0.04), (0.075, 0.08), (0.06, 0.13), (0.05, 0.145), (0.06, 0.155), (0.048, 0.155),
+               (0.04, 0.14), (0, 0.04)], c0[0], c0[1], 0.316, CLAY_UNFIRED, segs=10, name="Werkstueck")
+    sx, sy, _ = P(0.0, -0.36, 0.0)                                                                  # Hocker
+    cyl(0.085, 0.03, (sx, sy, 0.21), material=WOOD, verts=10)
+    for k in range(3):
+        a = k * 2.1
+        rod((sx + math.cos(a) * 0.05, sy + math.sin(a) * 0.05, 0.20),
+            (sx + math.cos(a) * 0.09, sy + math.sin(a) * 0.09, 0.0), 0.014, WOOD_DARK, verts=5)
+    wx, wy, _ = P(0.30, 0.06, 0.0)
+    cone(0.06, 0.075, 0.09, (wx, wy, 0.045), WOOD, verts=10)
+    cyl(0.062, 0.006, (wx, wy, 0.085), material=WATER, verts=10)
+
+
+def kiln(x, y, r=0.52):
+    """Brennofen aus Ziegeln: Sockel mit Ziegelschichten, darüber eine lehmverputzte Kuppel mit Eisenreifen und einer
+    Rauchöffnung mit kurzem Schlot; vorn (-y) die Feuerstelle mit Ziegelgewände, Rußspuren und Aschehaufen. Gibt die
+    Höhe der Schlotmündung zurück."""
+    base_h = 0.36
+    cyl(r, base_h, (x, y, base_h / 2), material=KILN_BRICK, verts=20)
+    for k in range(1, 6):                                                                            # Ziegelschichten
+        cyl(r + 0.006, 0.012, (x, y, k * base_h / 6), material=TILE_DARK, verts=20)
+    cyl(r + 0.04, 0.04, (x, y, 0.02), material=STONE, verts=20)
+    dome = [(0.0, base_h)] + [(r * math.cos(math.radians(a)), base_h + r * 0.92 * math.sin(math.radians(a))) for a in range(0, 90, 15)]
+    dome.append((0.0, base_h + r * 0.92))
+    lathe(dome, x, y, 0.0, KILN_PLASTER, segs=18, name="Kuppel")                                      # Kuppel
+    for z_ in (base_h + 0.10, base_h + 0.26):                                                         # Reifen
+        rr = math.sqrt(max(0.0, 1 - ((z_ - base_h) / (r * 0.92)) ** 2)) * r
+        cyl(rr + 0.008, 0.022, (x, y, z_), material=IRON, verts=20)
+    top = base_h + r * 0.92
+    cyl(0.085, 0.16, (x, y, top + 0.05), material=KILN_BRICK, verts=10)                               # Schlot
+    cyl(0.095, 0.03, (x, y, top + 0.14), material=TILE_DARK, verts=10)
+    cyl(0.055, 0.012, (x, y, top + 0.157), material=SOOT, verts=10)
+    fy = y - r + 0.01                                                                               # Feuerloch
+    box((0.34, 0.10, 0.34), (x, fy - 0.02, 0.17), material=KILN_BRICK)
+    box((0.20, 0.06, 0.20), (x, fy - 0.075, 0.12), material=SOOT)
+    cyl(0.10, 0.06, (x, fy - 0.075, 0.22), rot=(90, 0, 0), material=SOOT, verts=10)
+    box((0.30, 0.06, 0.03), (x, fy - 0.08, 0.015), material=LIME_DARK)                                # Schwelle
+    for sx in (-1, 1):
+        box((0.045, 0.07, 0.24), (x + sx * 0.14, fy - 0.075, 0.12), material=TILE_DARK)
+    for k in range(5):                                                                              # Bogenziegel
+        a = math.radians(-70 + k * 35)
+        box((0.045, 0.07, 0.035), (x + math.sin(a) * 0.145, fy - 0.075, 0.24 + math.cos(a) * 0.08),
+            rot=(0, -math.degrees(a), 0), material=TILE_DARK)
+    sphere(0.16, (x, fy - 0.06, 0.34), (1.1, 0.5, 0.9), SOOT, segs=8, rings=4)                         # Ruß über dem Loch
+    sphere(0.10, (x + 0.06, fy - 0.16, 0.03), (1.4, 1.0, 0.5), SOOT, segs=7, rings=4)                 # Asche
+    sphere(0.06, (x - 0.09, fy - 0.17, 0.02), (1.2, 1.0, 0.5), PAVE_WORN, segs=6, rings=3)
+    return top + 0.16
+
+
+def smoke_plume(x, y, z0, n=3):
+    """Dünner Rauchfaden aus wenigen wachsenden, grauen Kugeln (nur Geometrie)."""
+    for k in range(n):
+        r = 0.045 + 0.022 * k
+        sphere(r, (x + 0.03 * k, y + 0.02 * k, z0 + 0.10 + k * 0.15), (1.0, 1.0, 0.85), SMOKE, segs=8, rings=5)
+
+
+def vessel_shelf(x, y, yaw=0.0, w=1.2, tiers=3, fired=True, seed=0, d=0.16):
+    """Regal mit Gefäßen auf mehreren Brettern: gebrannte (Terrakotta) oder noch ungebrannte (heller Ton)."""
+    rnd = random.Random(seed)
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w_ = at((u, v, 0.0))
+        return (w_[0], w_[1], z)
+    mat_v = TERRACOTTA if fired else CLAY_UNFIRED
+    hh = 0.20 * tiers + 0.08
+    for su in (-1, 1):
+        for sv in (-1, 1):
+            c = P(su * (w / 2 - 0.015), sv * (d / 2 - 0.015), 0.0)
+            box((0.035, 0.035, hh), (c[0], c[1], hh / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+    for t in range(tiers):
+        z = 0.18 + t * 0.20
+        box((w, d, 0.025), P(0.0, 0.0, z), rot=(0, 0, yaw), material=WOOD)
+        n = int(w / 0.20)
+        for i in range(n):
+            u = -w / 2 + (i + 0.5) * w / n
+            c = P(u, rnd.uniform(-0.02, 0.02), 0.0)
+            kind = (i + t) % 3
+            if kind == 0:
+                jug(c[0], c[1], z + 0.012, 0.038, mat_v)
+            elif kind == 1:
+                pot(c[0], c[1], z + 0.012, 0.050, mat_v)
+            else:
+                bowl(c[0], c[1], z + 0.012, 0.062, mat_v)

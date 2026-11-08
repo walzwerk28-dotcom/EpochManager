@@ -168,6 +168,26 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Steinbruch.fbx", prefab = "Steinbruch", building = "Bld_Steinbruch",
                 cells = new Vector2Int(2, 2), ground = "Mat_Boden_Stein"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Olivenhain.fbx", prefab = "Olivenhain", building = "Bld_Olivenhain",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Oelpresse.fbx", prefab = "Oelpresse", building = "Bld_Oelpresse",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Pflaster"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Lehmgrube.fbx", prefab = "Lehmgrube", building = "Bld_Lehmgrube",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Toepferei.fbx", prefab = "Toepferei", building = "Bld_Toepferei",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Pflaster"
             }
         };
 

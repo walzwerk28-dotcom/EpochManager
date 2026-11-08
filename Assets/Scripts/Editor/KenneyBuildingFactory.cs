@@ -49,10 +49,10 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Laden", "Markt", "Handelshaus", "Taberna", "Kontor", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Feuerwache", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
-                         "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei", "GrossesTheater" })
+                         "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei", "GrossesTheater" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
+                         "Holzfaeller", "Weinberg" })
                 grounds[n] = earth;
             grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
 
@@ -73,10 +73,7 @@ namespace EpochCity
             Assign("Bld_Feld", field);
             // Holzfäller: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Holzhacker, Förster, Zimmerei und Steinbruch: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Olivenhain", Make("Olivenhain", 2, antique, OliveGrove));
-            Assign("Bld_Oelpresse", Make("Oelpresse", 2, antique, OilPress));
-            Assign("Bld_Lehmgrube", Make("Lehmgrube", 2, antique, ClayPit));
-            Assign("Bld_Toepferei", Make("Toepferei", 2, antique, Pottery));
+            // Olivenhain, Ölpresse, Lehmgrube und Töpferei: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Weinberg", Make("Weinberg", 2, antique, Vineyard));
             Assign("Bld_Kelterei", Make("Kelterei", 2, antique, WinePress));
 
@@ -795,29 +792,6 @@ namespace EpochCity
             }
         }
 
-        /// <summary>Olivenhain: drei Reihen breiter, niedriger Bäume mit graugrünem Laub, vorn Karren und Bank.</summary>
-        private static void OliveGrove(Builder b)
-        {
-            NatureColors(b);
-            b.Overrides["leafsGreen"] = Solid("Olivenlaub", new Color(0.50f, 0.58f, 0.40f));
-            for (int row = 0; row < 3; row++)
-                for (int k = 0; k < 3; k++)
-                    b.Put(NK + "tree_oak", new Vector3(-1.3f + k * 1.3f, 0f, -0.6f + row * 1.0f),
-                        (row * 3 + k) * 47f, 1.0f);
-            b.Put(FT + "cart", new Vector3(-0.8f, 0f, -1.7f), 0f, 0.8f);
-            b.Put(FT + "stall-bench", new Vector3(1f, 0f, -1.7f), 0f, 0.8f);
-        }
-
-        /// <summary>Ölpresse: kleiner Steinbau hinten, vorn ein großer Mühlstein, daneben Holz für die Presse.</summary>
-        private static void OilPress(Builder b)
-        {
-            Hall(b.At(0f, 0.8f), 2, 2, 1, "roof", (i, j, dir, level) =>
-                dir == Vector2Int.down ? (i == 0 ? "wall-door" : "wall-window-stone") :
-                dir == Vector2Int.up ? "wall" : "wall-window-small");
-            b.Put(FT + "wheel", new Vector3(-0.6f, 0f, -1.3f), 90f, 1.6f);
-            b.Put(NK + "log_stack", new Vector3(1.3f, 0f, -1.3f), 90f, 0.8f);
-        }
-
         /// <summary>Weinberg: vier Rebzeilen parallel zur Straße (Hecken mit Pfosten an den Enden), vorn Karren und Bank.</summary>
         private static void Vineyard(Builder b)
         {
@@ -845,40 +819,6 @@ namespace EpochCity
             for (int k = 0; k < 3; k++)
                 b.Put(NK + "stump_round", new Vector3(-1.4f + k * 0.6f, 0f, -1.35f), k * 40f, 1.4f);
             b.Put(FT + "wheel", new Vector3(1.1f, 0f, -1.35f), 90f, 1.2f);
-        }
-
-        /// <summary>Lehmgrube: Erdhügel aus Lehm (Nature-Kit-Hügel ohne Gras), Bohlen am Rand, ein Karren.</summary>
-        private static void ClayPit(Builder b)
-        {
-            NatureColors(b);
-            var clay = Solid("Lehm", new Color(0.62f, 0.42f, 0.28f));
-            b.Overrides["dirt"] = clay;
-            b.Overrides["grass"] = clay;
-            b.Put(NK + "rock_largeA", new Vector3(-1f, 0f, 0.9f), 0f, 1.6f);
-            b.Put(NK + "rock_largeC", new Vector3(1.1f, 0f, 1.1f), 120f, 1.4f);
-            b.Put(NK + "rock_smallA", new Vector3(0.3f, 0f, -0.2f), 40f, 1.6f);
-            Planks(b.At(-1.2f, -1.4f), 2, 1);
-            b.Put(FT + "cart", new Vector3(1.2f, 0f, -1.3f), 80f, 0.8f);
-        }
-
-        /// <summary>Töpferei: kleiner Steinbau, davor zwei Reihen Gefäße in Terrakotta und eine Bank.</summary>
-        private static void Pottery(Builder b)
-        {
-            const int w = 2, d = 2;
-            var hall = b.At(0f, 0.8f);
-            Walls(hall, w, d, 0, (i, j, dir) =>
-                dir == Vector2Int.down ? (i == 0 ? "wall-door" : "wall-window-shutters") :
-                dir == Vector2Int.up ? "wall" : "wall-window-small");
-            GableRoof(hall, w, d, 1, "roof");
-            b.Put(FT + "stall-bench", new Vector3(1.5f, 0f, -0.9f), 0f);
-            // Gefäße: Kürbisse aus dem Nature Kit, ganz in Terrakotta (Körper heißt „leafsFall“)
-            var terracotta = Solid("Keramik", new Color(0.72f, 0.38f, 0.22f));
-            foreach (var name in new[] { "_defaultMat", "leafsFall", "woodBark", "grass", "dirt" })
-                b.Overrides[name] = terracotta;
-            for (int row = 0; row < 2; row++)
-                for (int k = 0; k < 4; k++)
-                    b.Put(NK + "crop_pumpkin", new Vector3(-1.5f + k * 0.55f, 0f, -1.6f + row * 0.55f),
-                        (row * 4 + k) * 50f, 0.9f);
         }
 
         /// <summary>
