@@ -148,6 +148,26 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Akademie.fbx", prefab = "Akademie", building = "Bld_Akademie",
                 cells = new Vector2Int(2, 3), ground = "Mat_Boden_Pflaster"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Holzhacker.fbx", prefab = "Holzhacker", building = "Bld_Holzhacker",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Foerster.fbx", prefab = "Foerster", building = "Bld_Foerster",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Zimmerei.fbx", prefab = "Zimmerei", building = "Bld_Zimmerei",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Erde"
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Steinbruch.fbx", prefab = "Steinbruch", building = "Bld_Steinbruch",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Stein"
             }
         };
 
@@ -166,6 +186,7 @@ namespace EpochCity
 
                 var root = new GameObject(e.prefab);
                 var ground = AssetDatabase.LoadAssetAtPath<Material>($"{Out}/{e.ground}.mat");
+                if (ground == null && e.ground == "Mat_Boden_Stein") ground = KenneyBuildingFactory.EnsureStoneGround();
                 if (e.variants) AddVariants(root, model, e.cells, ground);
                 else
                 {

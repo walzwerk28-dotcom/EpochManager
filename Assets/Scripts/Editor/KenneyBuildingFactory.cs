@@ -52,7 +52,7 @@ namespace EpochCity
                          "Oelpresse", "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "Kelterei", "GrossesTheater" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Werkstatt", "Werkstatthof", "Speicherhof", "Lager", "Muehle",
-                         "Holzfaeller", "Holzhacker", "Foerster", "Zimmerei", "Steinbruch", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
+                         "Holzfaeller", "Olivenhain", "Lehmgrube", "Toepferei", "Weinberg" })
                 grounds[n] = earth;
             grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
 
@@ -72,10 +72,7 @@ namespace EpochCity
             AddToPrefab<CropStages>(field);
             Assign("Bld_Feld", field);
             // Holzfäller: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Holzhacker", Make("Holzhacker", 2, antique, WoodChopper));
-            Assign("Bld_Foerster", Make("Foerster", 2, antique, Forester));
-            Assign("Bld_Zimmerei", Make("Zimmerei", 2, antique, Carpentry));
-            Assign("Bld_Steinbruch", Make("Steinbruch", 2, antique, Quarry));
+            // Holzhacker, Förster, Zimmerei und Steinbruch: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Olivenhain", Make("Olivenhain", 2, antique, OliveGrove));
             Assign("Bld_Oelpresse", Make("Oelpresse", 2, antique, OilPress));
             Assign("Bld_Lehmgrube", Make("Lehmgrube", 2, antique, ClayPit));
@@ -798,88 +795,6 @@ namespace EpochCity
             }
         }
 
-        /// <summary>Holzhacker: offener Holzschuppen rechts mit Brennholzstapeln, links Hackklotz mit Scheiten, hinten Karren und Stämme.</summary>
-        private static void WoodChopper(Builder b)
-        {
-            NatureColors(b);
-            WorkShed(b.At(1f, 0.6f));
-            // Der Schuppen voller Brennholz: zwei Lagen Stapel bis unters Dach
-            for (int x = 0; x < 3; x++)
-                for (int y = 0; y < 2; y++)
-                    b.Put(NK + "log_stack", new Vector3(0.35f + x * 0.65f, y * 0.32f, 1.1f), 0f);
-            b.Put(NK + "log_stack", new Vector3(1.6f, 0f, -1.1f), 0f);
-            b.Put(NK + "log_stack", new Vector3(1.6f, 0.32f, -1.1f), 0f);
-
-            // Hackklotz mit Scheiten ringsum
-            b.Put(NK + "stump_roundDetailed", new Vector3(-0.9f, 0f, -0.6f), 0f, 1.5f);
-            for (int k = 0; k < 7; k++)
-            {
-                float a = k * 51f * Mathf.Deg2Rad;
-                b.Put(NK + "log", new Vector3(-0.9f + Mathf.Cos(a) * 0.55f, 0f, -0.6f + Mathf.Sin(a) * 0.45f), k * 47f, 0.45f);
-            }
-            b.Put(NK + "log_stackLarge", new Vector3(-1.2f, 0f, 1.3f), 0f);
-            b.Put(FT + "cart", new Vector3(-0.2f, 0f, 1.6f), 90f);
-        }
-
-        /// <summary>Förster: Holzhütte hinten links, rechts und vorn Reihen junger Bäume (Setzlinge), vorn ein Karren.</summary>
-        private static void Forester(Builder b)
-        {
-            NatureColors(b);
-            var hut = b.At(-1f, 1f);
-            Walls(hut, 2, 2, 0, (i, j, dir) =>
-                dir == Vector2Int.down && i == 1 ? "wall-wood-door" :
-                dir == Vector2Int.down ? "wall-wood-window-small" : "wall-wood");
-            GableRoof(hut, 2, 2, 1, "roof");
-
-            for (int row = 0; row < 3; row++)
-                for (int k = 0; k < 2; k++)
-                    b.Put(NK + (row % 2 == 0 ? "tree_small" : "tree_pineSmallA"),
-                        new Vector3(0.75f + k * 0.8f, 0f, 1.5f - row * 0.85f), (row * 2 + k) * 55f, 0.9f);
-            for (int k = 0; k < 4; k++)
-                b.Put(NK + "plant_bushSmall", new Vector3(-1.6f + k * 0.5f, 0f, -0.6f), k * 80f, 0.9f);
-            b.Put(FT + "cart", new Vector3(-0.9f, 0f, -1.5f), 0f, 0.8f);
-        }
-
-        /// <summary>Zimmerei: offener Schuppen auf Holzpfosten mit Rückwand, darunter ein Stamm, ringsum Stämme und Bretterstapel.</summary>
-        private static void Carpentry(Builder b)
-        {
-            const int w = 2, d = 2;
-            NatureColors(b);
-            var shed = b.At(-0.6f, 0.8f);
-            for (int x = 0; x <= w; x++)
-                for (int z = 0; z <= d; z += d)
-                    shed.Put(FT + "pillar-wood", new Vector3(x - w * 0.5f, 0f, z - d * 0.5f), 0f);
-            Walls(shed, w, d, 0, (i, j, dir) => dir == Vector2Int.up ? "wall-wood" : null);
-            GableRoof(shed, w, d, 1, "roof");
-            shed.Put(NK + "log_large", Vector3.zero, 90f);
-
-            // Bretterstapel aus halben Bohlen
-            for (int k = 0; k < 5; k++)
-            {
-                b.Put(FT + "planks-half", new Vector3(-1.2f, k * 0.07f, -1.4f), 0f, 0.8f);
-                b.Put(FT + "planks-half", new Vector3(0.2f, k * 0.07f, -1.4f), 0f, 0.8f);
-            }
-            b.Put(NK + "log_stack", new Vector3(1.5f, 0f, 1.0f), 90f);
-            b.Put(NK + "log_stackLarge", new Vector3(1.4f, 0f, -0.6f), 0f);
-            b.Put(FT + "cart", new Vector3(1.6f, 0f, -1.7f), 100f, 0.8f);
-        }
-
-        /// <summary>Steinbruch: Felswand hinten, davor Bruchsteine, behauene Blöcke und ein Karren.</summary>
-        private static void Quarry(Builder b)
-        {
-            NatureColors(b);
-            // Nature-Kit-Teile mit „stone“ sind graue Felsen; „rock“ sind Erdhügel mit Gras
-            b.Put(NK + "stone_largeA", new Vector3(-1.2f, 0f, 1.2f), 0f, 2f);
-            b.Put(NK + "stone_tallB", new Vector3(0.2f, 0f, 1.4f), 40f, 1.8f);
-            b.Put(NK + "stone_largeC", new Vector3(1.4f, 0f, 1.1f), 200f, 1.8f);
-            b.Put(NK + "stone_smallA", new Vector3(-1.4f, 0f, -0.2f), 0f, 1.6f);
-            b.Put(NK + "stone_smallB", new Vector3(0.3f, 0f, 0.1f), 30f, 1.6f);
-            b.Put(NK + "stone_smallFlatA", new Vector3(1.3f, 0f, -0.5f), 0f, 1.6f);
-            b.Put(FT + "rock-wide", new Vector3(-0.3f, 0f, -0.9f), 15f, 0.8f);
-            b.Put(FT + "rock-small", new Vector3(-1.4f, 0f, -1.5f), 0f, 0.8f);
-            b.Put(FT + "cart", new Vector3(1.2f, 0f, -1.6f), 80f, 0.8f);
-        }
-
         /// <summary>Olivenhain: drei Reihen breiter, niedriger Bäume mit graugrünem Laub, vorn Karren und Bank.</summary>
         private static void OliveGrove(Builder b)
         {
@@ -1457,7 +1372,7 @@ namespace EpochCity
 
         // ---------------------------------------------------------------- Boden
 
-        private enum GroundKind { Gravel, Paving, Earth, Furrows }
+        private enum GroundKind { Gravel, Paving, Earth, Furrows, Rubble }
 
         /// <summary>Bodenmaterial je Modellname; Modelle ohne Eintrag (Feld) bekommen keine Platte.</summary>
         private static readonly Dictionary<string, Material> grounds = new Dictionary<string, Material>();
@@ -1510,6 +1425,18 @@ namespace EpochCity
             var list = new List<Material>(materials) { material };
             materials = list.ToArray();
             return result;
+        }
+
+        /// <summary>
+        /// Bodenmaterial „Stein“ (Schotter) für Gebäude auf Steinvorkommen, bei Bedarf angelegt; BlenderModels nutzt es
+        /// für den Steinbruch.
+        /// </summary>
+        public static Material EnsureStoneGround()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>($"{Out}/Mat_Boden_Stein.mat");
+            if (existing != null) return existing;
+            Directory.CreateDirectory(Out);
+            return GroundMaterial("Stein", GroundKind.Rubble);
         }
 
         /// <summary>
@@ -1568,6 +1495,15 @@ namespace EpochCity
                     if (edge < 2) return new Color(0.50f, 0.46f, 0.40f, 1f); // Fuge
                     float stone = 0.88f + 0.14f * Hash(col, row, 4);
                     var c = new Color(0.86f, 0.81f, 0.71f) * (stone + 0.06f * fine - (edge < 4 ? 0.06f : 0f));
+                    c.a = 1f;
+                    return c;
+                }
+                case GroundKind.Rubble:
+                {
+                    // Steinbruchboden: hellgrauer Schotter mit Splittern in mehreren Grautönen
+                    var c = new Color(0.64f, 0.60f, 0.52f) * (0.84f + 0.16f * coarse + 0.10f * fine);
+                    if (speck > 0.90f) c *= 0.74f;
+                    else if (speck < 0.08f) c *= 1.16f;
                     c.a = 1f;
                     return c;
                 }

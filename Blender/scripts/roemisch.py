@@ -2147,6 +2147,808 @@ def sundial(x, y, h=0.5):
     bar((x, y - 0.07, h - 0.02), (x, y + 0.01, h + 0.05), 0.011, BRONZE)                                  # Zeiger (Gnomon)
 
 
+# ---------------------------------------------------------------- Holz, Zimmerei, Steinbruch (Produktionsbetriebe)
+
+BARK = mat("Rinde", (0.36, 0.26, 0.17))
+BARK_LIGHT = mat("RindeHell", (0.50, 0.38, 0.25))
+END_GRAIN = mat("Hirnholz", (0.84, 0.69, 0.46))
+END_GRAIN_DARK = mat("HirnholzDunkel", (0.70, 0.54, 0.34))
+WOOD_FRESH = mat("HolzFrisch", (0.80, 0.64, 0.42))
+SAPLING_PINE = mat("JungPinie", (0.27, 0.42, 0.24))
+SAPLING_PINE_LIGHT = mat("JungPinieHell", (0.36, 0.50, 0.28))
+SAPLING_CYPRESS = mat("JungZypresse", (0.14, 0.29, 0.20))
+SAPLING_CYPRESS_LIGHT = mat("JungZypresseHell", (0.19, 0.35, 0.24))
+SAPLING_OAK = mat("JungEiche", (0.22, 0.36, 0.21))
+SAPLING_OAK_LIGHT = mat("JungEicheHell", (0.30, 0.44, 0.25))
+QUARRY_LIGHT = mat("BruchHell", (0.73, 0.69, 0.60), rough=0.95)
+QUARRY_MID = mat("BruchMitte", (0.65, 0.61, 0.53), rough=0.95)
+QUARRY_DARK = mat("BruchDunkel", (0.53, 0.49, 0.42), rough=0.95)
+QUARRY_BROWN = mat("BruchBraun", (0.69, 0.60, 0.46), rough=0.95)
+ASHLAR = mat("Quader", (0.80, 0.78, 0.72), rough=0.9)
+
+
+def solid_mesh(verts, faces, mat_index, materials, name="Teil"):
+    """Geschlossener Körper aus Eckpunkten und Flächen (Normalen werden nach außen gerichtet); mat_index gibt je Fläche
+    den Platz in materials an."""
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    for m in materials:
+        mesh.materials.append(m)
+    mesh.update()
+    for p, i in zip(mesh.polygons, mat_index):
+        p.material_index = i
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    PARTS.append(obj)
+    return obj
+
+
+def flat_face(verts, material):
+    """Einzelne ebene Fläche; die Normale folgt der Reihenfolge der Punkte (gegen den Uhrzeigersinn von vorn gesehen)."""
+    mesh = bpy.data.meshes.new("Flaeche")
+    mesh.from_pydata(verts, [], [tuple(range(len(verts)))])
+    mesh.update()
+    obj = bpy.data.objects.new("Flaeche", mesh)
+    bpy.context.collection.objects.link(obj)
+    return keep(obj, material)
+
+
+def log_piece(p0, p1, r, sides=7, bark=None, grain=None, r1=None):
+    """Stamm oder Scheit von p0 nach p1 als Prisma mit Rinde an den Seiten und hellem Hirnholz an beiden Enden."""
+    bark = bark or BARK
+    grain = grain or END_GRAIN
+    a, b = Vector(p0), Vector(p1)
+    d = (b - a).normalized()
+    ref = Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))
+    u = d.cross(ref).normalized()
+    v = d.cross(u).normalized()
+    r1 = r if r1 is None else r1
+    phase = random.random() * math.tau
+    verts = []
+    for c, rr in ((a, r), (b, r1)):
+        for i in range(sides):
+            t = phase + math.tau * i / sides
+            verts.append(tuple(c + (u * math.cos(t) + v * math.sin(t)) * rr))
+    faces = [(i, (i + 1) % sides, sides + (i + 1) % sides, sides + i) for i in range(sides)]
+    faces += [tuple(range(sides)), tuple(range(sides, 2 * sides))]
+    idx = [0] * sides + [1, 1]
+    return solid_mesh(verts, faces, idx, [bark, grain], "Stamm")
+
+
+def oriented_box(size, center, x_axis, z_axis, material):
+    """Quader, dessen Seiten x und z in die angegebenen Richtungen zeigen (frei im Raum)."""
+    ax = Vector(x_axis).normalized()
+    az = Vector(z_axis).normalized()
+    ay = az.cross(ax).normalized()
+    ax = ay.cross(az).normalized()
+    obj = box(size, tuple(center), material=material)
+    obj.rotation_mode = "QUATERNION"
+    obj.rotation_quaternion = Matrix(((ax.x, ay.x, az.x), (ax.y, ay.y, az.y), (ax.z, ay.z, az.z))).to_quaternion()
+    return obj
+
+
+def chunky(x0, x1, y0, y1, z0, z1, material, jitter=0.03, seed=0, top_jitter=None, yaw=0.0):
+    """Roher Gesteinsblock: Quader, dessen Eckpunkte leicht verschoben sind (oben stärker), flach schattiert; yaw dreht
+    ihn um seine Mitte."""
+    rnd = random.Random(seed)
+    tj = jitter * 1.6 if top_jitter is None else top_jitter
+    corners = [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+               (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
+    verts = []
+    for k, (x, y, z) in enumerate(corners):
+        j = tj if k >= 4 else jitter * 0.4
+        verts.append((x + rnd.uniform(-j, j), y + rnd.uniform(-j, j), z + (rnd.uniform(-j, j) if k >= 4 else 0.0)))
+    faces = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    if yaw:
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        verts = [(cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c, z) for x, y, z in verts]
+    return solid_mesh(verts, faces, [0] * 6, [material], "Block")
+
+
+def firewood_stack(cx, cy, width, depth, rows, r=0.034, yaw=0.0, seed=0, profile=None):
+    """Brennholzklafter: Die Scheite liegen parallel zur Tiefe; vorn (lokal -y, vor der Drehung um yaw) sieht man die
+    hellen Stirnseiten im Sechseckverband (jede zweite Reihe versetzt, einzelne Scheite stehen vor), die oberste Reihe
+    sind ganze Scheite mit Rinde. profile = Reihen je Spalte (ein angebrochener Stapel), sonst überall rows."""
+    rnd = random.Random(seed)
+    at = placed((cx, cy), yaw)
+    pu, pz = 2 * r * 1.03, r * 1.74
+    n = max(1, int(width / pu))
+    heights = list(profile) if profile else [rows] * n
+    n = len(heights)
+    x_start = -n * pu / 2
+    front = -depth / 2
+    k = 0
+    while k < n:                                   # Kern aus Rinde hinter den Stirnseiten
+        e = k
+        while e + 1 < n and heights[e + 1] == heights[k]:
+            e += 1
+        top = max(0.05, heights[k] * pz - r * 0.1)
+        w = (e - k + 1) * pu
+        p = at((x_start + k * pu + w / 2, front + depth / 2 + 0.004, top / 2))
+        box((w, depth - 0.008, top), (p[0], p[1], top / 2), rot=(0, 0, yaw), material=BARK)
+        k = e + 1
+    for col in range(n):
+        for row in range(heights[col]):
+            u = x_start + (col + 0.5) * pu + (pu / 2 if row % 2 else 0.0)
+            if row % 2 and col == n - 1:
+                continue
+            z = r + row * pz
+            rr = r * rnd.uniform(0.86, 1.0)
+            grain = END_GRAIN if rnd.random() > 0.38 else END_GRAIN_DARK
+            if row == heights[col] - 1:            # oberste Reihe: ganze Scheite
+                ln = depth + rnd.uniform(-0.02, 0.02)
+                a, b = at((u, front - 0.005, z)), at((u, front + ln, z))
+                log_piece((a[0], a[1], z), (b[0], b[1], z), rr, sides=6, bark=BARK_LIGHT if rnd.random() > 0.3 else BARK, grain=grain)
+                continue
+            if rnd.random() < 0.08:                # einzelne Scheite stehen vor
+                a, b = at((u, front - 0.03, z)), at((u, front + 0.02, z))
+                log_piece((a[0], a[1], z), (b[0], b[1], z), rr, sides=6, grain=grain)
+                continue
+            push = rnd.uniform(-0.012, 0.0) if rnd.random() < 0.35 else 0.0
+            phase = rnd.random() * math.tau
+            pts = []
+            for i in range(6):
+                t = phase + math.tau * i / 6
+                q = at((u + math.cos(t) * rr * 0.92, front + push, 0.0))
+                pts.append((q[0], q[1], z + math.sin(t) * rr * 0.92))
+            flat_face(pts, grain)
+
+
+def log_pile(cx, cy, length, r=0.08, rows=(4, 3, 2), yaw=0.0, seed=0, posts=True, bark=None):
+    """Stammstapel: Stämme liegen entlang der lokalen y-Achse nebeneinander, darüber die nächste Reihe in den Lücken;
+    vier Haltepfosten an den Enden. Gibt die Breite des Stapels zurück."""
+    rnd = random.Random(seed)
+    at = placed((cx, cy), yaw)
+    pitch = 2 * r + 0.008
+    width = rows[0] * pitch
+    for row, n in enumerate(rows):
+        for k in range(n):
+            u = (k - (n - 1) / 2) * pitch
+            z = r + row * r * 1.78
+            ln = length * rnd.uniform(0.9, 1.04)
+            off = rnd.uniform(-0.04, 0.04)
+            a, b = at((u, off - ln / 2, 0.0)), at((u, off + ln / 2, 0.0))
+            log_piece((a[0], a[1], z), (b[0], b[1], z), r * rnd.uniform(0.92, 1.06), sides=8, bark=bark)
+    if posts:
+        h = len(rows) * r * 1.8 + r * 0.6
+        for su in (-1, 1):
+            for sv in (-1, 1):
+                p = at((su * (width / 2 + 0.035), sv * length * 0.38, 0.0))
+                box((0.05, 0.05, h), (p[0], p[1], h / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+    return width
+
+
+def chopping_block(x, y, yaw=0.0, r=0.14, h=0.27):
+    """Hackklotz mit Rinde, rissiger heller Schnittfläche und eingeschlagener Axt (Stiel 30° über der Waagerechten,
+    Schneide 5 cm im Holz); die Axt zeigt nach der lokalen +x-Richtung."""
+    at = placed((x, y), yaw)
+    cyl(r, h, (x, y, h / 2), material=BARK, verts=12)
+    cyl(r * 0.94, 0.008, (x, y, h + 0.003), material=END_GRAIN, verts=12)
+    for k in range(3):                                                        # Risse in der Schnittfläche
+        a = k * 2.1 + 0.4
+        box((r * 1.1, 0.008, 0.006), (x + math.cos(a) * 0.015, y + math.sin(a) * 0.015, h + 0.008),
+            rot=(0, 0, math.degrees(a)), material=END_GRAIN_DARK)
+    ang = 60
+    a_ = math.radians(ang)
+    ux, uz = math.sin(a_), math.cos(a_)                # vom Auge zum Griffende (lokal x, z)
+    vx, vz = math.cos(a_), -math.sin(a_)               # vom Auge zur Schneide
+    eye = (-0.04, h + 0.09)
+
+    def p(lu, lz):
+        w = at((lu, 0.0, 0.0))
+        return (w[0], w[1], lz)
+    cyl(0.014, 0.38, p(eye[0] + ux * 0.17, eye[1] + uz * 0.17), rot=(0, ang, yaw), material=WOOD, verts=6)
+    box((0.11, 0.022, 0.045), p(eye[0] + vx * 0.03, eye[1] + vz * 0.03), rot=(0, ang, yaw), material=IRON)
+    box((0.03, 0.010, 0.085), p(eye[0] + vx * 0.075, eye[1] + vz * 0.075), rot=(0, ang, yaw), material=IRON)
+
+
+def split_logs(cx, cy, n, rmin=0.2, rmax=0.5, seed=0, z0=0.0):
+    """Verstreute gespaltene Scheite (teils schräg an andere gelehnt) um einen Punkt."""
+    rnd = random.Random(seed)
+    for k in range(n):
+        a = rnd.uniform(0, math.tau)
+        rr = rnd.uniform(rmin, rmax)
+        x, y = cx + math.cos(a) * rr, cy + math.sin(a) * rr
+        yaw = rnd.uniform(0, 180)
+        ln = rnd.uniform(0.17, 0.25)
+        w = rnd.uniform(0.045, 0.065)
+        if k % 4 == 3:       # ein Scheit lehnt schräg am nächsten
+            box((ln, w, w * 0.9), (x, y, z0 + w * 0.9 + 0.012), rot=(0, rnd.uniform(14, 24), yaw), material=END_GRAIN_DARK)
+            box((ln, w, w * 0.9), (x, y, z0 + w * 0.45), rot=(0, 0, yaw + 20), material=WOOD)
+        else:
+            box((ln, w, w * 0.9), (x, y, z0 + w * 0.45), rot=(0, 0, yaw), material=END_GRAIN if k % 2 else WOOD_FRESH)
+
+
+def wood_chips(cx, cy, n, rmax, seed=0, z0=0.0):
+    """Späne: kleine flache Schnipsel, dichter in der Mitte."""
+    rnd = random.Random(seed)
+    for _ in range(n):
+        a = rnd.uniform(0, math.tau)
+        rr = rmax * rnd.random() ** 1.4
+        box((rnd.uniform(0.035, 0.06), rnd.uniform(0.014, 0.024), 0.006),
+            (cx + math.cos(a) * rr, cy + math.sin(a) * rr, z0 + 0.004 + rnd.random() * 0.006),
+            rot=(rnd.uniform(-12, 12), rnd.uniform(-12, 12), rnd.uniform(0, 180)),
+            material=END_GRAIN if rnd.random() > 0.3 else WOOD_FRESH)
+
+
+def sawhorse(x, y, yaw=0.0, log_len=0.9, with_saw=True):
+    """Sägebock aus zwei Kreuzgestellen mit aufliegendem Stamm; die Bügelsäge steckt im Schnitt."""
+    at = placed((x, y), yaw)
+    for v in (-log_len * 0.32, log_len * 0.32):
+        for a in (-26, 26):
+            p = at((0.0, v, 0.0))
+            box((0.045, 0.045, 0.52), (p[0], p[1], 0.20), rot=(0, a, yaw), material=WOOD_DARK)
+    p = at((0.0, 0.0, 0.0))
+    box((0.04, log_len * 0.78, 0.04), (p[0], p[1], 0.17), rot=(0, 0, yaw), material=WOOD_DARK)
+    a0, a1 = at((0.0, -log_len / 2, 0.0)), at((0.0, log_len / 2, 0.0))
+    log_piece((a0[0], a0[1], 0.40), (a1[0], a1[1], 0.40), 0.075, sides=8)
+    if with_saw:
+        c = at((0.0, 0.10, 0.0))
+        box((0.008, 0.20, 0.035), (c[0], c[1], 0.50), rot=(0, 0, yaw), material=IRON)               # Blatt im Schnitt
+        for sv in (-1, 1):
+            q = at((0.0, 0.10 + sv * 0.10, 0.0))
+            box((0.022, 0.022, 0.20), (q[0], q[1], 0.54), rot=(0, 0, yaw), material=WOOD_DARK)       # Bügel
+        q = at((0.0, 0.10, 0.0))
+        box((0.022, 0.24, 0.022), (q[0], q[1], 0.64), rot=(0, 0, yaw), material=WOOD_DARK)
+
+
+def brushwood(x, y, z0=0.0, yaw=0.0, length=0.55, r=0.065, seed=0):
+    """Reisigbündel: viele dünne Zweige, an den Enden leicht gespreizt, mit Bast zusammengebunden."""
+    rnd = random.Random(seed)
+    at = placed((x, y), yaw)
+    for k in range(14):
+        a = rnd.uniform(0, math.tau)
+        rr = r * math.sqrt(rnd.random()) * 0.8
+        px, pz = math.cos(a) * rr, math.sin(a) * rr
+        spread = 1.0 + rnd.uniform(0.0, 0.5)
+        ln = length * rnd.uniform(0.85, 1.05)
+        p0 = at((px * spread, -ln / 2, 0.0))
+        p1 = at((px * spread, ln / 2, 0.0))
+        zz = z0 + r + pz * spread
+        rod((p0[0], p0[1], zz), (p1[0], p1[1], zz), rnd.uniform(0.008, 0.013),
+            rnd.choice((WOOD_DARK, BARK, WOOD, BARK_LIGHT)), verts=4)
+    for v in (-0.12 * length, 0.12 * length):
+        c = at((0.0, v, 0.0))
+        cyl(r * 1.0, 0.03, (c[0], c[1], z0 + r), rot=(90, 0, yaw), material=SACK, verts=8)
+
+
+def wheelbarrow(x, y, yaw=0.0, load="soil"):
+    """Schubkarre: Mulde auf zwei Holmen, ein Rad vorn (lokal -y), zwei Beine hinten; Ladung 'soil' (Erdhaufen),
+    'logs' (Scheite) oder None."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    for su in (-1, 1):
+        rod(P(su * 0.11, 0.38, 0.30), P(su * 0.09, -0.20, 0.17), 0.013, WOOD_DARK, verts=5)               # Holm
+        rod(P(su * 0.09, 0.14, 0.18), P(su * 0.12, 0.20, 0.0), 0.014, WOOD_DARK, verts=5)                 # Bein
+        box((0.025, 0.12, 0.025), P(su * 0.11, 0.36, 0.30), rot=(0, 0, yaw), material=WOOD)               # Griff
+    box((0.30, 0.34, 0.03), P(0.0, 0.0, 0.20), rot=(0, 0, yaw), material=WOOD)
+    box((0.03, 0.34, 0.12), P(-0.155, 0.0, 0.25), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((0.03, 0.34, 0.12), P(0.155, 0.0, 0.25), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((0.30, 0.03, 0.12), P(0.0, 0.17, 0.25), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((0.26, 0.03, 0.10), P(0.0, -0.18, 0.24), rot=(-18, 0, yaw), material=WOOD_DARK)
+    c = P(0.0, -0.30, 0.10)
+    cyl(0.10, 0.04, c, rot=(0, 90, yaw), material=WOOD_DARK, verts=14)
+    cyl(0.025, 0.12, c, rot=(0, 90, yaw), material=IRON, verts=6)
+    if load == "soil":
+        c = P(0.0, -0.02, 0.30)
+        sphere(0.16, c, (1.0, 1.1, 0.5), SOIL, segs=8, rings=4)
+    elif load == "logs":
+        for k in range(3):
+            a, b = P(-0.07 + k * 0.07, -0.13, 0.285), P(-0.07 + k * 0.07, 0.14, 0.285)
+            log_piece(a, b, 0.034, sides=6)
+
+
+def spade(foot, top, across=(1.0, 0.0, 0.0)):
+    """Spaten: Holzstiel mit T-Griff, unten ein Eisenblatt (across = Breite des Blatts)."""
+    a, b = Vector(foot), Vector(top)
+    d = (b - a).normalized()
+    ac = Vector(across).normalized()
+    rod(tuple(a + d * 0.12), tuple(b), 0.011, WOOD, verts=5)
+    oriented_box((0.10, 0.012, 0.15), a + d * 0.075, ac, d, IRON)
+    oriented_box((0.05, 0.03, 0.035), a + d * 0.15, ac, d, WOOD_DARK)
+    rod(tuple(b - ac * 0.07), tuple(b + ac * 0.07), 0.012, WOOD, verts=5)
+
+
+def hoe(foot, top, across=(1.0, 0.0, 0.0)):
+    """Hacke: Holzstiel, unten ein winklig angesetztes Eisenblatt."""
+    a, b = Vector(foot), Vector(top)
+    d = (b - a).normalized()
+    ac = Vector(across).normalized()
+    rod(tuple(a + d * 0.05), tuple(b), 0.011, WOOD, verts=5)
+    n = d.cross(ac).normalized()
+    oriented_box((0.11, 0.04, 0.014), a + d * 0.04 + n * 0.015, ac, n, IRON)
+    oriented_box((0.03, 0.03, 0.05), a + d * 0.075, ac, d, IRON)
+
+
+# -- junge Bäume (Förster): klein und aus wenigen Teilen, im Stil der Waldbäume aus gebirge.py
+
+
+def lump(x, y, z, rx, ry, rz, material, rnd, segs=6, rings=4):
+    """Laubballen: flaches Ellipsoid, zufällig gedreht."""
+    return sphere(1.0, (x, y, z), (rx, ry, rz), material, segs=segs, rings=rings, rot=(0, 0, rnd.uniform(0, 180)))
+
+
+def young_tree(x, y, z0, h, kind="oak", seed=0):
+    """Junger Baum der Höhe h (0,2 bis 1,3 m): 'pine' (Schirmkrone auf schlankem Stamm), 'cypress' (schmale Flamme)
+    oder 'oak' (runde dunkle Krone). Ab etwa 0,8 m ist die Art gut zu erkennen, darunter sind es Setzlinge."""
+    rnd = random.Random(seed)
+    tr = max(0.007, h * 0.024)
+    if kind == "cypress":
+        rod((x, y, z0 - 0.02), (x + h * 0.01, y, z0 + h * 0.3), tr, BARK, verts=5)
+        n = 3 if h < 0.6 else 5
+        for i in range(n):
+            t = i / max(1, n - 1)
+            w = h * (0.145 - 0.07 * t)
+            zc = z0 + h * (0.20 + 0.72 * t) * 0.97
+            m = SAPLING_CYPRESS_LIGHT if (i % 2 and i > 1) else SAPLING_CYPRESS
+            lump(x + rnd.uniform(-0.01, 0.01) * h, y + rnd.uniform(-0.01, 0.01) * h, zc, w, w, h * (0.21 - 0.06 * t), m, rnd)
+    elif kind == "pine":
+        lean = h * 0.04
+        rod((x, y, z0 - 0.02), (x + lean, y, z0 + h * 0.72), tr, BARK_LIGHT, verts=5)
+        cr = h * (0.30 if h > 0.5 else 0.26)
+        top = z0 + h * (0.78 if h > 0.5 else 0.70)
+        for k in range(5 if h > 0.5 else 3):
+            a = k * 2.4 + rnd.uniform(0, 1)
+            rr = 0 if k == 0 else cr * 0.55
+            lump(x + lean + math.cos(a) * rr, y + math.sin(a) * rr,
+                 top + (0.03 * h if k == 0 else rnd.uniform(-0.04, 0.02) * h),
+                 cr * (0.62 if k else 0.8), cr * (0.62 if k else 0.8), h * 0.09,
+                 SAPLING_PINE_LIGHT if k % 2 else SAPLING_PINE, rnd)
+    else:
+        rod((x, y, z0 - 0.02), (x - h * 0.02, y, z0 + h * 0.45), tr * 1.1, BARK, verts=5)
+        cr = h * 0.27
+        top = z0 + h * 0.66
+        lump(x - h * 0.02, y, top, cr, cr, cr * 0.85, SAPLING_OAK, rnd, segs=7, rings=4)
+        for k in range(3):
+            a = k * 2.1 + rnd.uniform(0, 1)
+            lump(x - h * 0.02 + math.cos(a) * cr * 0.55, y + math.sin(a) * cr * 0.55, top + rnd.uniform(-0.1, 0.18) * cr,
+                 cr * 0.55, cr * 0.55, cr * 0.5, SAPLING_OAK_LIGHT if k else SAPLING_OAK, rnd)
+
+
+def seedling(x, y, seed=0):
+    """Frisch gesetzter Keimling: kleiner Erdhügel mit Stützstab und zwei Blättern."""
+    rnd = random.Random(seed)
+    sphere(0.045, (x, y, 0.012), (1.0, 1.0, 0.45), SOIL, segs=7, rings=3)
+    rod((x, y, 0.0), (x + 0.005, y, 0.19), 0.004, WOOD_DARK, verts=4)
+    for s in (-1, 1):
+        lump(x + s * 0.022, y, 0.14 + rnd.uniform(0, 0.02), 0.025, 0.012, 0.007, SAPLING_OAK_LIGHT, rnd, segs=5, rings=3)
+
+
+def basket_with_sapling(x, y, size=0.22, kind="oak"):
+    """Weidenkorb mit Erde und einem Setzling darin."""
+    cone(0.085, 0.105, 0.11, (x, y, 0.055), WICKER, verts=9)
+    cyl(0.108, 0.012, (x, y, 0.114), material=WICKER_DARK, verts=9)
+    cyl(0.088, 0.01, (x, y, 0.112), material=SOIL, verts=9)
+    young_tree(x, y, 0.11, size, kind, seed=int(abs(x) * 100 + abs(y) * 10))
+
+
+# -- Zimmerei
+
+
+def workbench(x, y, yaw=0.0):
+    """Zimmermannsbank: dicke Platte auf vier gespreizten Beinen mit Bord, Schraubstock am Ende; darauf Hobel, Beitel,
+    Klüpfel, ein eingespanntes Brett und Hobelspäne."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    H, L, Wd = 0.40, 0.84, 0.26
+    box((Wd, L, 0.045), P(0.0, 0.0, H), rot=(0, 0, yaw), material=WOOD)
+    box((Wd + 0.01, L + 0.01, 0.012), P(0.0, 0.0, H + 0.0275), rot=(0, 0, yaw), material=WOOD_FRESH)
+    for sv in (-1, 1):
+        for su in (-1, 1):
+            rod(P(su * 0.105, sv * 0.36, 0.0), P(su * 0.09, sv * 0.34, H - 0.02), 0.022, WOOD_DARK, verts=5)
+    box((Wd - 0.04, L - 0.12, 0.025), P(0.0, 0.0, 0.14), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((0.07, 0.05, 0.10), P(0.0, -L / 2 + 0.03, H + 0.03), rot=(0, 0, yaw), material=WOOD_DARK)           # Schraubstock
+    rod(P(-0.11, -L / 2 - 0.02, H + 0.02), P(0.0, -L / 2 + 0.03, H + 0.02), 0.01, IRON, verts=5)
+    box((0.04, 0.03, 0.03), P(-0.12, -L / 2 - 0.02, H + 0.02), rot=(0, 0, yaw), material=WOOD)
+    box((0.12, 0.30, 0.014), P(0.0, -L / 2 + 0.17, H + 0.06), rot=(0, 0, yaw), material=WOOD_FRESH)        # Brett
+    box((0.045, 0.14, 0.03), P(0.05, 0.12, H + 0.045), rot=(0, 0, yaw + 8), material=WOOD_DARK)            # Hobel
+    box((0.035, 0.03, 0.045), P(0.05, 0.16, H + 0.07), rot=(0, 0, yaw + 8), material=WOOD)
+    box((0.04, 0.01, 0.005), P(0.05, 0.12, H + 0.062), rot=(0, 0, yaw + 8), material=IRON)
+    for k in range(3):                                                                                    # Beitel
+        rod(P(-0.07 + k * 0.016, 0.32, H + 0.034), P(-0.07 + k * 0.016, 0.20, H + 0.034), 0.006,
+            IRON if k else WOOD_DARK, verts=4)
+    cyl(0.032, 0.07, P(-0.07, 0.04, H + 0.045), rot=(0, 90, yaw), material=WOOD, verts=8)                  # Klüpfel
+    rod(P(-0.07, 0.04, H + 0.04), P(-0.07, -0.08, H + 0.035), 0.009, WOOD_DARK, verts=5)
+    for k in range(4):                                                                                    # Hobelspäne
+        sp = P(0.02 + 0.02 * k, 0.02 - 0.05 * k, H + 0.06)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.016, minor_radius=0.003, major_segments=7, minor_segments=3,
+                                         location=sp, rotation=(math.radians(70 + 20 * k), 0, math.radians(k * 50)))
+        keep(bpy.context.active_object, END_GRAIN)
+
+
+def sawpit(cx, cy, yaw=0.0, length=1.3):
+    """Sägegrube: dunkle Grube zwischen zwei Bohlenrändern, darüber auf Querbalken ein Stamm, vorn noch rund, hinten
+    schon in senkrechte Bretter zersägt; darin steckt die Rahmensäge (Blatt senkrecht im Schnitt, Rahmen mit zwei
+    Armen und einem Seitenholm neben dem Stamm)."""
+    at = placed((cx, cy), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    pw = 0.52
+    box((pw, length, 0.012), P(0.0, 0.0, 0.006), rot=(0, 0, yaw), material=DARK)
+    for su in (-1, 1):
+        box((0.10, length + 0.1, 0.055), P(su * (pw / 2 + 0.05), 0.0, 0.0275), rot=(0, 0, yaw), material=WOOD_DARK)
+    for sv in (-1, 1):
+        box((pw + 0.24, 0.085, 0.07), P(0.0, sv * length * 0.36, 0.085), rot=(0, 0, yaw), material=WOOD)
+    r = 0.115
+    zc = 0.12 + r
+    half = length * 0.5 + 0.08
+    log_piece(P(0.0, -half, zc), P(0.0, -0.02, zc), r, sides=9, bark=BARK_LIGHT)
+    for i in range(-3, 4):                    # Rückseite: senkrechte Bretter, nach außen leicht gespreizt
+        u = i * 0.034
+        hgt = 2 * math.sqrt(max(0.0, r * r - (u * 0.97) ** 2)) * 0.97
+        if hgt < 0.03:
+            continue
+        board_len = half - 0.02
+        box((0.030, board_len, hgt), P(u + i * 0.006, 0.02 + board_len / 2, zc), rot=(0, 0, yaw),
+            material=BARK if abs(i) == 3 else WOOD_FRESH)
+    box((0.02, 0.05, 0.10), P(0.0, half, zc), rot=(0, 0, yaw), material=WOOD_DARK)                       # Keil im Schnitt
+    box((0.007, 0.075, 0.62), P(0.0, 0.0, zc + 0.10), rot=(0, 0, yaw), material=IRON)                    # Blatt
+    for z in (zc + 0.36, 0.03):
+        rod(P(0.0, 0.0, z), P(0.27, 0.0, z), 0.016, WOOD_DARK, verts=5)
+    rod(P(0.27, 0.0, 0.03), P(0.27, 0.0, zc + 0.36), 0.016, WOOD_DARK, verts=5)
+    box((0.04, 0.05, 0.035), P(0.0, 0.0, zc + 0.37), rot=(0, 0, yaw), material=WOOD)
+    box((0.04, 0.05, 0.035), P(0.0, 0.0, 0.03), rot=(0, 0, yaw), material=WOOD)
+    wood_chips(cx, cy, 24, 0.55, seed=5)
+
+
+def plank_stack(cx, cy, w, length, layers, yaw=0.0, seed=0, board=0.030):
+    """Bretterstapel auf zwei Unterlegern, zwischen den Lagen Stapelhölzer (Zwischenhölzer); die Lagen ragen unter-
+    schiedlich weit heraus, die oberste ist in Bretter geteilt. Gibt die Höhe zurück."""
+    rnd = random.Random(seed)
+    at = placed((cx, cy), yaw)
+
+    def P(u, v, z):
+        wv = at((u, v, 0.0))
+        return (wv[0], wv[1], z)
+    gap = 0.022
+    for su in (-1, 1):
+        box((0.07, length * 0.9, 0.06), P(su * (w / 2 - 0.04), 0.0, 0.03), rot=(0, 0, yaw), material=WOOD_DARK)
+    z = 0.06
+    for k in range(layers):
+        ln = length * rnd.uniform(0.94, 1.0)
+        off = rnd.uniform(-0.02, 0.02)
+        box((w, ln, board), P(rnd.uniform(-0.012, 0.012), off, z + board / 2), rot=(0, 0, yaw),
+            material=(WOOD_FRESH, WOOD, WOOD_FRESH)[k % 3])
+        for v in (-0.38, 0.0, 0.38):
+            box((w * 0.98, 0.05, gap), P(0.0, v * length, z + board + gap / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+        z += board + gap
+    for k in (1, 2):
+        box((0.006, length * 0.96, 0.004), P(-w / 2 + k * w / 3, 0.0, z - gap + 0.001), rot=(0, 0, yaw), material=WOOD_DARK)
+    return z
+
+
+def beam_stack(cx, cy, length, beam=0.075, rows=(3, 2, 1), yaw=0.0, seed=0):
+    """Balkenstapel: Kanthölzer mit hellem Hirnholz an den Enden, reihenweise übereinander, mit Stapelhölzern."""
+    rnd = random.Random(seed)
+    at = placed((cx, cy), yaw)
+
+    def P(u, v, z):
+        wv = at((u, v, 0.0))
+        return (wv[0], wv[1], z)
+    pitch = beam + 0.012
+    for row, n in enumerate(rows):
+        z = beam / 2 + 0.05 + row * (beam + 0.025)
+        for k in range(n):
+            u = (k - (n - 1) / 2) * pitch
+            ln = length * rnd.uniform(0.92, 1.02)
+            off = rnd.uniform(-0.03, 0.03)
+            box((beam, ln, beam), P(u, off, z), rot=(0, 0, yaw), material=WOOD if (k + row) % 2 else WOOD_FRESH)
+            for sv in (-1, 1):
+                box((beam * 0.9, 0.004, beam * 0.9), P(u, off + sv * (ln / 2 + 0.001), z), rot=(0, 0, yaw), material=END_GRAIN)
+        if row < len(rows) - 1:
+            for v in (-length * 0.32, length * 0.32):
+                box((rows[row] * pitch, 0.04, 0.025), P(0.0, v, z + beam / 2 + 0.012), rot=(0, 0, yaw), material=WOOD_DARK)
+    for v in (-length * 0.32, length * 0.32):
+        box((rows[0] * pitch + 0.04, 0.06, 0.05), P(0.0, v, 0.025), rot=(0, 0, yaw), material=WOOD_DARK)
+
+
+def truss(x, y, width, height, yaw=0.0, thick=0.04, with_rafters=(True, True), collar=0.62, z_base=0.0):
+    """Ein Sparrengebinde (Dreiecksbinder) in der Ebene quer zur lokalen y-Achse: zwei Sparren, Spannbalken unten und
+    Zangenholz auf Höhe collar * height. Fuß bei z_base."""
+    at = placed((x, y), yaw)
+
+    def P(u, z):
+        w = at((u, 0.0, 0.0))
+        return (w[0], w[1], z_base + z)
+    for s, on in zip((-1, 1), with_rafters):
+        if on:
+            bar(P(s * width / 2, 0.0), P(0.0, height), thick, WOOD)
+    box((width + 0.02, thick, thick), P(0.0, thick / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+    if all(with_rafters):
+        z = height * collar
+        hw = width / 2 * (1 - collar)
+        bar(P(-hw, z), P(hw, z), thick * 0.8, WOOD_FRESH)
+        for s in (-1, 1):                                                             # Holznägel
+            c = P(s * hw, z)
+            cyl(0.008, thick * 1.3, c, rot=(90, 0, yaw), material=WOOD_DARK, verts=5)
+
+
+def tool_wall(x0, x1, y_wall, z0, z1):
+    """Werkzeugwand an der Rückwand (Fläche bei y_wall, Vorderseite nach -y): Bohlen und daran hängend Beile,
+    Handsäge, Bohrer, Dechsel, Hammer und eine Schnur mit Lot."""
+    cxm = (x0 + x1) / 2
+    box((x1 - x0, 0.04, z1 - z0), (cxm, y_wall - 0.02, (z0 + z1) / 2), material=WOOD)
+    n = int((x1 - x0) / 0.10)
+    for k in range(1, n):
+        box((0.006, 0.006, z1 - z0 - 0.02), (x0 + k * (x1 - x0) / n, y_wall - 0.043, (z0 + z1) / 2), material=WOOD_DARK)
+    for z in (z0 + 0.05, z1 - 0.05):
+        box((x1 - x0 + 0.04, 0.04, 0.045), (cxm, y_wall - 0.055, z), material=WOOD_DARK)
+    yf = y_wall - 0.062
+    slots = [x0 + 0.12 + k * (x1 - x0 - 0.24) / 5 for k in range(6)]
+    zt = z1 - 0.14
+    x = slots[0]                                                                           # Beil
+    rod((x, yf, zt - 0.22), (x, yf, zt), 0.010, WOOD, verts=5)
+    box((0.085, 0.016, 0.06), (x + 0.03, yf, zt), material=IRON)
+    x = slots[1]                                                                           # Handsäge
+    slab([(x - 0.05, zt - 0.28), (x + 0.07, zt - 0.28), (x + 0.07, zt - 0.14), (x - 0.05, zt - 0.02)], "xz", yf - 0.003, 0.004, IRON)
+    box((0.04, 0.02, 0.06), (x - 0.07, yf, zt - 0.01), material=WOOD_DARK)
+    x = slots[2]                                                                           # Bohrer
+    rod((x, yf, zt - 0.30), (x, yf, zt - 0.02), 0.007, IRON, verts=4)
+    rod((x - 0.07, yf, zt - 0.02), (x + 0.07, yf, zt - 0.02), 0.011, WOOD_DARK, verts=5)
+    x = slots[3]                                                                           # Dechsel
+    rod((x, yf, zt - 0.26), (x + 0.02, yf, zt), 0.010, WOOD, verts=5)
+    box((0.02, 0.07, 0.06), (x + 0.02, yf, zt - 0.01), material=IRON)
+    x = slots[4]                                                                           # Hammer
+    rod((x, yf, zt - 0.20), (x, yf, zt - 0.02), 0.010, WOOD, verts=5)
+    box((0.075, 0.03, 0.035), (x, yf, zt - 0.005), material=IRON)
+    x = slots[5]                                                                           # zweites Beil
+    rod((x, yf, zt - 0.34), (x, yf, zt - 0.14), 0.010, WOOD, verts=5)
+    box((0.085, 0.016, 0.06), (x - 0.03, yf, zt - 0.13), material=IRON)
+    sx = x0 + 0.06                                                                         # Schnur mit Lot
+    box((0.006, 0.006, 0.20), (sx, yf, z1 - 0.12), material=SACK)
+    cone(0.014, 0.0, 0.04, (sx, yf, z1 - 0.24), IRON, verts=6, rot=(180, 0, 0))
+    for sxp in slots:                                                                      # Haken
+        box((0.012, 0.016, 0.012), (sxp, yf + 0.004, zt + 0.002), material=WOOD_DARK)
+
+
+def roof_frame(x, y, n, spacing, width, height, yaw=0.0, standing=3, wall=0.0):
+    """Halb fertiger Dachstuhl: zwei Mauerlatten auf Steinen, n Sparrengebinde im Abstand spacing in Richtung der lokalen
+    y-Achse; die ersten standing sind komplett und oben durch eine Firstpfette verbunden, das nächste hat nur einen
+    Sparren, auf der linken Dachseite liegen schon Latten, ein weiterer Sparren liegt unfertig daneben. wall > 0: die
+    Mauerlatten liegen auf zwei niedrigen Bruchsteinmauern dieser Höhe."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    length = spacing * (n - 1) + 0.2
+    mid = spacing * (n - 1) / 2
+    for su in (-1, 1):
+        if wall > 0:
+            for k in range(int(length / 0.16)):                      # Mauer aus Bruchsteinlagen
+                v = -0.1 + 0.08 + k * 0.16
+                for z0, hh in ((0.0, wall * 0.5), (wall * 0.5, wall * 0.5)):
+                    box((0.16, 0.15, hh - 0.005), P(su * (width / 2 + 0.01), v + (0.08 if z0 else 0.0), z0 + hh / 2),
+                        rot=(0, 0, yaw), material=(STONE, ROCK_B, ROCK_A)[k % 3])
+            box((0.07, length, 0.07), P(su * (width / 2 + 0.01), mid, wall + 0.035), rot=(0, 0, yaw), material=WOOD_DARK)
+        else:
+            for v in (0.0, mid, spacing * (n - 1)):
+                box((0.12, 0.10, 0.08), P(su * (width / 2 + 0.01), v, 0.04), rot=(0, 0, yaw), material=STONE)
+            box((0.07, length, 0.07), P(su * (width / 2 + 0.01), mid, 0.115), rot=(0, 0, yaw), material=WOOD_DARK)
+    z_base = wall + 0.07 if wall > 0 else 0.15
+    for k in range(n):
+        c = at((0.0, k * spacing, 0.0))
+        if k < standing:
+            truss(c[0], c[1], width, height, yaw, with_rafters=(True, True), z_base=z_base)
+        elif k == standing:
+            truss(c[0], c[1], width, height, yaw, with_rafters=(True, False), z_base=z_base)
+    a = P(0.0, 0.0, z_base + height)
+    b = P(0.0, spacing * (standing - 1), z_base + height)
+    bar((a[0], a[1], a[2] + 0.03), (b[0], b[1], b[2] + 0.03), 0.05, WOOD_DARK)
+    for j in range(1, 5):                                      # Latten auf der linken Dachseite der fertigen Gebinde
+        t = j / 5.2
+        p0 = P(-width / 2 * (1 - t), -0.05, z_base + height * t + 0.04)
+        p1 = P(-width / 2 * (1 - t), spacing * (standing - 1) + 0.05, z_base + height * t + 0.04)
+        bar(p0, p1, 0.025, WOOD_FRESH)
+    q0, q1 = P(width / 2 + 0.28, spacing * 0.2, 0.13), P(width / 2 + 0.28, spacing * 1.6, 0.13)
+    log_piece(q0, q1, 0.03, sides=5, bark=WOOD_FRESH)
+
+
+# -- Steinbruch
+
+
+def ashlar_stack(cx, cy, nx, ny, nz, yaw=0.0, seed=0, size=(0.34, 0.20, 0.15)):
+    """Stapel behauener Quader (nx in die Breite, ny in die Tiefe, nz Lagen), mit leichtem Versatz und kleinen Fugen,
+    unten auf zwei Balken, zwischen den Lagen Stapelhölzer."""
+    rnd = random.Random(seed)
+    at = placed((cx, cy), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    sx, sy, sz = size
+    for su in range(2):
+        box((0.06, ny * (sy + 0.015), 0.05), P((su - 0.5) * nx * (sx + 0.015) * 0.7, 0.0, 0.025), rot=(0, 0, yaw), material=WOOD_DARK)
+    z = 0.05
+    for lz in range(nz):
+        for ix in range(nx):
+            for iy in range(ny):
+                u = (ix - (nx - 1) / 2) * (sx + 0.014) + rnd.uniform(-0.012, 0.012)
+                v = (iy - (ny - 1) / 2) * (sy + 0.014) + rnd.uniform(-0.012, 0.012)
+                h = sz * rnd.uniform(0.96, 1.03)
+                box((sx * rnd.uniform(0.97, 1.0), sy, h), P(u, v, z + h / 2), rot=(0, 0, yaw + rnd.uniform(-2.5, 2.5)),
+                    material=ASHLAR if (ix + iy + lz) % 3 else QUARRY_LIGHT)
+        z += sz + 0.014
+
+
+def quarry_block(x0, x1, y0, y1, z0, z1, faces=("-y",), seed=0):
+    """Stufe einer Abbauwand aus geschichtetem Kalkstein. Sie besteht aus mehreren Abschnitten entlang x, die unterschiedlich
+    weit vorn stehen; jeder hat einen rohen Kern, eine unebene Deckplatte und an den genannten Seiten übereinanderliegende
+    Gesteinsbänke von 14 bis 30 cm (jede in ein bis zwei Brocken geteilt, verschieden weit vorstehend, in drei Grautönen,
+    mit schiefen Kanten), dazu eine Reihe kleiner Keilspuren je Abschnitt und eine dunkle Spalte an den Grenzen."""
+    rnd = random.Random(seed)
+    segs = []
+    x = x0
+    while x < x1 - 0.05:
+        w = rnd.uniform(0.5, 0.9)
+        if x1 - (x + w) < 0.35:
+            w = x1 - x
+        segs.append((x, x + w))
+        x += w
+    mats = (QUARRY_LIGHT, QUARRY_MID, QUARRY_BROWN, QUARRY_LIGHT, QUARRY_MID, QUARRY_DARK)
+    for i, (a, b) in enumerate(segs):
+        sy0 = y0 + (rnd.uniform(0.0, 0.11) if i % 2 else 0.0)
+        zt = z1 + rnd.uniform(-0.02, 0.02)
+        chunky(a + 0.012, b - 0.012, sy0 + 0.012, y1, z0, zt - 0.03, QUARRY_DARK, jitter=0.012, seed=seed * 7 + i, top_jitter=0.0)
+        chunky(a, b, sy0, y1, zt - 0.05, zt, QUARRY_MID, jitter=0.03, seed=seed * 7 + i + 50, top_jitter=0.02)
+        for face in faces:
+            if (face == "+x" and i != len(segs) - 1) or (face == "-x" and i != 0):
+                continue
+            lo, hi = (sy0, y1) if face in ("+x", "-x") else (a, b)
+            z = z0
+            while z < zt - 0.06:
+                hh = min(rnd.uniform(0.14, 0.30), zt - 0.03 - z)
+                if hh < 0.06:
+                    break
+                cuts = [lo, hi]
+                if hi - lo > 0.5 and rnd.random() < 0.6:
+                    cuts.insert(1, rnd.uniform(lo + 0.2, hi - 0.2))
+                for ta, tb in zip(cuts, cuts[1:]):
+                    if rnd.random() < 0.07:
+                        continue
+                    d = rnd.uniform(0.01, 0.075)
+                    m = rnd.choice(mats)
+                    if face == "-y":
+                        chunky(ta + 0.01, tb - 0.01, sy0 - d, sy0 + 0.03, z, z + hh - 0.012, m, jitter=0.02,
+                               seed=seed * 1000 + i * 100 + int(z * 100) + int(ta * 10), top_jitter=0.025)
+                    elif face == "+y":
+                        chunky(ta + 0.01, tb - 0.01, y1 - 0.03, y1 + d, z, z + hh - 0.012, m, jitter=0.02,
+                               seed=seed * 1000 + i * 100 + int(z * 100) + int(ta * 10), top_jitter=0.025)
+                    elif face == "-x":
+                        chunky(a - d, a + 0.03, ta + 0.01, tb - 0.01, z, z + hh - 0.012, m, jitter=0.02,
+                               seed=seed * 1000 + i * 100 + int(z * 100) + int(ta * 10), top_jitter=0.025)
+                    else:
+                        chunky(b - 0.03, b + d, ta + 0.01, tb - 0.01, z, z + hh - 0.012, m, jitter=0.02,
+                               seed=seed * 1000 + i * 100 + int(z * 100) + int(ta * 10), top_jitter=0.025)
+                z += hh
+            if face == "-y":
+                ku = a + (b - a) * rnd.uniform(0.3, 0.7)
+                zz = z0 + 0.08
+                while zz < zt - 0.08:
+                    box((0.020, 0.012, 0.030), (ku, sy0 - 0.082, zz), material=QUARRY_DARK)
+                    zz += 0.10
+                if i:
+                    box((0.025, 0.03, zt - z0 - 0.05), (a, sy0 - 0.02, (z0 + zt) / 2), material=DARK)
+
+
+def wedge_row(p0, p1, z, count, seed=0):
+    """Reihe von Keillöchern mit eisernen Spaltkeilen (so löst man Quader aus dem Fels) entlang der Strecke p0 -> p1
+    auf der Oberseite einer Stufe in der Höhe z."""
+    rnd = random.Random(seed)
+    (xa, ya), (xb, yb) = p0, p1
+    yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+    for k in range(count):
+        t = (k + 0.5) / count
+        x, y = xa + (xb - xa) * t, ya + (yb - ya) * t
+        box((0.055, 0.03, 0.016), (x, y, z + 0.004), rot=(0, 0, yaw), material=DARK)
+        if rnd.random() > 0.15:
+            box((0.04, 0.016, 0.04), (x, y, z + 0.02), rot=(rnd.uniform(-8, 8), 0, yaw + rnd.uniform(-4, 4)), material=IRON)
+
+
+def cut_groove(p0, p1, z, w=0.035):
+    """Dunkle Schrotrinne (Spalt, mit dem ein Block vom Fels getrennt wird) auf der Oberseite einer Stufe."""
+    (xa, ya), (xb, yb) = p0, p1
+    length = math.hypot(xb - xa, yb - ya)
+    yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+    box((length, w, 0.012), ((xa + xb) / 2, (ya + yb) / 2, z + 0.002), rot=(0, 0, yaw), material=DARK)
+
+
+def rubble(cx, cy, r, n, seed=0, peak=0.22, size=1.0):
+    """Schutthaufen aus kantigen Bruchstücken: in der Mitte höher und gröber, am Rand verstreute Splitter."""
+    rnd = random.Random(seed)
+    for k in range(n):
+        a = rnd.uniform(0, math.tau)
+        rr = r * math.sqrt(rnd.random())
+        s = rnd.uniform(0.035, 0.11) * (1.3 - rr / r * 0.6) * size
+        z = max(0.0, 1.0 - rr / r) * peak * rnd.uniform(0.4, 1.0)
+        x, y = cx + math.cos(a) * rr, cy + math.sin(a) * rr
+        chunky(x - s, x + s * 1.1, y - s * 0.9, y + s, z, z + s * rnd.uniform(0.7, 1.1),
+               rnd.choice((QUARRY_LIGHT, QUARRY_MID, QUARRY_DARK, QUARRY_BROWN, QUARRY_LIGHT)), jitter=s * 0.4,
+               seed=seed * 131 + k, yaw=rnd.uniform(0, 90))
+
+
+def tripod_crane(cx, cy, height=1.35, spread=0.52, yaw=0.0, block_z=0.30, seed=0):
+    """Dreibeinkran mit Flaschenzug: drei Rundhölzer, oben mit einem Tau verzurrt, daran die Rollenblöcke, darunter hängt an
+    zwei Schlingen ein Quader knapp über dem Boden; hinter dem Kran eine Handwinde (Haspel) auf zwei Pfosten, zu der das Zugseil läuft."""
+    rnd = random.Random(seed)
+    apex = (cx, cy, height)
+    for k in range(3):
+        a = math.radians(yaw + 90 + 120 * k)
+        base = (cx + spread * math.cos(a), cy + spread * math.sin(a), 0.0)
+        top = (cx + 0.035 * math.cos(a), cy + 0.035 * math.sin(a), height - 0.02)
+        log_piece(base, top, 0.034, sides=6, bark=BARK_LIGHT, r1=0.026)
+        box((0.07, 0.07, 0.03), (base[0], base[1], 0.015), rot=(0, 0, math.degrees(a)), material=STONE)    # Fußstein
+    for dz in (-0.06, 0.0, 0.06):                                     # Verzurrung
+        cyl(0.062, 0.03, (cx, cy, height - 0.02 + dz * 0.6), material=ROPE, verts=8)
+    z_up = height - 0.26
+    z_low = block_z + 0.50
+    rod((cx, cy, height - 0.03), (cx, cy, z_up + 0.06), 0.006, SACK, verts=4)
+    box((0.07, 0.04, 0.12), (cx, cy, z_up), material=WOOD_DARK)
+    cyl(0.032, 0.03, (cx, cy, z_up), rot=(0, 90, 0), material=IRON, verts=8)
+    box((0.07, 0.04, 0.10), (cx, cy, z_low), material=WOOD_DARK)
+    cyl(0.028, 0.03, (cx, cy, z_low), rot=(0, 90, 0), material=IRON, verts=8)
+    for dx in (-0.018, 0.018):                                        # zwei Seilstränge zwischen den Rollen
+        rod((cx + dx, cy, z_up - 0.05), (cx + dx, cy, z_low + 0.05), 0.005, SACK, verts=4)
+    # Quader an zwei Schlingen
+    bw, bd, bh = 0.34, 0.20, 0.20
+    yawb = 12
+    c = (cx, cy, block_z + bh / 2)
+    box((bw, bd, bh), c, rot=(0, 0, yawb), material=ASHLAR)
+    box((bw + 0.004, bd + 0.004, 0.012), (c[0], c[1], block_z + bh - 0.03), rot=(0, 0, yawb), material=QUARRY_LIGHT)
+    top = (cx, cy, block_z + bh + 0.012)
+    for s in (-1, 1):
+        ex = cx + s * 0.12 * math.cos(math.radians(yawb))
+        ey = cy + s * 0.12 * math.sin(math.radians(yawb))
+        rod((cx, cy, z_low - 0.05), (ex, ey, block_z + bh + 0.01), 0.006, SACK, verts=4)
+        cyl(0.012, 0.03, (ex, ey, block_z + bh - 0.02), material=IRON, verts=6)
+    # Zugseil zur Handwinde hinter dem Kran
+    wy = cy + spread + 0.42
+    rod((cx, cy, height - 0.05), (cx, wy, 0.40), 0.005, SACK, verts=4)
+    for s in (-1, 1):
+        box((0.05, 0.05, 0.45), (cx + s * 0.20, wy, 0.225), material=WOOD_DARK)
+        bar((cx + s * 0.20, wy, 0.2), (cx + s * 0.20, wy + 0.18, 0.0), 0.035, WOOD_DARK)
+    cyl(0.05, 0.36, (cx, wy, 0.36), rot=(0, 90, 0), material=WOOD, verts=10)
+    rod((cx + 0.20, wy, 0.36), (cx + 0.31, wy, 0.36 + 0.10), 0.011, WOOD_DARK, verts=5)               # Kurbel
+    box((0.04, 0.03, 0.03), (cx + 0.32, wy, 0.46), material=WOOD)
+
+
+def stonecutter_block(x, y, yaw=0.0):
+    """Arbeitsblock des Steinmetzen: roher Block mit halb geglätteter Oberseite, darauf Schlägel, drei Meißel, Spaltkeile
+    und Steinsplitter."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    chunky(x - 0.28, x + 0.28, y - 0.20, y + 0.20, 0.0, 0.28, QUARRY_LIGHT, jitter=0.02, seed=3, top_jitter=0.01, yaw=yaw)
+    box((0.30, 0.34, 0.012), P(-0.10, 0.0, 0.287), rot=(0, 0, yaw), material=ASHLAR)                 # geglättete Fläche
+    cyl(0.033, 0.11, P(0.14, -0.08, 0.31), rot=(0, 90, yaw + 20), material=WOOD, verts=8)             # Schlägel
+    rod(P(0.14, -0.08, 0.31), P(0.14 - 0.14 * math.cos(math.radians(20)), -0.08 - 0.14 * math.sin(math.radians(20)), 0.30), 0.009, WOOD_DARK, verts=5)
+    for k in range(3):                                                                               # Meißel
+        a = yaw + 70 + k * 14
+        rod(P(-0.12 + k * 0.07, -0.10, 0.296), P(-0.12 + k * 0.07 + 0.03, 0.08, 0.296), 0.007, IRON, verts=4)
+        cyl(0.011, 0.012, P(-0.12 + k * 0.07 + 0.03, 0.085, 0.296), rot=(90, 0, yaw), material=IRON, verts=6)
+    for k in range(3):                                                                               # Keile
+        box((0.04, 0.02, 0.03), P(0.18, 0.06 + k * 0.045, 0.30), rot=(0, 0, yaw + k * 17), material=IRON)
+    for k in range(7):
+        s = random.Random(k).uniform(0.015, 0.03)
+        box((s, s * 0.8, s * 0.5), P(-0.20 + k * 0.07, -0.02 + (k % 3) * 0.05, 0.296), rot=(0, 0, yaw + k * 30), material=QUARRY_MID)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 
