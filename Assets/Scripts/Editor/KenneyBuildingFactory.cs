@@ -62,8 +62,7 @@ namespace EpochCity
             // Markt: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Lager: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Bibliothek", Make("Bibliothek", 2, antique, Library));
-            Assign("Bld_Tempel", Make("Tempel", new Vector2Int(2, 3), antique, Temple));
-            Assign("Bld_Brunnen", Make("Brunnen", 1, antique, Well));
+            // Tempel und Brunnen: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             Assign("Bld_Schreibschule", Make("Schreibschule", 2, antique, School));
             Assign("Bld_Feuerwache", Make("Feuerwache", 2, antique, FireStation));
             // Feld: vier Wachstumsstufen als Varianten in fester Reihenfolge; CropStages zeigt die passende
@@ -623,29 +622,6 @@ namespace EpochCity
         }
 
         /// <summary>
-        /// Tempel 2 × 3: Cella aus Stein mit zwei Bogentüren, davor eine offene Vorhalle mit drei Säulen und
-        /// darüber ein Satteldach aus Terrakotta (wie die Bibliothek, aber tiefer und ohne Fenster).
-        /// </summary>
-        private static void Temple(Builder b)
-        {
-            const int w = 2, d = 4;
-            // Wände nur um die hinteren drei Reihen; die vordere Reihe ist die offene Vorhalle
-            for (int i = 0; i < w; i++)
-                for (int j = 1; j < d; j++)
-                    foreach (var dir in Sides)
-                    {
-                        var n = new Vector2Int(i, j) + dir;
-                        bool outside = n.x < 0 || n.x >= w || n.y < 1 || n.y >= d;
-                        if (!outside) continue;
-                        string part = dir == Vector2Int.down ? "wall-doorway-round" : "wall";
-                        b.Put(FT + part, Cell(n.x, n.y, w, d), WallRot(dir));
-                    }
-            for (int k = 0; k <= w; k++)
-                b.Put(FT + "pillar-stone", Cell(0, 0, w, d) + new Vector3(k - 0.5f, 0f, -0.5f), 0f);
-            GableRoof(b, w, d, 1, "roof");
-        }
-
-        /// <summary>
         /// Schreibschule 2 × 2: kleiner Steinbau hinten mit Tür und Fenstern, davor ein Hof mit zwei Bänken unter
         /// freiem Himmel (Unterricht im Freien) und einer Laterne.
         /// </summary>
@@ -792,13 +768,6 @@ namespace EpochCity
                 b.Put(NK + "stump_round", new Vector3(0.3f + k * 0.35f, 0f, -1.5f), k * 40f, 0.55f);
             b.Put(FT + "cart", new Vector3(1.55f, 0f, -0.9f), 90f);
             b.Put(FT + "lantern", new Vector3(-1.75f, 0f, -0.3f), 0f);
-        }
-
-        /// <summary>Brunnen 1 × 1: runder Brunnen mit klarem Wasser.</summary>
-        private static void Well(Builder b)
-        {
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", Vector3.zero, 0f);
         }
 
         /// <summary>Laden: zwei Marktstände auf Holzboden.</summary>

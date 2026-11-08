@@ -1622,6 +1622,205 @@ def ship_anchor(x, y, z0, yaw=0.0):
     keep(bpy.context.active_object, IRON)
 
 
+# ---------------------------------------------------------------- Tempel und Brunnen (Säulen, Altar, Reliefkopf, Wasserstrahl)
+
+TYMPANUM = mat("Giebelfeld", (0.74, 0.46, 0.38))
+FOAM = mat("Schaum", (0.88, 0.95, 0.98), rough=0.3)
+SMOKE = mat("Rauch", (0.80, 0.79, 0.77), rough=1.0)
+PAVE_WORN = mat("PflasterDunkel", (0.40, 0.38, 0.35), rough=0.7)
+
+
+def fluted_shaft(x, y, z0, z1, r0, r1, flutes=10, material=MARBLE):
+    """Kannelierter Säulenschaft: Sternprofil mit abwechselnd vollem und eingezogenem Radius (Kanneluren), unten r0, oben
+    r1, in der Mitte leicht gebaucht (Entasis). Flache Schattierung zeigt die Rillen."""
+    n = 2 * flutes
+    rings = [(0.0, r0), (0.45, r0 + (r1 - r0) * 0.45 + r0 * 0.02), (1.0, r1)]
+    verts = []
+    for t, rad in rings:
+        z = z0 + (z1 - z0) * t
+        for i in range(n):
+            a = 2 * math.pi * i / n
+            rr = rad if i % 2 == 0 else rad * 0.86
+            verts.append((x + math.cos(a) * rr, y + math.sin(a) * rr, z))
+    faces = []
+    for k in range(len(rings) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            faces.append((k * n + i, k * n + j, (k + 1) * n + j, (k + 1) * n + i))
+    faces.append(tuple(range(2 * n, 3 * n)))
+    faces.append(tuple(range(n))[::-1])
+    mesh = bpy.data.meshes.new("Schaft")
+    mesh.from_pydata(verts, [], faces)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new("Schaft", mesh)
+    bpy.context.collection.objects.link(obj)
+    return keep(obj, material)
+
+
+def ring(x, y, z, big_r, small_r, axis="y", material=BRONZE, segs=14, yaw=0.0):
+    """Ring (Torus), Achse 'y' = liegt in der xz-Ebene (Kranz an einer Front), 'z' = liegt flach."""
+    rot = (math.radians(90), 0, math.radians(yaw)) if axis == "y" else (0, 0, 0)
+    bpy.ops.mesh.primitive_torus_add(major_radius=big_r, minor_radius=small_r, major_segments=segs, minor_segments=5,
+                                     location=(x, y, z), rotation=rot)
+    return keep(bpy.context.active_object, material)
+
+
+def corinthian_column(x, y, z0, h, r=0.075, shaft=MARBLE, cap=MARBLE):
+    """Säule mit attischer Basis (Plinthe, Wülste, Kehle), kanneliertem Schaft und korinthisch angedeutetem Kapitell
+    (Kelch, acht Akanthusblätter, vier Eckvoluten, Abakus). Fuß bei z0, Gesamthöhe h."""
+    base_h, cap_h = 0.105, 0.17
+    box((r * 2.9, r * 2.9, 0.04), (x, y, z0 + 0.02), material=LIME_DARK)
+    cyl(r * 1.30, 0.03, (x, y, z0 + 0.055), material=shaft, verts=12)
+    cyl(r * 1.05, 0.015, (x, y, z0 + 0.0775), material=LIME_DARK, verts=12)
+    cyl(r * 1.18, 0.02, (x, y, z0 + 0.095), material=shaft, verts=12)
+    zs = z0 + base_h
+    ze = z0 + h - cap_h
+    fluted_shaft(x, y, zs, ze, r * 0.98, r * 0.84, flutes=8, material=shaft)
+    cyl(r * 0.92, 0.02, (x, y, ze + 0.01), material=LIME_DARK, verts=12)                       # Halsring
+    cone(r * 0.88, r * 1.32, 0.10, (x, y, ze + 0.07), cap, verts=12)                            # Kelch
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        sphere(r * 0.34, (x + math.cos(a) * r * 1.02, y + math.sin(a) * r * 1.02, ze + 0.085), (1.0, 0.45, 1.6),
+               LIME, segs=5, rings=3, rot=(0, 0, math.degrees(a) + 90))                           # Akanthusblätter
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            sphere(r * 0.30, (x + sx * r * 1.30, y + sy * r * 1.30, ze + 0.13), (1.0, 1.0, 0.8), LIME_DARK, segs=6, rings=4)
+    box((r * 3.0, r * 3.0, 0.03), (x, y, ze + 0.155), material=cap)                             # Abakus
+    box((r * 3.2, r * 3.2, 0.015), (x, y, ze + 0.1625), material=LIME_DARK)
+
+
+def palmette(x, y, z, yaw=0.0, h=0.16, material=MARBLE):
+    """Akroterion: Sockel mit Palmette (fünf Blätter, Mittelkugel); die Fläche zeigt bei yaw 0 nach -y."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    box((h * 0.75, h * 0.32, h * 0.30), (x, y, z + h * 0.15), rot=(0, 0, yaw), material=LIME_DARK)
+    for k, a in enumerate((-62, -31, 0, 31, 62)):
+        rl = h * (0.60 if k in (0, 4) else 0.78 if k in (1, 3) else 0.92)
+        ar = math.radians(a)
+        cx, cz = math.sin(ar) * rl * 0.5, math.cos(ar) * rl * 0.5
+        box((h * 0.17, h * 0.07, rl), (x + c * cx, y + s * cx, z + h * 0.30 + cz), rot=(0, -a, yaw), material=material)
+    sphere(h * 0.12, (x, y, z + h * 0.36), material=material, segs=6, rings=4)
+
+
+def relief_head(x, y, z, yaw=0.0, r=0.085, spout=True):
+    """Reliefkopf (Maske) an einer Wand: Scheibe, Stirn, Augen, Nase, offener Mund mit Wasserspeier (Bronzerohr), Haar
+    und Bart aus Locken. Blickt bei yaw 0 nach -y, dreht sich mit yaw um die Wandmitte."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+    def W(lx, ly, lz):
+        return (x + lx * c - ly * s, y + lx * s + ly * c, z + lz)
+
+    cyl(r, 0.035, W(0, 0, 0), rot=(90, 0, yaw), material=MARBLE, verts=14)
+    sphere(r * 0.80, W(0, -0.012, 0.0), (1.0, 0.55, 1.05), MARBLE, segs=9, rings=6, rot=(0, 0, yaw))
+    for sx in (-1, 1):
+        sphere(r * 0.17, W(sx * r * 0.34, -r * 0.40, r * 0.22), (1.0, 0.6, 0.7), DARK, segs=5, rings=3, rot=(0, 0, yaw))
+        box((r * 0.42, 0.012, 0.012), W(sx * r * 0.34, -r * 0.40, r * 0.46), rot=(0, 0, yaw), material=LIME_DARK)
+    cone(r * 0.16, r * 0.07, r * 0.46, W(0, -r * 0.52, -r * 0.02), MARBLE, verts=5, rot=(90, 0, yaw))
+    sphere(r * 0.24, W(0, -r * 0.42, -r * 0.46), (1.0, 0.5, 0.75), DARK, segs=6, rings=4, rot=(0, 0, yaw))   # offener Mund
+    if spout:
+        cyl(r * 0.13, r * 0.9, W(0, -r * 0.7, -r * 0.44), rot=(90, 0, yaw), material=BRONZE, verts=6)
+    for k in range(9):                                                                    # Haar
+        a = math.pi * (0.05 + 0.9 * k / 8)
+        sphere(r * 0.17, W(math.cos(a) * r * 0.90, -r * 0.35, math.sin(a) * r * 0.92), (1.0, 0.8, 1.0), LIME_DARK, segs=5,
+               rings=3, rot=(0, 0, yaw))
+    for k in range(5):                                                                    # Bart
+        a = math.pi * (1.1 + 0.8 * k / 4)
+        sphere(r * 0.15, W(math.cos(a) * r * 0.78, -r * 0.35, math.sin(a) * r * 0.84 - r * 0.15), (1.0, 0.8, 1.0), LIME_DARK,
+               segs=5, rings=3, rot=(0, 0, yaw))
+
+
+def water_jet(p0, p1, thick=0.022, segs=8, material=WATER):
+    """Wasserstrahl als gebogene Kette dünner Stäbe von p0 (Mund, anfangs waagerecht) zu p1 (Aufprall, senkrecht);
+    Spritzer aus Schaumkugeln am Ende."""
+    pts = []
+    for k in range(segs + 1):
+        t = k / segs
+        pts.append((p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t, p0[2] + (p1[2] - p0[2]) * t * t))
+    for k in range(segs):
+        bar(pts[k], pts[k + 1], thick * (1.0 - 0.25 * k / segs), material)
+    for k in range(5):
+        a = 2 * math.pi * k / 5
+        sphere(0.014, (p1[0] + math.cos(a) * 0.035, p1[1] + math.sin(a) * 0.035, p1[2] + 0.012 + 0.01 * (k % 2)),
+               material=FOAM, segs=5, rings=3)
+    sphere(0.030, (p1[0], p1[1], p1[2] + 0.005), (1.0, 1.0, 0.45), FOAM, segs=7, rings=4)
+    return pts
+
+
+def altar(x, y, yaw=0.0, with_flame=True):
+    """Opferaltar aus Kalkstein: Sockel, Körper mit Kranz-Relief und Inschriftfeld, Gesims, zwei Polster (Pulvini) und
+    Bronzeschale mit Opferflamme. Vorderseite nach -y (bei yaw 0)."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+    def W(lx, ly):
+        return (x + lx * c - ly * s, y + lx * s + ly * c)
+
+    box((0.32, 0.24, 0.04), (*W(0, 0), 0.02), rot=(0, 0, yaw), material=LIME_DARK)
+    box((0.27, 0.19, 0.03), (*W(0, 0), 0.055), rot=(0, 0, yaw), material=LIME)
+    box((0.22, 0.15, 0.20), (*W(0, 0), 0.17), rot=(0, 0, yaw), material=LIME)
+    box((0.12, 0.012, 0.07), (*W(0, -0.078), 0.12), rot=(0, 0, yaw), material=LIME_DARK)             # Inschriftfeld
+    ring(*W(0, -0.080), 0.215, 0.036, 0.007, "y", LEAF_DARK, 10, yaw)                                 # Kranz
+    box((0.30, 0.22, 0.035), (*W(0, 0), 0.2875), rot=(0, 0, yaw), material=LIME_DARK)
+    for sx in (-1, 1):
+        cyl(0.022, 0.20, (*W(sx * 0.10, 0), 0.325), rot=(90, 0, yaw), material=LIME, verts=8)
+    cone(0.07, 0.10, 0.045, (*W(0, 0), 0.35), BRONZE, verts=10)
+    if with_flame:
+        cone(0.07, 0.0, 0.13, (*W(0, 0), 0.43), FLAME, verts=8)
+        cone(0.035, 0.0, 0.17, (*W(0, 0), 0.45), BLOOM_YELLOW, verts=6)
+
+
+def incense_burner(x, y):
+    """Weihrauchbecken: Bronzeschale auf Dreifuß mit glühenden Kohlen und Rauchfahne."""
+    for k in range(3):
+        a = 2 * math.pi * k / 3 + 0.5
+        bar((x + math.cos(a) * 0.075, y + math.sin(a) * 0.075, 0.0), (x + math.cos(a) * 0.03, y + math.sin(a) * 0.03, 0.22), 0.016, BRONZE)
+    cyl(0.085, 0.014, (x, y, 0.20), material=BRONZE, verts=10)
+    cone(0.05, 0.095, 0.07, (x, y, 0.245), BRONZE, verts=10)
+    cyl(0.07, 0.01, (x, y, 0.282), material=FLAME, verts=10)
+    for dx, dz, rr in ((0.0, 0.34, 0.035), (0.03, 0.42, 0.030), (-0.02, 0.50, 0.026), (0.025, 0.57, 0.020)):
+        sphere(rr, (x + dx, y, dz), (1.0, 1.0, 0.9), SMOKE, segs=6, rings=4)
+
+
+def stele(x, y, yaw=0.0, h=0.22):
+    """Votivstele: kleine Platte mit Giebelchen auf Sockel und einem Kranz."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    box((0.14, 0.08, 0.03), (x, y, 0.015), rot=(0, 0, yaw), material=LIME_DARK)
+    box((0.10, 0.035, h), (x, y, 0.03 + h / 2), rot=(0, 0, yaw), material=LIME)
+    for sx in (-1, 1):
+        box((0.062, 0.035, 0.014), (x + c * sx * 0.026, y + s * sx * 0.026, 0.03 + h + 0.003), rot=(0, -sx * 28, yaw), material=LIME)
+    ring(x + s * 0.019, y - c * 0.019, 0.03 + h * 0.62, 0.026, 0.005, "y", LIME_DARK, 8, yaw)
+
+
+def temple_podium(x0, x1, y0, y1, h):
+    """Podium mit Profil: Sockelplatte, Wulst, Wandfläche mit Feldern, Gesims und Deckplatte (Oberkante bei h)."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    w, d = x1 - x0, y1 - y0
+    box((w + 0.20, d + 0.20, 0.07), (cx, cy, 0.035), material=LIME_DARK)
+    box((w + 0.12, d + 0.12, 0.05), (cx, cy, 0.095), material=LIME)
+    box((w + 0.04, d + 0.04, h - 0.20), (cx, cy, 0.12 + (h - 0.20) / 2), material=LIME)
+    box((w + 0.10, d + 0.10, 0.04), (cx, cy, h - 0.07), material=LIME_DARK)
+    box((w + 0.16, d + 0.16, 0.05), (cx, cy, h - 0.025), material=LIME)
+
+
+def grand_stairs(x, y_top, width, height, steps, run, cheek=0.14, material=LIME):
+    """Freitreppe zwischen zwei Wangen, steigt nach +y bis y_top (Vorderkante des Podiums). steps = Zahl der Stufen
+    unterhalb des Podiums; die Wangen laufen schräg zur Podiumhöhe und enden vorn in einem Block mit Kugel."""
+    rise = height / (steps + 1)
+    for k in range(1, steps + 1):
+        d = run * (steps + 1 - k)
+        box((width, d, rise * k), (x, y_top - d / 2, rise * k / 2), material=material)
+        box((width + 0.02, 0.025, 0.02), (x, y_top - d - 0.005, rise * k - 0.01), material=LIME_DARK)       # Stufenkante
+    front = run * steps
+    for s in (-1, 1):
+        xa = x + s * width / 2
+        slab([(y_top - front, 0.0), (y_top, 0.0), (y_top, height + 0.11), (y_top - front, rise * steps + 0.10)], "yz",
+             xa if s > 0 else xa - cheek, cheek, LIME_DARK)
+        box((cheek + 0.05, 0.10, rise * steps + 0.14), (xa + s * cheek / 2, y_top - front - 0.04, (rise * steps + 0.14) / 2), material=LIME_DARK)
+        sphere(0.055, (xa + s * cheek / 2, y_top - front - 0.04, rise * steps + 0.14 + 0.05), material=LIME, segs=8, rings=5)
+
+
 # ---------------------------------------------------------------- Varianten und Export
 
 

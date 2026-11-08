@@ -859,6 +859,8 @@ MonoBehaviour:
   halfLength: 1.85
   approachAlong: 5
   approachOut: 3.5
+  bowClearance: 0.15
+  maxRoll: 1.8
 --- !u!1 &1598712634
 GameObject:
   m_ObjectHideFlags: 0
