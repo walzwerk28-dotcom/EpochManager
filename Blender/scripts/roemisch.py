@@ -3004,7 +3004,8 @@ def export(spacing):
         yaw = math.radians(float(os.environ.get("PREVIEW_YAW", "0")))
         zoom = float(os.environ.get("PREVIEW_ZOOM", "1"))
         cam.location = ((cam.location.x * math.cos(yaw) - cam.location.y * math.sin(yaw)) * zoom,
-                        (cam.location.x * math.sin(yaw) + cam.location.y * math.cos(yaw)) * zoom, cam.location.z * zoom)
+                        (cam.location.x * math.sin(yaw) + cam.location.y * math.cos(yaw)) * zoom,
+                        cam.location.z * zoom * float(os.environ.get("PREVIEW_ELEV", "1")))
         cam.rotation_euler = (Vector((0.0, 0.0, float(os.environ.get("PREVIEW_AIMZ", "0.5")))) - cam.location).to_track_quat("-Z", "Y").to_euler()
         cam_data.lens = 40
         scene.camera = cam
@@ -3699,3 +3700,173 @@ def field_pillar(x, y, h=0.42, w=0.20, yaw=0.0, seed=0):
             rot=(rnd.uniform(-1, 1), rnd.uniform(-1, 1), yaw + rnd.uniform(-1.5, 1.5)),
             material=mats[(j + rnd.randrange(2)) % 3])
     box((w * 1.28, w * 1.28, 0.04), (x, y, h - 0.02), rot=(0, 0, yaw + 2), material=FIELD_CAP)
+
+
+# ================================================================ Gewerbe Paket 1: Laden, Taberna, Werkstatt, Kontor
+
+BREAD = mat("Brot", (0.72, 0.46, 0.22))
+BREAD_DARK = mat("BrotDunkel", (0.52, 0.32, 0.15))
+APPLE = mat("Apfel", (0.76, 0.20, 0.15))
+APPLE_GREEN = mat("ApfelGruen", (0.62, 0.70, 0.26))
+CHEESE = mat("Kaese", (0.93, 0.80, 0.42))
+WINE_DARK = mat("WeinDunkel", (0.34, 0.06, 0.10), rough=0.3)
+INK = mat("Tinte", (0.10, 0.09, 0.09), rough=0.5)
+
+
+def basket_goods(x, y, z0=0.0, r=0.085, kind="grain", seed=0):
+    """Weidenkorb mit Ware: 'grain' (Getreide), 'apples', 'olives' oder 'bread' (gehäuft)."""
+    rnd = random.Random(seed)
+    h = r * 1.0
+    cone(r * 0.78, r, h, (x, y, z0 + h / 2), WICKER, verts=8)
+    for k in (0.55,):
+        cyl(r * (0.78 + 0.22 * k) + 0.003, 0.011, (x, y, z0 + h * k), material=WICKER_DARK, verts=8)
+    cyl(r * 1.02, 0.013, (x, y, z0 + h), material=WICKER_DARK, verts=8)
+    base = {"grain": GRAIN, "apples": APPLE_GREEN, "olives": OLIVE_FRUIT, "bread": BREAD}[kind]
+    sphere(r * 0.94, (x, y, z0 + h), (1.0, 1.0, 0.42), base, segs=8, rings=3)
+    if kind == "grain":
+        return
+    n = 7 if kind != "bread" else 4
+    for k in range(n):
+        a = k * 2.4 + rnd.uniform(-0.3, 0.3)
+        d = r * 0.62 * math.sqrt((k + 0.5) / n)
+        zt = z0 + h + r * 0.94 * 0.42 * math.sqrt(max(0.0, 1 - (d / (r * 0.94)) ** 2))
+        px, py = x + math.cos(a) * d, y + math.sin(a) * d
+        if kind == "apples":
+            sphere(0.024, (px, py, zt), material=APPLE if k % 3 else APPLE_GREEN, segs=5, rings=3)
+        elif kind == "olives":
+            sphere(0.014, (px, py, zt), (1.0, 0.8, 1.15), OLIVE_FRUIT if k % 3 else OLIVE_GREEN, segs=5, rings=3)
+        else:
+            sphere(0.034, (px, py, zt + 0.004), (1.0, 0.8, 0.55), BREAD, segs=7, rings=4, rot=(0, 0, rnd.uniform(0, 180)))
+
+
+def loaf(x, y, z0=0.0, yaw=0.0, r=0.036):
+    """Rundes Brot mit eingeschnittenem Kreuz (Panis quadratus)."""
+    sphere(r, (x, y, z0 + r * 0.38), (1.0, 1.0, 0.55), BREAD, segs=8, rings=4)
+    for a in (0, 90):
+        box((r * 1.7, 0.005, 0.004), (x, y, z0 + r * 0.38 + r * 0.55 * 0.92), rot=(0, 0, yaw + a), material=BREAD_DARK)
+
+
+def cheese_wheel(x, y, z0=0.0, r=0.04, wedge=False):
+    cyl(r, 0.032, (x, y, z0 + 0.016), material=CHEESE, verts=10)
+    if wedge:
+        box((r * 0.9, r * 0.8, 0.034), (x + r * 0.5, y, z0 + 0.017), rot=(0, 0, 25), material=DARK)
+
+
+def stool(x, y, h=0.17, r=0.06):
+    """Dreibeiniger Holzhocker."""
+    cyl(r, 0.024, (x, y, h - 0.012), material=WOOD, verts=10)
+    for k in range(3):
+        a = math.radians(k * 120 + 30)
+        rod((x + math.cos(a) * r * 1.0, y + math.sin(a) * r * 1.0, 0.0),
+            (x + math.cos(a) * r * 0.55, y + math.sin(a) * r * 0.55, h - 0.02), 0.011, WOOD_DARK, verts=5)
+
+
+def trestle_table(x, y, yaw=0.0, w=0.40, d=0.20, h=0.30, cloth=None):
+    """Tisch auf zwei Böcken, auf Wunsch mit Tuch (Farbe) und herabhängender Kante vorn."""
+    at = placed((x, y), yaw)
+    for su in (-1, 1):
+        for sv in (-1, 1):
+            p0 = at((su * (w / 2 - 0.03), sv * (d / 2 - 0.025), 0.0))
+            p1 = at((su * (w / 2 - 0.045), sv * (d / 2 - 0.045), 0.0))
+            rod((p0[0], p0[1], 0.0), (p1[0], p1[1], h - 0.02), 0.010, WOOD_DARK, verts=5)
+    box((w, d, 0.025), (x, y, h - 0.012), rot=(0, 0, yaw), material=WOOD)
+    if cloth is not None:
+        box((w + 0.01, d + 0.01, 0.006), (x, y, h + 0.003), rot=(0, 0, yaw), material=cloth)
+        p = at((0.0, -d / 2 - 0.004, 0.0))
+        box((w + 0.01, 0.006, 0.05), (p[0], p[1], h - 0.022), rot=(0, 0, yaw), material=cloth)
+    return h
+
+
+def sign_board(face, plane, u, z, w=0.20, h=0.12, arm=0.17, board=WOOD, mark=None, mark_mat=TERRACOTTA):
+    """Aushängeschild: Eisenausleger rechtwinklig aus der Wand, am Ende eine Querstange, daran hängt ein Brett parallel
+    zur Wand (zur Straße lesbar) mit einem aufgemalten Zeichen (mark = 'disc', 'bar' oder None)."""
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    box(size(0.014, arm, 0.014), at(u, arm / 2, z + h + 0.03), material=IRON)
+    box(size(0.020, 0.020, 0.040), at(u, 0.012, z + h + 0.02), material=IRON)               # Wandplatte
+    box(size(w + 0.03, 0.012, 0.012), at(u, arm, z + h + 0.03), material=IRON)               # Querstange
+    for s in (-1, 1):
+        box(size(0.004, 0.004, 0.032), at(u + s * w * 0.42, arm, z + h + 0.014), material=IRON)
+    box(size(w, 0.016, h), at(u, arm, z + h / 2), material=board)
+    box(size(w + 0.012, 0.012, 0.012), at(u, arm, z + h + 0.002), material=WOOD_DARK)
+    box(size(w + 0.012, 0.012, 0.012), at(u, arm, z - 0.002), material=WOOD_DARK)
+    if mark == "disc":
+        c = at(u, arm + 0.009, z + h / 2)
+        cyl(h * 0.30, 0.004, c, rot=(90, 0, 0) if ny != 0 else (0, 90, 0), material=mark_mat, verts=10)
+    elif mark == "bar":
+        box(size(w * 0.6, 0.004, h * 0.22), at(u, arm + 0.009, z + h / 2), material=mark_mat)
+
+
+def striped_canopy(x0, x1, y0, y1, z_back, z_front, a, b, stripe=0.10, thickness=0.010):
+    """Freistehendes Sonnendach aus gestreiftem Tuch: fällt von z_back bei y1 nach z_front bei y0 (Vorderkante -y), Streifen
+    laufen in y-Richtung; vorn hängt ein Volant."""
+    width = x1 - x0
+    n = max(3, round(width / stripe))
+    sw = width / n
+    L = math.hypot(y1 - y0, z_back - z_front)
+    tilt = math.degrees(math.atan2(z_back - z_front, y1 - y0))
+    for k in range(n):
+        m = a if k % 2 == 0 else b
+        cx = x0 + (k + 0.5) * sw
+        box((sw, L, thickness), (cx, (y0 + y1) / 2, (z_back + z_front) / 2), rot=(tilt, 0, 0), material=m)
+        box((sw, 0.008, 0.045), (cx, y0 - 0.002, z_front - 0.020), material=m)
+
+
+def counter(x0, x1, y0, y1, h=0.30, body_mat=LIME_DARK, top_mat=LIME):
+    """Gemauerte Theke (Quader mit überstehender Platte)."""
+    box((x1 - x0, y1 - y0, h - 0.03), ((x0 + x1) / 2, (y0 + y1) / 2, (h - 0.03) / 2), material=body_mat)
+    box((x1 - x0 + 0.03, y1 - y0 + 0.03, 0.03), ((x0 + x1) / 2, (y0 + y1) / 2, h - 0.015), material=top_mat)
+    return h
+
+
+def thermopolium(x0, x1, y0, y1, h=0.34, pots=3, open_mask=(1, 0, 1)):
+    """Thermopolium: gemauerte Theke, in die Platte sind Töpfe (Dolia) eingelassen, einige offen mit Speise, andere mit
+    Holzdeckel; die Front hat eine rot gemalte Zone."""
+    counter(x0, x1, y0, y1, h)
+    box((x1 - x0 + 0.002, 0.006, 0.12), ((x0 + x1) / 2, y0 - 0.002, h * 0.50), material=SOCLE_RED)
+    w = x1 - x0
+    for k in range(pots):
+        px = x0 + (k + 0.5) * w / pots
+        py = (y0 + y1) / 2
+        cyl(0.060, 0.030, (px, py, h + 0.015), material=TERRACOTTA, verts=12)
+        if open_mask[k % len(open_mask)]:
+            cyl(0.046, 0.004, (px, py, h + 0.031), material=PASTE if k % 2 == 0 else GRAIN, verts=12)
+        else:
+            cyl(0.050, 0.014, (px, py, h + 0.036), material=WOOD, verts=12)
+            cyl(0.014, 0.014, (px, py, h + 0.050), material=WOOD_DARK, verts=6)
+    return h
+
+
+def cloth_bale(x, y, z0=0.0, yaw=0.0, colors=(CLOTH_RED, CLOTH), w=0.16, d=0.09, h=0.07):
+    """Ballen gefalteten Stoffs (Streifen übereinander)."""
+    layers = 4
+    for k in range(layers):
+        box((w, d, h / layers * 0.92), (x, y, z0 + (k + 0.5) * h / layers), rot=(0, 0, yaw + (k - 1.5) * 2), material=colors[k % 2])
+
+
+def light_pergola(x0, x1, y0, y1, h=0.62, vine_post=0, step=0.20):
+    """Weinlaube wie pergola(), aber mit gröberen Blattbüscheln (wenig Dreiecke für Zonengebäude)."""
+    posts = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    for x, y in posts:
+        box((0.045, 0.045, h), (x, y, h / 2), material=WOOD_DARK)
+    for y in (y0, y1):
+        box((x1 - x0 + 0.10, 0.04, 0.04), ((x0 + x1) / 2, y, h + 0.02), material=WOOD_DARK)
+    n = max(2, int((x1 - x0) / 0.24))
+    for k in range(n + 1):
+        box((0.025, y1 - y0 + 0.12, 0.025), (x0 + k * (x1 - x0) / n, (y0 + y1) / 2, h + 0.055), material=WOOD)
+    rnd = random.Random(int((x0 + y0) * 100) + 5)
+    nx, ny = max(2, round((x1 - x0) / step)), max(2, round((y1 - y0) / step))
+    for i in range(nx + 1):
+        for j in range(ny + 1):
+            edge = i in (0, nx) or j in (0, ny)
+            if edge and rnd.random() < 0.3:
+                continue
+            x = x0 + i * (x1 - x0) / nx + rnd.uniform(-0.03, 0.03)
+            y = y0 + j * (y1 - y0) / ny + rnd.uniform(-0.03, 0.03)
+            z = h + 0.09 + rnd.uniform(-0.02, 0.03) - (0.04 if edge else 0.0)
+            sphere(0.15, (x, y, z), (1.0, 1.0, 0.34), LEAF if rnd.random() > 0.4 else LEAF_DARK, segs=6, rings=3,
+                   rot=(0, 0, rnd.uniform(0, 60)))
+    vx, vy = posts[vine_post]
+    cyl(0.02, h, (vx + 0.03, vy + 0.03, h / 2), material=WOOD_DARK, verts=6)
+    for k in range(3):
+        sphere(0.05, (vx + 0.03 * math.cos(k * 2.1), vy + 0.03 * math.sin(k * 2.1), 0.15 + k * h / 3 + 0.12),
+               (0.8, 0.8, 1.0), LEAF_DARK, segs=5, rings=3)
