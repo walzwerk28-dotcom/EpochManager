@@ -47,11 +47,11 @@ namespace EpochCity
             grounds.Clear();
             foreach (var n in new[] { "Wohnhaus", "Stadthaus", "Domus", "Insula", "Schmalhaus", "Hofhaus", "Langhaus", "Fachwerkhaus" })
                 grounds[n] = gravel;
-            foreach (var n in new[] { "Markt", "Handelshaus", "Bibliothek", "Tempel", "Brunnen",
+            foreach (var n in new[] { "Markt", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Feuerwache", "Werkstatthaus", "Handwerkerhaus", "Handwerkerzeile", "Werkhof", "Zunfthaus",
                          "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "GrossesTheater" })
                 grounds[n] = paving;
-            foreach (var n in new[] { "Werkstatthof", "Speicherhof", "Lager", "Muehle",
+            foreach (var n in new[] { "Lager", "Muehle",
                          "Holzfaeller" })
                 grounds[n] = earth;
             grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
@@ -79,11 +79,8 @@ namespace EpochCity
             // Große Zonengebäude: Häuserzeilen und Hofanlagen aus 2 Teile breiten Häusern
             // Stadthaus, Hofhaus, Langhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Domus und Insula: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
-            Assign("Bld_Werkstatthof", Make("Werkstatthof", 3, antique, WorkshopCourtFront, WorkshopCourtWings));
-            Assign("Bld_Handelshaus", Make("Handelshaus", 4, antique, TradeHall, TradeCourt));
+            // Werkstatthof, Handelshaus und Speicherhof: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
 
-            // Rechteckige Zonengebäude (Breite × Tiefe, Vorderseite nach −z an der Schmalseite)
-            Assign("Bld_Speicherhof", Make("Speicherhof", new Vector2Int(2, 4), antique, GranaryFront, GranaryYard));
 
             // Handwerkerzone: zweistöckige Häuser mit Laden unten, Bannern und Werkhöfen, Pflaster statt Kies
             Assign("Bld_Werkstatthaus", Make("Werkstatthaus", 1, antique,
@@ -173,71 +170,6 @@ namespace EpochCity
                 bool chimney = h.chimney && (k == houses.Length - 1 || houses[k + 1].storeys < h.storeys);
                 House(b.At(x, z), wall, h.storeys, doorLeft: k % 2 == 0, chimney, h.roof, d);
             }
-        }
-
-        /// <summary>Werkstatthof: breite Halle mit drei Dächern hinten, Hof mit Ständen vorn.</summary>
-        private static void WorkshopCourtFront(Builder b)
-        {
-            Hall(b.At(0f, 1.5f), 6, 3, 1, "roof", (i, j, dir, level) =>
-                dir == Vector2Int.down ? (i == 1 || i == 4 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
-                j == 1 ? "wall-wood-window-small" : "wall-wood");
-            Planks(b.At(0f, -1.5f), 6, 3);
-            b.Put(FT + "stall-red", new Vector3(-2f, 0f, -2.4f), 0f);
-            b.Put(FT + "stall-green", new Vector3(0f, 0f, -2.4f), 0f);
-            b.Put(FT + "stall", new Vector3(2f, 0f, -2.4f), 0f);
-            b.Put(NK + "log_stack", new Vector3(-2f, 0f, -0.7f), 90f);
-            b.Put(FT + "cart", new Vector3(2f, 0f, -0.8f), 80f);
-        }
-
-        /// <summary>Werkstatthof: zwei tiefe Hallen links und rechts, schmaler Hof dazwischen.</summary>
-        private static void WorkshopCourtWings(Builder b)
-        {
-            Func<int, int, Vector2Int, int, string> pick = (i, j, dir, level) =>
-                dir == Vector2Int.down ? (i == 0 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
-                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood";
-            Hall(b.At(-2f, 0f), 2, 6, 1, "roof", pick);
-            Hall(b.At(2f, 0f), 2, 6, 1, "roof-high", pick);
-            Planks(b.At(0f, 0f), 2, 6);
-            b.Put(FT + "stall-red", new Vector3(0f, 0f, -2.4f), 0f);
-            b.Put(NK + "log_stack", new Vector3(0f, 0f, 0f), 0f);
-            b.Put(FT + "cart", new Vector3(0f, 0f, 2f), 90f);
-        }
-
-        /// <summary>Handelshaus: zweistöckige Steinhalle mit Bögen, davor ein Platz mit zwei Reihen Ständen.</summary>
-        private static void TradeHall(Builder b)
-        {
-            Hall(b.At(0f, 2f), 8, 4, 2, "roof", (i, j, dir, level) =>
-                dir == Vector2Int.down
-                    ? (level == 0 ? (i % 2 == 1 ? "wall-doorway-round" : "wall-window-stone") : "wall-window-shutters")
-                    : j % 2 == 1 || level == 1 ? "wall-window-small" : "wall");
-            string[] stalls = { "stall-red", "stall-green", "stall", "stall-red" };
-            for (int k = 0; k < 4; k++)
-            {
-                float x = 2f * k - 3f;
-                b.Put(FT + stalls[k], new Vector3(x, 0f, -3.3f), 0f);
-                b.Put(FT + stalls[3 - k], new Vector3(x, 0f, -1.4f), 0f);
-            }
-            b.Put(FT + "lantern", new Vector3(-4f + 0.3f, 0f, -0.3f), 0f);
-            b.Put(FT + "lantern", new Vector3(4f - 0.3f, 0f, -0.3f), 0f);
-        }
-
-        /// <summary>Handelshaus: Hofanlage mit Brunnen und Ständen im Innenhof, zur Straße zweistöckig.</summary>
-        private static void TradeCourt(Builder b)
-        {
-            const int w = 8, d = 8;
-            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 6 && j >= 2 && j < 6));
-            var upper = Mask(w, d, (i, j) => j < 2);
-            Walls(b, ring, 0, (i, j, dir) =>
-                dir == Vector2Int.down && j == 0 ? (i == 3 || i == 4 ? "wall-doorway-round" : "wall-window-stone") :
-                Facade(i, j, dir, 0, "wall", door: false));
-            Walls(b, upper, 1, (i, j, dir) => Facade(i, j, dir, 1, "wall", door: false));
-            FlatRoof(b, Mask(w, d, (i, j) => ring[i, j] && !upper[i, j]), 1);
-            FlatRoof(b, upper, 2);
-
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", new Vector3(0f, 0f, 0f), 0f, 0.7f);
-            b.Put(FT + "stall-red", new Vector3(-1.5f, 0f, 1.6f), 0f);
-            b.Put(FT + "stall-green", new Vector3(1.5f, 0f, 1.6f), 0f);
         }
 
         // ---------------------------------------------------------------- Handwerkerzone
@@ -482,31 +414,6 @@ namespace EpochCity
         // ---------------------------------------------------------------- Rechteckige Zonengebäude
 
 
-
-        /// <summary>Speicherhof 2 × 4: lange Holzhalle hinten, Hof mit Ständen vorn.</summary>
-        private static void GranaryFront(Builder b)
-        {
-            Hall(b.At(0f, 1.5f), 4, 5, 1, "roof", (i, j, dir, level) =>
-                dir == Vector2Int.down ? (i == 1 || i == 2 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
-                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood");
-            Planks(b.At(0f, -2.5f), 4, 3);
-            b.Put(FT + "stall-red", new Vector3(-1f, 0f, -3.4f), 0f);
-            b.Put(FT + "stall", new Vector3(1f, 0f, -3.4f), 0f);
-            b.Put(FT + "cart", new Vector3(1.2f, 0f, -1.8f), 80f);
-        }
-
-        /// <summary>Speicherhof 2 × 4: hohe Halle hinten, offener Platz mit zwei Reihen Ständen vorn.</summary>
-        private static void GranaryYard(Builder b)
-        {
-            Hall(b.At(0f, 2f), 4, 4, 1, "roof-high", (i, j, dir, level) =>
-                dir == Vector2Int.down ? (i == 1 ? "wall-wood-doorway-square-wide" : "wall-wood-window-small") :
-                j % 2 == 1 ? "wall-wood-window-small" : "wall-wood");
-            b.Put(FT + "stall-red", new Vector3(-1f, 0f, -3.3f), 0f);
-            b.Put(FT + "stall-green", new Vector3(1f, 0f, -3.3f), 0f);
-            b.Put(FT + "stall-green", new Vector3(-1f, 0f, -1.6f), 0f);
-            b.Put(FT + "stall-red", new Vector3(1f, 0f, -1.6f), 0f);
-            b.Put(NK + "log_stack", new Vector3(-1.2f, 0f, -0.3f), 90f);
-        }
 
         /// <summary>
         /// Wandteil einer Fassade: zur Straße (Süden, äußerste Reihe) Fensterläden oder die Tür, sonst kleine

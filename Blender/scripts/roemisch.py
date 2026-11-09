@@ -2987,8 +2987,13 @@ def export(spacing):
                                  axis_forward="-Z", axis_up="Y", bake_space_transform=True,
                                  mesh_smooth_type="FACE", add_leaf_bones=False, use_mesh_modifiers=True)
     if PREVIEW:
+        import os as _os
+        only = _os.environ.get("PREVIEW_ONLY")                    # optional: nur diese Variante (Nummer) zeigen
         for i, obj in enumerate(VARIANTS):
             obj.location.x = (i - (len(VARIANTS) - 1) / 2) * spacing
+            if only is not None:
+                obj.location.x = 0.0
+                obj.hide_render = (str(i) != only)
         scene = bpy.context.scene
         scene.render.engine = "BLENDER_WORKBENCH"
         scene.display.shading.color_type = "MATERIAL"
@@ -3870,3 +3875,172 @@ def light_pergola(x0, x1, y0, y1, h=0.62, vine_post=0, step=0.20):
     for k in range(3):
         sphere(0.05, (vx + 0.03 * math.cos(k * 2.1), vy + 0.03 * math.sin(k * 2.1), 0.15 + k * h / 3 + 0.12),
                (0.8, 0.8, 1.0), LEAF_DARK, segs=5, rings=3)
+
+
+# ================================================================ Gewerbe Paket 2: Werkstatthof, Speicherhof, Handelshaus
+
+CLOTH_GREEN = mat("TuchGruen", (0.36, 0.52, 0.34))
+CLOTH_BLUE = mat("TuchBlau", (0.30, 0.42, 0.62))
+
+
+def flush_wall(x0, x1, y0, y1, h, plaster=PLASTER_WHITE, cap=True, plinth=True):
+    """Mauer als Rechteck mit genau vorgegebenen Außenflächen (x0, x1, y0, y1): Putz, Bruchsteinsockel wie bei body(),
+    Ziegelabdeckung. Liegt die Außenfläche in der Ebene einer Hauswand und endet 1 bis 2 cm im Hauskörper, schließt
+    sie ohne Vor- oder Rücksprung an."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, y1 - y0, h), (cx, cy, h / 2), material=plaster)
+    if plinth:
+        box((x1 - x0 + 0.04, y1 - y0 + 0.04, 0.09), (cx, cy, 0.045), material=STONE)
+    if cap:
+        along_x = (x1 - x0) >= (y1 - y0)
+        L = (x1 - x0) if along_x else (y1 - y0)
+        t = (y1 - y0) if along_x else (x1 - x0)
+        if along_x:
+            box((L, t + 0.03, 0.035), (cx, cy, h + 0.0175), material=TILE_DARK)
+            cyl(0.026, L, (cx, cy, h + 0.043), rot=(0, 90, 0), material=TILE, verts=8)
+        else:
+            box((t + 0.03, L, 0.035), (cx, cy, h + 0.0175), material=TILE_DARK)
+            cyl(0.026, L, (cx, cy, h + 0.043), rot=(90, 0, 0), material=TILE, verts=8)
+
+
+def arch_opening(face, plane, u, w, h, z0=0.0, voussoir=True):
+    """Dunkle Rundbogenöffnung (Breite w, gerade Höhe h bis zum Kämpfer, darüber ein Halbkreis) in einer Wand nach
+    -y oder +y, mit Gewänden aus Kalkstein und Bogensteinen aus Ziegel mit hellem Schlussstein."""
+    nx, ny = FACES[face]
+    hw = w / 2
+    zc = z0 + h
+    box((w, 0.012, h), (u, plane + ny * 0.004, z0 + h / 2), material=DARK)
+    cyl(hw, 0.012, (u, plane + ny * 0.004, zc), rot=(90, 0, 0), material=DARK, verts=16)
+    if voussoir:
+        r = hw + 0.04
+        for a in range(0, 181, 15):
+            t = math.radians(a)
+            big = a == 90
+            box((0.10 if big else 0.08, 0.016, 0.09 if big else 0.06),
+                (u + r * math.cos(t), plane + ny * 0.008, zc + r * math.sin(t)), rot=(0, -a, 0),
+                material=LIME if big else TILE_DARK)
+    for s in (-1, 1):
+        box((0.08, 0.02, h), (u + s * (hw + 0.04), plane + ny * 0.01, z0 + h / 2), material=LIME_DARK)
+        box((0.13, 0.04, 0.05), (u + s * (hw + 0.04), plane + ny * 0.02, zc), material=LIME_DARK)
+
+
+def fountain_basin(x, y, r=0.52, h=0.22):
+    """Brunnen auf Marktplätzen und in Höfen: achteckiges Steinbecken mit Wasser, Mittelsäule, Schale und vier
+    Wasserstrahlen, die in das Becken fallen."""
+    cyl(r, h, (x, y, h / 2), material=LIME, verts=8)
+    cyl(r + 0.03, 0.04, (x, y, h + 0.02), material=LIME_DARK, verts=8)
+    cyl(r - 0.07, 0.012, (x, y, h + 0.012), material=WATER, verts=8)
+    cyl(0.07, 0.45, (x, y, h + 0.22), material=LIME, verts=8)
+    cone(0.20, 0.07, 0.07, (x, y, h + 0.42), LIME_DARK, verts=10)
+    cyl(0.185, 0.04, (x, y, h + 0.49), material=LIME, verts=10)
+    cyl(0.155, 0.012, (x, y, h + 0.514), material=WATER, verts=10)
+    sphere(0.045, (x, y, h + 0.55), (1.0, 1.0, 1.3), WATER, segs=8, rings=5)
+    for k in range(4):
+        a = math.radians(45 + 90 * k)
+        water_jet((x + math.cos(a) * 0.17, y + math.sin(a) * 0.17, h + 0.50),
+                  (x + math.cos(a) * 0.40, y + math.sin(a) * 0.40, h + 0.02), thick=0.016, segs=6)
+
+
+def sack_stack(x, y, yaw=0.0, per=(3, 2, 1), r=0.05, length=0.22, z0=0.0):
+    """Stapel liegender Säcke (Lagen von unten nach oben mit je per[k] Säcken nebeneinander), die Säcke liegen quer
+    zur Stapelachse; jede Lage ruht auf der darunter."""
+    at = placed((x, y), yaw)
+    for k, n in enumerate(per):
+        for i in range(n):
+            u = (i - (n - 1) / 2) * 0.092
+            p = at((u, 0.0, 0.0))
+            lying_sack(p[0], p[1], z0=z0 + k * 0.074, yaw=yaw + 90 + (3 if (i + k) % 2 else -3), r=r, length=length)
+
+
+def amphora_row(p0, p1, n):
+    """Amphoren stehend in einer Reihe von p0 nach p1, hinten durch eine Holzlatte in 0,17 m Höhe gehalten."""
+    for k in range(n):
+        t = k / (n - 1) if n > 1 else 0.5
+        amphora(p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t)
+    yaw = math.degrees(math.atan2(p1[1] - p0[1], p1[0] - p0[0]))
+    L = math.hypot(p1[0] - p0[0], p1[1] - p0[1]) + 0.12
+    off = Vector((-math.sin(math.radians(yaw)), math.cos(math.radians(yaw)))) * 0.05
+    box((L, 0.014, 0.02), ((p0[0] + p1[0]) / 2 + off.x, (p0[1] + p1[1]) / 2 + off.y, 0.17), rot=(0, 0, yaw),
+        material=WOOD_DARK)
+    for end in (p0, p1):
+        box((0.02, 0.02, 0.17), (end[0] + off.x, end[1] + off.y, 0.085), material=WOOD_DARK)
+
+
+def market_stall(x, y, w, kind, canopy, depth=0.46, yaw=0.0):
+    """Verkaufsstand (lokal: u quer, v Tiefe, v = 0 vorn): hinten ein niedriger Tisch mit Vorrat unter einem schmalen,
+    gestreiften Tuchdach auf vier Pfosten, davor ein offener Auslagetisch mit Ware, der nicht überdacht ist.
+    kind: 'grain', 'oil', 'pots' oder 'wine'."""
+    at = placed((x, y), yaw)
+    hw = w / 2
+    zb, zf = 0.62, 0.50
+
+    def P(u, v):
+        q = at((u, v, 0.0))
+        return q[0], q[1]
+    for su in (-1, 1):
+        for v, hh in ((0.03, zf), (depth - 0.03, zb)):
+            c = P(su * (hw - 0.02), v)
+            box((0.028, 0.028, hh), (c[0], c[1], hh / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+    a, b = canopy
+    n = max(4, round(w / 0.12))
+    sw = w / n
+    tilt = math.degrees(math.atan2(zb - zf, depth))
+    L = math.hypot(depth, zb - zf)
+    for k in range(n):
+        m = a if k % 2 == 0 else b
+        u = -hw + (k + 0.5) * sw
+        cx, cy = P(u, depth / 2)
+        box((sw, L, 0.010), (cx, cy, (zb + zf) / 2 + 0.005), rot=(tilt, 0, yaw), material=m)
+        fx, fy = P(u, -0.002)
+        box((sw, 0.008, 0.045), (fx, fy, zf - 0.015), rot=(0, 0, yaw), material=m)
+    # Vorratstisch unter dem Dach
+    cx, cy = P(0.0, depth - 0.12)
+    box((w - 0.08, 0.16, 0.26), (cx, cy, 0.13), rot=(0, 0, yaw), material=LIME_DARK)
+    box((w - 0.04, 0.18, 0.025), (cx, cy, 0.2725), rot=(0, 0, yaw), material=LIME)
+    # offener Auslagetisch davor
+    tv = -0.20
+    tx, ty = P(0.0, tv)
+    th = 0.26
+    trestle_table(tx, ty, yaw, w=w - 0.10, d=0.30, h=th, cloth=CLOTH_OCHRE if kind == "grain" else CLOTH)
+    top = 0.285
+    if kind == "grain":
+        for i in range(3):
+            p = P(-w * 0.28 + i * w * 0.28, tv)
+            basket_goods(p[0], p[1], th + 0.006, 0.062, "grain", seed=i + 3)
+        for uu in (-0.30, 0.30):
+            p = P(uu * w, depth - 0.12)
+            sack(p[0], p[1], top, 0.055)
+    elif kind == "oil":
+        for i in range(3):
+            p = P(-w * 0.28 + i * w * 0.28, tv)
+            jug(p[0], p[1], th + 0.006, 0.032, TERRACOTTA_LIGHT)
+        for uu in (-0.30, 0.0, 0.30):
+            p = P(uu * w, depth - 0.12)
+            amphora(p[0], p[1], top)
+    elif kind == "pots":
+        for i in range(5):
+            p = P(-w * 0.34 + i * w * 0.17, tv + (0.03 if i % 2 else -0.03))
+            if i % 2:
+                bowl(p[0], p[1], th + 0.006, 0.050, TERRACOTTA_LIGHT)
+            else:
+                pot(p[0], p[1], th + 0.006, 0.038)
+        for uu in (-0.28, 0.28):
+            p = P(uu * w, depth - 0.12)
+            pot(p[0], p[1], top, 0.05)
+    else:
+        for i in range(3):
+            p = P(-w * 0.28 + i * w * 0.28, tv)
+            jug(p[0], p[1], th + 0.006, 0.030, TERRACOTTA)
+        for uu in (-0.26, 0.26):
+            p = P(uu * w, depth - 0.12)
+            barrel(p[0], p[1], top, r=0.05)
+
+
+def check_bounds(hx, hy, label=""):
+    """Meldet Teile der aktuellen Variante, die über +-hx bzw. +-hy hinausragen (vor variant() aufrufen)."""
+    for o in PARTS:
+        pts = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        xs, ys = [p.x for p in pts], [p.y for p in pts]
+        if max(xs) > hx or min(xs) < -hx or max(ys) > hy or min(ys) < -hy:
+            print(f"GRENZE {label}: {o.name} {o.data.name} x {min(xs):.2f}..{max(xs):.2f} y {min(ys):.2f}..{max(ys):.2f} "
+                  f"mat {o.data.materials[0].name if o.data.materials else '-'}")
