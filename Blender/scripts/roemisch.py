@@ -4044,3 +4044,352 @@ def check_bounds(hx, hy, label=""):
         if max(xs) > hx or min(xs) < -hx or max(ys) > hy or min(ys) < -hy:
             print(f"GRENZE {label}: {o.name} {o.data.name} x {min(xs):.2f}..{max(xs):.2f} y {min(ys):.2f}..{max(ys):.2f} "
                   f"mat {o.data.materials[0].name if o.data.materials else '-'}")
+
+
+# ================================================================ Handwerkerzone: Werkstatthaus, Handwerkerhaus, Handwerkerzeile, Werkhof, Zunfthaus
+
+PLASTER_RED = mat("PutzPompejiRot", (0.74, 0.31, 0.23))
+PLASTER_YELLOW = mat("PutzGelb", (0.93, 0.77, 0.36))
+LEATHER = mat("Leder", (0.47, 0.29, 0.17), rough=0.7)
+LEATHER_DARK = mat("LederDunkel", (0.30, 0.19, 0.12), rough=0.7)
+CLOTH_PURPLE = mat("TuchPurpur", (0.50, 0.19, 0.44))
+CLOTH_YELLOW = mat("TuchGelb", (0.93, 0.78, 0.26))
+DYE_INDIGO = mat("FarbbadIndigo", (0.17, 0.24, 0.46), rough=0.2)
+DYE_MADDER = mat("FarbbadKrapp", (0.72, 0.20, 0.20), rough=0.2)
+DYE_WELD = mat("FarbbadResede", (0.90, 0.74, 0.20), rough=0.2)
+
+
+def roof_side_light(axis, a0, a1, b_top, sign, run, z_top, pitch=PITCH):
+    """Schlichte Dachfläche wie roof_side(), aber ohne Stoßfugen und Stirnziegel und mit sechseckigen Imbrices (wenig
+    Dreiecke für Häuser, die massenhaft stehen)."""
+    p = math.radians(pitch)
+    L = run / math.cos(p)
+
+    def P(a, b, z):
+        return (a, b, z) if axis == "x" else (b, a, z)
+
+    def Sz(sa, sb, sz):
+        return (sa, sb, sz) if axis == "x" else (sb, sa, sz)
+    if axis == "x":
+        slab_rot, imbrex_rot = (-sign * pitch, 0, 0), (-sign * (90 + pitch), 0, 0)
+    else:
+        slab_rot, imbrex_rot = (0, sign * pitch, 0), (0, sign * (90 + pitch), 0)
+    nb, nz = sign * math.sin(p), math.cos(p)
+    mid_b, mid_z = b_top + sign * run / 2, z_top - run / 2 * math.tan(p)
+    width = a1 - a0
+    box(Sz(width, L, T), P((a0 + a1) / 2, mid_b + nb * T / 2, mid_z + nz * T / 2), rot=slab_rot, material=TILE)
+    count = max(1, round(width / 0.24))
+    lift = T + 0.01
+    for i in range(count + 1):
+        a = a0 + 0.035 + i * (width - 0.07) / count
+        cyl(0.034, L, P(a, mid_b + nb * lift, mid_z + nz * lift), rot=imbrex_rot,
+            material=TILE if i % 3 else TILE_DARK, verts=6)
+    eave_b, eave_z = b_top + sign * run, z_top - run * math.tan(p)
+    box(Sz(width, 0.03, 0.06), P((a0 + a1) / 2, eave_b - sign * 0.01, eave_z - 0.02), material=WOOD_DARK)
+    return eave_z
+
+
+def light_gable_roof(x0, x1, y0, y1, h, axis, plaster, overhang=0.07, pitch=PITCH):
+    """Satteldach wie gable_roof(), aber mit roof_side_light() und ohne Ortgangbretter. Gibt die Firsthöhe zurück."""
+    p = math.radians(pitch)
+    if axis == "x":
+        a0, a1, b0, b1 = x0 - overhang, x1 + overhang, y0, y1
+    else:
+        a0, a1, b0, b1 = y0 - overhang, y1 + overhang, x0, x1
+    half = (b1 - b0) / 2
+    bc = (b0 + b1) / 2
+    ridge = h + half * math.tan(p)
+    for sign in (-1, 1):
+        roof_side_light(axis, a0, a1, bc, sign, half + overhang, ridge, pitch)
+    tri = [(b0, h), (b1, h), (bc, ridge - 0.02)]
+    if axis == "x":
+        slab(tri, "yz", x0, x1 - x0, plaster)
+    else:
+        slab(tri, "xz", y0, y1 - y0, plaster)
+    length = a1 - a0
+    rot = (0, 90, 0) if axis == "x" else (90, 0, 0)
+    pos = ((a0 + a1) / 2, bc, ridge + T + 0.025) if axis == "x" else (bc, (a0 + a1) / 2, ridge + T + 0.025)
+    cyl(0.045, length + 0.02, pos, rot=rot, material=TILE_DARK, verts=6)
+    return ridge
+
+
+def light_shed_roof(x0, x1, y0, y1, z_high, low_side, overhang=0.07, pitch=16.0, eave_overhang=None):
+    """Pultdach wie shed_roof(), aber mit roof_side_light()."""
+    sign = 1 if low_side[0] == "+" else -1
+    eave = overhang if eave_overhang is None else eave_overhang
+    if low_side[1] == "y":
+        b_top = y0 if sign > 0 else y1
+        return roof_side_light("x", x0 - overhang, x1 + overhang, b_top, sign, (y1 - y0) + eave, z_high, pitch)
+    b_top = x0 if sign > 0 else x1
+    return roof_side_light("y", y0 - overhang, y1 + overhang, b_top, sign, (x1 - x0) + eave, z_high, pitch)
+
+
+def shopfront_open(face, plane, u, w=0.56, h=0.62, awning=None):
+    """Laden wie shop_front(), aber ohne Waren auf der Theke (sie werden einzeln gesetzt). Gibt die Mitte der Theke
+    (x, y) zurück; die Oberkante der Theke liegt bei z = 0,33."""
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    z0 = 0.09
+    box(size(w, 0.012, h), at(u, 0.004, z0 + h / 2), material=DARK)
+    box(size(w + 0.10, 0.04, 0.07), at(u, 0.015, z0 + h + 0.03), material=WOOD_DARK)
+    for s in (-1, 1):
+        box(size(0.05, 0.03, h), at(u + s * (w / 2 + 0.02), 0.012, z0 + h / 2), material=LIME_DARK)
+    box(size(w * 0.8, 0.13, 0.30), at(u - w * 0.08, 0.075, 0.15), material=LIME_DARK)
+    box(size(w * 0.84, 0.15, 0.03), at(u - w * 0.08, 0.075, 0.315), material=LIME)
+    if awning:
+        a, b = awning
+        depth, drop = 0.34, 0.10
+        stripes = max(3, int(w / 0.12))
+        sw = (w + 0.10) / stripes
+        tilt = math.degrees(math.atan2(drop, depth))
+        for k in range(stripes):
+            uu = u - (w + 0.10) / 2 + (k + 0.5) * sw
+            c = at(uu, depth / 2 + 0.02, z0 + h + 0.12 - drop / 2)
+            if ny != 0:
+                box((sw, depth, 0.012), c, rot=(-ny * tilt, 0, 0), material=a if k % 2 == 0 else b)
+            else:
+                box((depth, sw, 0.012), c, rot=(0, nx * tilt, 0), material=a if k % 2 == 0 else b)
+            edge = at(uu, depth + 0.02, z0 + h + 0.12 - drop - 0.03)
+            box(size(sw, 0.008, 0.06), edge, material=a if k % 2 == 0 else b)
+    c = at(u - w * 0.08, 0.075, 0.0)
+    return (c[0], c[1])
+
+
+def shoe(x, y, z0=0.0, yaw=0.0, material=LEATHER):
+    """Halbschuh (etwa 7 cm lang): Sohle, Schaft und Kappe; Länge in Richtung yaw."""
+    at = placed((x, y), yaw)
+    box((0.076, 0.028, 0.008), (x, y, z0 + 0.004), rot=(0, 0, yaw), material=LEATHER_DARK)
+    p = at((-0.016, 0.0, 0.0))
+    box((0.040, 0.025, 0.028), (p[0], p[1], z0 + 0.008 + 0.014), rot=(0, 0, yaw), material=material)
+    p = at((0.020, 0.0, 0.0))
+    box((0.034, 0.024, 0.016), (p[0], p[1], z0 + 0.008 + 0.008), rot=(0, 0, yaw), material=material)
+
+
+def loom(x, y, yaw=0.0, cloth=CLOTH_BLUE, stripe=CLOTH_RED, h=0.80):
+    """Gewichtswebstuhl: zwei Pfosten mit Webbaum, oben das gewebte Tuch, darunter die Kettfäden mit Tongewichten."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    for s in (-1, 1):
+        box((0.03, 0.03, h), P(s * 0.25, 0, h / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((0.56, 0.04, 0.04), P(0, 0, h - 0.02), rot=(0, 0, yaw), material=WOOD)
+    z0, z1 = 0.50, h - 0.04
+    box((0.42, 0.012, z1 - z0), P(0, 0, (z0 + z1) / 2), rot=(0, 0, yaw), material=cloth)
+    box((0.42, 0.014, 0.035), P(0, 0, z0 + 0.06), rot=(0, 0, yaw), material=stripe)
+    box((0.50, 0.02, 0.02), P(0, -0.02, z0), rot=(0, 0, yaw), material=WOOD_DARK)
+    for k in range(6):
+        u = -0.175 + k * 0.07
+        box((0.004, 0.004, z0 - 0.19), P(u, 0, (z0 + 0.19) / 2), rot=(0, 0, yaw), material=SACK)
+        cyl(0.019, 0.034, P(u, 0, 0.173), material=TERRACOTTA, verts=6)
+
+
+def wall_cloths(face, plane, u0, u1, z, drop, mats, out=0.09):
+    """Stoffbahnen an einer Stange vor der Wand: Stange auf zwei Konsolen, die Bahnen hängen mit der Oberkante an der
+    Stange."""
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    L = u1 - u0
+    cyl(0.012, L + 0.04, at((u0 + u1) / 2, out, z), rot=(0, 90, 0) if ny != 0 else (90, 0, 0), material=WOOD_DARK, verts=6)
+    for u in (u0, u1):
+        box(size(0.018, out + 0.01, 0.018), at(u, out / 2, z), material=WOOD_DARK)
+    n = len(mats)
+    wp = L / n
+    for k, m in enumerate(mats):
+        box(size(wp * 0.88, 0.008, drop), at(u0 + (k + 0.5) * wp, out, z - drop / 2), material=m)
+
+
+def wall_banner(face, plane, u, z, w, h, material, trim=None, out=0.10):
+    """Hängendes Banner mit Schwalbenschwanz an einer Stange vor der Wand (Oberkante z)."""
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    cyl(0.012, w + 0.07, at(u, out, z), rot=(0, 90, 0) if ny != 0 else (90, 0, 0), material=WOOD_DARK, verts=6)
+    for s in (-1, 1):
+        box(size(0.018, out + 0.01, 0.018), at(u + s * (w / 2 + 0.01), out / 2, z), material=WOOD_DARK)
+    pts = [(u - w / 2, z), (u + w / 2, z), (u + w / 2, z - h), (u, z - h * 0.82), (u - w / 2, z - h)]
+    off = plane + (ny if ny != 0 else nx) * out - 0.004
+    slab(pts, "xz" if ny != 0 else "yz", off, 0.008, material)
+    if trim is not None:
+        box(size(w, 0.012, 0.035), at(u, out, z - 0.035), material=trim)
+
+
+def cloth_rail(p0, p1, z, drop, mats, width=0.17, seed=0):
+    """Stoffbahnen auf einer Stange zwischen zwei Pfosten (Oberkante der Bahnen an der Stange)."""
+    rnd = random.Random(seed)
+    (xa, ya), (xb, yb) = p0, p1
+    length = math.hypot(xb - xa, yb - ya)
+    yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+    for x, y in (p0, p1):
+        box((0.028, 0.028, z + 0.03), (x, y, (z + 0.03) / 2), material=WOOD_DARK)
+    cyl(0.011, length, ((xa + xb) / 2, (ya + yb) / 2, z), rot=(0, 90, yaw), material=WOOD, verts=6)
+    n = max(2, int(length / (width + 0.04)))
+    for k in range(n):
+        t = (k + 0.5) / n
+        box((width, 0.008, drop), (xa + (xb - xa) * t, ya + (yb - ya) * t, z - drop / 2),
+            rot=(0, 0, yaw + rnd.uniform(-5, 5)), material=mats[k % len(mats)])
+
+
+def anvil(x, y, yaw=0.0):
+    """Amboss auf einem Holzklotz, Horn nach +x (vor der Drehung)."""
+    at = placed((x, y), yaw)
+    cyl(0.085, 0.20, (x, y, 0.10), material=WOOD_DARK, verts=8)
+    box((0.07, 0.06, 0.04), (x, y, 0.22), rot=(0, 0, yaw), material=IRON)
+    box((0.17, 0.065, 0.04), (x, y, 0.26), rot=(0, 0, yaw), material=IRON)
+    p = at((0.13, 0.0, 0.0))
+    cone(0.03, 0.006, 0.10, (p[0], p[1], 0.26), IRON, verts=6, rot=(0, 90, yaw))
+
+
+def trough(x, y, yaw=0.0, length=0.40, width=0.16, h=0.13, liquid=WATER):
+    """Offener Holztrog mit Flüssigkeit (Löschwasser, Farbbrühe)."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    box((length, width, 0.02), P(0, 0, 0.01), rot=(0, 0, yaw), material=WOOD_DARK)
+    for s in (-1, 1):
+        box((length, 0.02, h), P(0, s * (width / 2 - 0.01), h / 2), rot=(0, 0, yaw), material=WOOD)
+        box((0.02, width - 0.04, h), P(s * (length / 2 - 0.01), 0, h / 2), rot=(0, 0, yaw), material=WOOD)
+    box((length - 0.04, width - 0.04, 0.004), P(0, 0, h - 0.025), rot=(0, 0, yaw), material=liquid)
+
+
+def forge(x, y, yaw=0.0, z_chimney=1.0):
+    """Esse: gemauerter Herd mit Glut und Flammen, Rauchfang und Schlot; die Rückseite liegt bei +v (lokal), vorn
+    (-v) arbeitet der Schmied. Gibt die Höhe der Schlotmündung zurück."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    box((0.56, 0.42, 0.28), P(0, 0, 0.14), rot=(0, 0, yaw), material=LIME_DARK)
+    box((0.60, 0.46, 0.03), P(0, 0, 0.295), rot=(0, 0, yaw), material=LIME)
+    box((0.34, 0.24, 0.016), P(0, -0.02, 0.318), rot=(0, 0, yaw), material=SOOT)
+    box((0.20, 0.14, 0.012), P(0, -0.02, 0.332), rot=(0, 0, yaw), material=FLAME)
+    for du in (-0.05, 0.05):
+        cone(0.04, 0.0, 0.11, P(du, -0.02, 0.395), FLAME, verts=5)
+    cone(0.20, 0.07, 0.30, P(0, 0.06, 0.465), LIME_DARK, verts=4, rot=(0, 0, yaw + 45))
+    hc = z_chimney - 0.60
+    box((0.15, 0.15, hc), P(0, 0.08, 0.60 + hc / 2), rot=(0, 0, yaw), material=LIME_DARK)
+    box((0.19, 0.19, 0.04), P(0, 0.08, z_chimney), rot=(0, 0, yaw), material=LIME)
+    return z_chimney + 0.02
+
+
+def bellows(x, y, yaw=0.0):
+    """Blasebalg: zwei Bretter mit Lederfalte, Düse aus Eisen nach +u (zur Esse)."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        w = at((u, v, 0.0))
+        return (w[0], w[1], z)
+    box((0.26, 0.15, 0.02), P(0, 0, 0.12), rot=(0, 0, yaw), material=WOOD)
+    box((0.26, 0.15, 0.02), P(0, 0, 0.17), rot=(0, 0, yaw), material=WOOD)
+    box((0.22, 0.13, 0.03), P(0, 0, 0.145), rot=(0, 0, yaw), material=LEATHER)
+    rod(P(0.12, 0, 0.145), P(0.30, 0, 0.19), 0.012, IRON, verts=5)
+    for s in (-1, 1):
+        box((0.02, 0.02, 0.11), P(-0.10, s * 0.05, 0.055), rot=(0, 0, yaw), material=WOOD_DARK)
+
+
+def dye_vat(x, y, r=0.17, h=0.28, liquid=DYE_INDIGO, pole=True):
+    """Färbebottich aus Dauben mit Reifen und gefärbter Brühe; auf Wunsch eine Rührstange, die am Rand lehnt."""
+    cyl(r, h, (x, y, h / 2), material=WOOD, verts=14)
+    for k in (0.2, 0.8):
+        cyl(r * 1.03, 0.014, (x, y, h * k), material=IRON, verts=14)
+    cyl(r * 1.02, 0.02, (x, y, h - 0.01), material=WOOD_DARK, verts=14)
+    cyl(r - 0.014, 0.006, (x, y, h - 0.03), material=liquid, verts=14)
+    if pole:
+        # lehnt am Rand: untere Spitze im Bottich, liegt auf dem Rand (x + r) auf, steigt nach außen weiter
+        rod((x - r * 0.75, y, 0.06), (x + r * 1.5, y, 0.06 + (h + 0.01 - 0.06) * (2.25 / 1.75)), 0.011, WOOD_DARK, verts=5)
+
+
+def barrel_raising(x, y, r=0.085, h=0.20, staves=11):
+    """Fass im Aufbau (Böttcher): die Dauben stehen im unteren Reifen und spreizen sich nach oben, ein zweiter Reifen
+    hält sie in der Mitte."""
+    for k in range(staves):
+        a = 2 * math.pi * k / staves
+        obj = box((0.040, 0.012, h), (x + math.cos(a) * r * 1.10, y + math.sin(a) * r * 1.10, h / 2 + 0.01),
+                  material=WOOD if k % 2 else WOOD_FRESH)
+        obj.rotation_euler = (Matrix.Rotation(a + math.pi / 2, 4, "Z") @ Matrix.Rotation(math.radians(-9), 4, "X")).to_euler()
+    cyl(r * 1.16, 0.016, (x, y, 0.04), material=IRON, verts=14)
+    cyl(r * 1.22, 0.014, (x, y, h * 0.62), material=IRON, verts=14)
+
+
+def hide_frame(x, y, yaw=0.0, w=0.46, h=0.50, hide=LEATHER):
+    """Gerberrahmen: Rahmen aus vier Stäben auf zwei Füßen, in den ein Fell eingespannt ist."""
+    at = placed((x, y), yaw)
+
+    def P(u, v, z):
+        wv = at((u, v, 0.0))
+        return (wv[0], wv[1], z)
+    z0 = 0.14
+    for s in (-1, 1):
+        box((0.028, 0.028, z0 + h + 0.03), P(s * (w / 2 + 0.014), 0, (z0 + h + 0.03) / 2), rot=(0, 0, yaw), material=WOOD_DARK)
+        box((0.03, 0.18, 0.03), P(s * (w / 2 + 0.014), 0, 0.015), rot=(0, 0, yaw), material=WOOD_DARK)
+    box((w + 0.056, 0.026, 0.026), P(0, 0, z0 + h + 0.013), rot=(0, 0, yaw), material=WOOD)
+    box((w + 0.056, 0.026, 0.026), P(0, 0, z0 + 0.013), rot=(0, 0, yaw), material=WOOD)
+    pts = [(-w / 2 + 0.01, z0 + 0.026), (-w / 2 + 0.04, z0 + h * 0.5), (-w / 2 - 0.015, z0 + h),
+           (-w * 0.12, z0 + h - 0.02), (w * 0.12, z0 + h), (w / 2 + 0.015, z0 + h),
+           (w / 2 - 0.04, z0 + h * 0.5), (w / 2 - 0.01, z0 + 0.026), (w * 0.1, z0 + 0.05), (-w * 0.1, z0 + 0.04)]
+    verts = []
+    for dv in (-0.006, 0.006):
+        for u, z in pts:
+            wv = at((u, dv, 0.0))
+            verts.append((wv[0], wv[1], z))
+    n = len(pts)
+    faces = [tuple(range(n))[::-1], tuple(range(n, 2 * n))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
+    mesh = bpy.data.meshes.new("Fell")
+    mesh.from_pydata(verts, [], faces)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4], ngon_method="EAR_CLIP")
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new("Fell", mesh)
+    bpy.context.collection.objects.link(obj)
+    keep(obj, hide)
+
+
+def plane_report(label, materials):
+    """Prüft am Netz, dass die Außenflächen der Wände in einer Ebene liegen: nennt je Achse die (auf mm gerundeten)
+    äußersten Koordinaten der Teile aus den angegebenen Materialien, die innerhalb von 12 cm des Extrems enden."""
+    parts = [o for o in PARTS if o.data.materials and o.data.materials[0] in materials]
+    ext = {"x": [], "y": []}
+    for o in parts:
+        pts = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        ext["x"].append((min(p.x for p in pts), max(p.x for p in pts)))
+        ext["y"].append((min(p.y for p in pts), max(p.y for p in pts)))
+    out = []
+    for ax in ("x", "y"):
+        hi = max(e[1] for e in ext[ax])
+        lo = min(e[0] for e in ext[ax])
+        out.append(f"{ax}max {sorted({round(e[1], 3) for e in ext[ax] if e[1] > hi - 0.12})} "
+                   f"{ax}min {sorted({round(e[0], 3) for e in ext[ax] if e[0] < lo + 0.12})}")
+    print(f"EBENEN {label}: " + " | ".join(out))
+
+
+PLASTER_GREEN = mat("PutzGruen", (0.58, 0.72, 0.52))
+
+
+def wheel_any(x, y, z, r, axis="y", thick=0.03, spokes=3):
+    """Speichenrad mit Eisenreif und Nabe; axis = Richtung der Achse ('x', 'y' oder 'z'; 'z' = Rad liegt flach)."""
+    rot = {"x": (0, 90, 0), "y": (90, 0, 0), "z": (0, 0, 0)}[axis]
+    bpy.ops.mesh.primitive_torus_add(major_radius=r - 0.008, minor_radius=0.010, major_segments=16, minor_segments=5,
+                                     location=(x, y, z), rotation=[math.radians(a) for a in rot])
+    keep(bpy.context.active_object, IRON)
+    cyl(r - 0.004, thick, (x, y, z), rot=rot, material=WOOD_DARK, verts=16)
+    cyl(r * 0.62, thick + 0.006, (x, y, z), rot=rot, material=WOOD, verts=14)
+    for k in range(spokes):
+        a = k * 180.0 / spokes
+        if axis == "z":
+            box((2 * (r - 0.012), 0.016, thick + 0.008), (x, y, z), rot=(0, 0, a), material=WOOD_DARK)
+        elif axis == "y":
+            box((2 * (r - 0.012), thick + 0.008, 0.016), (x, y, z), rot=(0, a, 0), material=WOOD_DARK)
+        else:
+            box((thick + 0.008, 2 * (r - 0.012), 0.016), (x, y, z), rot=(a, 0, 0), material=WOOD_DARK)
+    cyl(0.024, thick + 0.03, (x, y, z), rot=rot, material=WOOD, verts=8)
+
+
+def barrel_pyramid(x, y, r=0.07, yaw=0.0):
+    """Drei liegende Fässer: zwei unten nebeneinander, eines in der Mulde darüber (Achse in Richtung yaw)."""
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for k in (-1, 1):
+        barrel(x - s * k * r, y + c * k * r, 0.0, r=r, lying=True, yaw=yaw)
+    barrel(x, y, 1.73 * r, r=r, lying=True, yaw=yaw)
