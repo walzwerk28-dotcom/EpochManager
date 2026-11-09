@@ -218,7 +218,7 @@ namespace EpochCity
             upperResidential.displayName = "Handwerkerzone";
             upperResidential.shortName = "Handwerker";
             upperResidential.maxTier = 2;
-            upperResidential.buildingsOf = null; // eigene Häuser (Werkstatthaus bis Zunfthaus)
+            upperResidential.buildingsOf = null; // eigene Häuser (Werkstatthaus bis Werkstättenblock)
             upperResidential.requiredTechnology = writing;
             upperResidential.tilePrefab =
                 CreatePrefab("Prefab_Zone_Handwerker", Vector2Int.one, 0.02f, new Color(1f, 0.78f, 0.30f, 0.45f), 0.92f, true);
@@ -339,6 +339,10 @@ namespace EpochCity
                 upperResidential, 16, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.75f, 0.55f), 2);
             var workyardHouse = CreateZoneBuilding("Bld_Werkhof", "Werkhof", antike, BuildingCategory.Housing,
                 upperResidential, 24, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.75f, 0.55f), new Vector2Int(2, 3));
+            var artisanYard = CreateZoneBuilding("Bld_Handwerkerhof", "Handwerkerhof", antike, BuildingCategory.Housing,
+                upperResidential, 32, new BuildingFunction[0], 2f, new Color(0.9f, 0.75f, 0.55f), new Vector2Int(2, 4));
+            var workshopBlock = CreateZoneBuilding("Bld_Werkstaettenblock", "Werkstättenblock", antike, BuildingCategory.Housing,
+                upperResidential, 64, new BuildingFunction[0], 2.4f, new Color(0.9f, 0.75f, 0.55f), 4);
             var guildHouse = CreateZoneBuilding("Bld_Zunfthaus", "Zunfthaus", antike, BuildingCategory.Housing,
                 upperResidential, 36, new BuildingFunction[0], 2.2f, new Color(0.9f, 0.75f, 0.55f), 3);
 
@@ -356,7 +360,7 @@ namespace EpochCity
             var homes = new[]
             {
                 house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse,
-                workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
+                workshopHouse, artisanHouse, artisanRow, workyardHouse, artisanYard, workshopBlock, guildHouse,
                 scholarHouse, townVilla, gardenVilla, peristyle
             };
             foreach (var home in homes) home.populationTier = farmers;
@@ -1032,7 +1036,7 @@ namespace EpochCity
                 field, market, library, mill, path, paved, storage, temple, well, residential, commercial,
                 house, shop, townHouse, domus, insula, workshop, workyard, tradeHouse,
                 narrowHouse, courtHouse, longHouse, taberna, office, granaryYard, timberHouse,
-                workshopHouse, artisanHouse, artisanRow, workyardHouse, guildHouse,
+                workshopHouse, artisanHouse, artisanRow, workyardHouse, artisanYard, workshopBlock, guildHouse,
                 food, marketNeed, water, faith, farmers,
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, waterDeposit, mountainDeposit, mapDef,
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
