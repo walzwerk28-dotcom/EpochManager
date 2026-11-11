@@ -1005,6 +1005,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a9299c713494b6446b987d0251f80040, type: 2}
   - {fileID: 11400000, guid: 96be976d00d81fb4dbfb61f6406a845c, type: 2}
   - {fileID: 11400000, guid: 025cf0664e4996a4989444004d13511c, type: 2}
+  - {fileID: 11400000, guid: df2bfc67996c0d648a4ccca427962ece, type: 2}
+  - {fileID: 11400000, guid: c3c795a436d4e2f429957ec414c636ec, type: 2}
   growthInterval: 2
   sizeWeights:
   - 1

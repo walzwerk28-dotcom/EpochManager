@@ -354,6 +354,10 @@ namespace EpochCity
                 topResidential, 12, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.88f, 0.8f), 2);
             var gardenVilla = CreateZoneBuilding("Bld_Villa", "Villa mit Garten", antike, BuildingCategory.Housing,
                 topResidential, 18, new BuildingFunction[0], 1.8f, new Color(0.9f, 0.88f, 0.8f), new Vector2Int(2, 3));
+            var cityPalace = CreateZoneBuilding("Bld_Stadtpalast", "Stadtpalast", antike, BuildingCategory.Housing,
+                topResidential, 48, new BuildingFunction[0], 2.4f, new Color(0.9f, 0.88f, 0.8f), 4);
+            var gardenRow = CreateZoneBuilding("Bld_Gartenzeile", "Hausreihe mit Gärten", antike, BuildingCategory.Housing,
+                topResidential, 24, new BuildingFunction[0], 2f, new Color(0.9f, 0.88f, 0.8f), new Vector2Int(2, 4));
             var peristyle = CreateZoneBuilding("Bld_Peristylhaus", "Peristylhaus", antike, BuildingCategory.Housing,
                 topResidential, 27, new BuildingFunction[0], 2f, new Color(0.9f, 0.88f, 0.8f), 3);
 
@@ -361,7 +365,7 @@ namespace EpochCity
             {
                 house, townHouse, domus, insula, narrowHouse, courtHouse, longHouse, timberHouse,
                 workshopHouse, artisanHouse, artisanRow, workyardHouse, artisanYard, workshopBlock, guildHouse,
-                scholarHouse, townVilla, gardenVilla, peristyle
+                scholarHouse, townVilla, gardenVilla, peristyle, cityPalace, gardenRow
             };
             foreach (var home in homes) home.populationTier = farmers;
 
@@ -1041,7 +1045,7 @@ namespace EpochCity
                 logs, boards, stone, woodcutter, carpentry, quarry, forest, stoneDeposit, waterDeposit, mountainDeposit, mapDef,
                 school, education, artisans, upperResidential, olives, oil, oliveGrove, oilPress, oilNeed,
                 clay, ceramics, clayPit, pottery, ceramicNeed,
-                topResidential, scholarHouse, townVilla, gardenVilla, peristyle, scholars, academy, higherEducation,
+                topResidential, scholarHouse, townVilla, gardenVilla, peristyle, cityPalace, gardenRow, scholars, academy, higherEducation,
                 grapes, wine, vineyard, winePress, wineNeed, forester, firewood, woodChopper, firewoodNeed, fireStation, theater,
                 storageMedium, storageLarge, estate, herbGarden, sacredGrove, columnGarden, fish, fisher, harbor
             };

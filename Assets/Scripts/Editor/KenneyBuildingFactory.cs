@@ -49,7 +49,7 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Markt", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Feuerwache",
-                         "Akademie", "Gelehrtenhaus", "Stadtvilla", "Villa", "Peristylhaus", "GrossesTheater" })
+                         "Akademie", "GrossesTheater" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Lager", "Muehle",
                          "Holzfaeller" })
@@ -84,6 +84,7 @@ namespace EpochCity
 
             // Werkstatthaus, Handwerkerhaus, Handwerkerzeile, Werkhof und Zunfthaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
 
+            // Gelehrtenhaus, Stadtvilla, Villa, Peristylhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Gelehrtenzone und Akademie: Steinbauten mit Säulen, Innenhöfen und Gärten, auf Pflaster
             // Akademie: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Großes Theater (Wunderbau): fünf Baustufen in fester Reihenfolge, ConstructionStages zeigt die zur Bauphase
@@ -91,10 +92,6 @@ namespace EpochCity
                 b => Theater(b, 0), b => Theater(b, 1), b => Theater(b, 2), b => Theater(b, 3), b => Theater(b, 4));
             AddToPrefab<ConstructionStages>(theater);
             Assign("Bld_GrossesTheater", theater);
-            Assign("Bld_Gelehrtenhaus", Make("Gelehrtenhaus", new Vector2Int(1, 2), antique, ScholarHouseGarden, ScholarHousePortico));
-            Assign("Bld_Stadtvilla", Make("Stadtvilla", 2, antique, TownVillaPortico, TownVillaAtrium));
-            Assign("Bld_Villa", Make("Villa", new Vector2Int(2, 3), antique, VillaGardenFront, VillaPeristyleBack));
-            Assign("Bld_Peristylhaus", Make("Peristylhaus", 3, antique, PeristyleCourt, PeristyleHall));
 
             // Mittelalter: Fachwerk mit der Originalpalette (grüne Dächer)
             Assign("Bld_Fachwerkhaus", Make("Fachwerkhaus", 2, original,
@@ -165,138 +162,9 @@ namespace EpochCity
             }
         }
 
-        // ---------------------------------------------------------------- Gelehrtenzone und Akademie
-
-        /// <summary>Säulenreihe entlang x (count Säulen im Abstand 1) an der Kante z.</summary>
-        private static void Colonnade(Builder b, float x0, float z, int count, float scale = 1f)
-        {
-            for (int k = 0; k < count; k++)
-                b.Put(FT + "pillar-stone", new Vector3(x0 + k, 0f, z), 0f, scale);
-        }
-
-        /// <summary>
-        /// Steinbau w × d mit offener Säulenvorhalle in der vordersten Reihe (wie Bibliothek und Tempel):
-        /// Wände um die hinteren Reihen, Bogentür und Steinfenster, Säulen an der Vorderkante, Satteldächer.
-        /// </summary>
-        private static void PorticoHall(Builder b, int w, int d, int storeys = 1)
-        {
-            for (int level = 0; level < storeys; level++)
-            {
-                int l = level;
-                for (int i = 0; i < w; i++)
-                    for (int j = 1; j < d; j++)
-                        foreach (var dir in Sides)
-                        {
-                            var n = new Vector2Int(i, j) + dir;
-                            bool outside = n.x < 0 || n.x >= w || n.y < 1 || n.y >= d;
-                            if (!outside) continue;
-                            string part = dir == Vector2Int.down
-                                ? (l == 0 && i == w / 2 ? "wall-doorway-round" : "wall-window-stone")
-                                : dir == Vector2Int.up ? "wall" : "wall-window-stone";
-                            b.Put(FT + part, Cell(n.x, n.y, w, d) + Vector3.up * l, WallRot(dir));
-                        }
-            }
-            Colonnade(b, Cell(0, 0, w, d).x - 0.5f, Cell(0, 0, w, d).z - 0.5f, w + 1, storeys);
-            GableRoof(b, w, d, storeys, "roof");
-        }
-
-        /// <summary>Gelehrtenhaus 1 × 2: einstöckiger Steinbau mit Säulenvorhalle, Garten mit Baum dahinter.</summary>
-        private static void ScholarHouseGarden(Builder b)
-        {
-            PorticoHall(b.At(0f, -0.5f), 2, 3);
-            b.Put(FT + "tree-high-round", new Vector3(0f, 0f, 1.6f), 0f);
-        }
-
-        /// <summary>Gelehrtenhaus 1 × 2: zweistöckiges Haus an der Straße, Gartenhof mit Brunnen dahinter.</summary>
-        private static void ScholarHousePortico(Builder b)
-        {
-            NatureColors(b);
-            House(b.At(0f, -1f), "wall", 2, doorLeft: true, chimney: false, roof: "roof", d: 2);
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", new Vector3(0f, 0f, 1.1f), 0f, 0.4f);
-            b.Put(NK + "plant_bushLarge", new Vector3(0.6f, 0f, 1.6f), 0f, 2f);
-        }
-
-        /// <summary>Stadtvilla 2 × 2: breite Säulenvorhalle über die ganze Front, Steinbau dahinter.</summary>
-        private static void TownVillaPortico(Builder b)
-        {
-            PorticoHall(b, 4, 4);
-        }
-
-        /// <summary>Stadtvilla 2 × 2: einstöckiger Ring um ein Atrium mit Baum, zur Straße zweistöckig.</summary>
-        private static void TownVillaAtrium(Builder b)
-        {
-            const int w = 4, d = 4;
-            var ring = Mask(w, d, (i, j) => !(i >= 1 && i < 3 && j >= 1 && j < 3));
-            var upper = Mask(w, d, (i, j) => j == 0);
-            Walls(b, ring, 0, (i, j, dir) => Facade(i, j, dir, 0, "wall", door: i == 1));
-            Walls(b, upper, 1, (i, j, dir) => Facade(i, j, dir, 1, "wall", door: false));
-            FlatRoof(b, Mask(w, d, (i, j) => ring[i, j] && !upper[i, j]), 1);
-            FlatRoof(b, upper, 2);
-            b.Put(FT + "tree", new Vector3(0f, 0f, 0f), 0f);
-        }
-
-        /// <summary>Villa 2 × 3: Säulenhalle hinten, davor ein Garten mit Bäumen, Büschen und Brunnen.</summary>
-        private static void VillaGardenFront(Builder b)
-        {
-            NatureColors(b);
-            PorticoHall(b.At(0f, 1f), 4, 4);
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", new Vector3(0f, 0f, -2.2f), 0f, 0.6f);
-            b.Put(FT + "tree-high-round", new Vector3(-1.6f, 0f, -2.3f), 0f);
-            b.Put(NK + "plant_bushLarge", new Vector3(1.6f, 0f, -2.3f), 0f, 2.5f);
-        }
-
-        /// <summary>Villa 2 × 3: zweistöckiges Haus vorn, dahinter ein Säulenhof (Peristyl) mit Bäumen.</summary>
-        private static void VillaPeristyleBack(Builder b)
-        {
-            Row(b, "wall", 2, -2f, (2, "roof", true), (2, "roof", false));
-            Colonnade(b, -2f, 0f, 5);
-            Colonnade(b, -2f, 3f, 5);
-            b.Put(FT + "tree", new Vector3(-1f, 0f, 1.5f), 0f);
-            b.Put(FT + "tree-high-round", new Vector3(1f, 0f, 1.5f), 40f);
-        }
-
-        /// <summary>Peristylhaus 3 × 3: Ring aus Steinbauten um einen Säulenhof mit Brunnen und Bäumen.</summary>
-        private static void PeristyleCourt(Builder b)
-        {
-            const int w = 6, d = 6;
-            var ring = Mask(w, d, (i, j) => !(i >= 2 && i < 4 && j >= 2 && j < 4));
-            var upper = Mask(w, d, (i, j) => j < 2);
-            Walls(b, ring, 0, (i, j, dir) => Facade(i, j, dir, 0, "wall", door: i == 2));
-            Walls(b, upper, 1, (i, j, dir) => Facade(i, j, dir, 1, "wall", door: false));
-            FlatRoof(b, Mask(w, d, (i, j) => ring[i, j] && !upper[i, j]), 1);
-            FlatRoof(b, upper, 2);
-            b.Overrides["Water"] = Solid("Wasser", new Color(0.42f, 0.70f, 0.85f));
-            b.Put(FT + "fountain-round", new Vector3(0f, 0f, 0f), 0f, 0.5f);
-            foreach (var p in new[] { new Vector3(-1f, 0f, -1f), new Vector3(1f, 0f, -1f), new Vector3(-1f, 0f, 1f), new Vector3(1f, 0f, 1f) })
-                b.Put(FT + "pillar-stone", p, 0f);
-        }
-
-        /// <summary>Peristylhaus 3 × 3: zweistöckige Säulenhalle vorn, großer Garten mit Bäumen dahinter.</summary>
-        private static void PeristyleHall(Builder b)
-        {
-            NatureColors(b);
-            PorticoHall(b.At(0f, -1f), 6, 4, 2);
-            b.Put(FT + "tree-high-round", new Vector3(-2f, 0f, 2.3f), 0f);
-            b.Put(NK + "plant_bushLarge", new Vector3(0f, 0f, 2.3f), 0f, 3f);
-            b.Put(FT + "tree", new Vector3(2f, 0f, 2.3f), 60f);
-        }
-
         // ---------------------------------------------------------------- Rechteckige Zonengebäude
 
 
-
-        /// <summary>
-        /// Wandteil einer Fassade: zur Straße (Süden, äußerste Reihe) Fensterläden oder die Tür, sonst kleine
-        /// Fenster im Wechsel mit glatter Wand.
-        /// </summary>
-        private static string Facade(int i, int j, Vector2Int dir, int level, string wall, bool door)
-        {
-            if (dir == Vector2Int.down && j == 0)
-                return level == 0 && door ? $"{wall}-door" : $"{wall}-window-shutters";
-            return (i + j) % 2 == 0 ? $"{wall}-window-small" : wall;
-        }
 
         /// <summary>
         /// Großes Theater 4 × 4 in einer Baustufe (0 = Baustelle, 1 = Fundament, 2 = Sitzränge, 3 = Bühnenhaus,
@@ -600,15 +468,6 @@ namespace EpochCity
 
         private static bool Filled(bool[,] mask, Vector2Int c) =>
             c.x >= 0 && c.y >= 0 && c.x < mask.GetLength(0) && c.y < mask.GetLength(1) && mask[c.x, c.y];
-
-        /// <summary>Flachdach auf allen belegten Zellen der Maske.</summary>
-        private static void FlatRoof(Builder b, bool[,] mask, float y)
-        {
-            int w = mask.GetLength(0), d = mask.GetLength(1);
-            for (int i = 0; i < w; i++)
-                for (int j = 0; j < d; j++)
-                    if (mask[i, j]) b.Put(FT + "roof-flat", Cell(i, j, w, d) + Vector3.up * y, 0f);
-        }
 
         /// <summary>Anbauteil an der Außenseite der Zelle (i, j) in Richtung dir.</summary>
         private static void Side(Builder b, string part, int i, int j, Vector2Int dir, float y, int w, int d)

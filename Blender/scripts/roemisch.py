@@ -4393,3 +4393,252 @@ def barrel_pyramid(x, y, r=0.07, yaw=0.0):
     for k in (-1, 1):
         barrel(x - s * k * r, y + c * k * r, 0.0, r=r, lying=True, yaw=yaw)
     barrel(x, y, 1.73 * r, r=r, lying=True, yaw=yaw)
+
+
+# ================================================================ Gelehrtenzone: Villen, Peristyle, Palast, Gartenzeile
+
+PLASTER_MARBLE = mat("PutzMarmor", (0.95, 0.93, 0.88))
+BRONZE_DOOR = mat("BronzeTuer", (0.46, 0.35, 0.20), rough=0.5)
+
+
+def pent_plane(a0, a1, b0, b1, z_out, z_in):
+    """Pultdachfläche eines Säulengangs, beliebige Lage: Außenkante a0 -> a1 (x, y) bei z_out (an der Wand), Innenkante
+    b0 -> b1 bei z_in (Traufe über den Säulen). Tegulae als Platte, Imbrices als Halbrohre senkrecht zur Außenkante (an
+    Gehrungen gekürzt), Stoßfugen, Stirnziegel und Traufbrett. Zwei Flächen mit gemeinsamer Gehrung ergeben einen Grat."""
+    prism([(a0[0], a0[1], z_out), (a1[0], a1[1], z_out), (b1[0], b1[1], z_in), (b0[0], b0[1], z_in)], T, TILE)
+    ax, ay = a1[0] - a0[0], a1[1] - a0[1]
+    length = math.hypot(ax, ay)
+    ux, uy = ax / length, ay / length
+    nx, ny = -uy, ux
+    if (b0[0] - a0[0]) * nx + (b0[1] - a0[1]) * ny < 0:
+        nx, ny = -nx, -ny
+    depth = abs((b0[0] - a0[0]) * nx + (b0[1] - a0[1]) * ny)
+    s0 = (b0[0] - a0[0]) * ux + (b0[1] - a0[1]) * uy
+    s1 = (b1[0] - a0[0]) * ux + (b1[1] - a0[1]) * uy
+    count = max(2, round(length / 0.17))
+    for k in range(1, count):
+        s = k * length / count
+        f = 1.0
+        if s0 > 1e-6:
+            f = min(f, s / s0)
+        if length - s1 > 1e-6:
+            f = min(f, (length - s) / (length - s1))
+        if depth * f < 0.10:
+            continue
+        px, py = a0[0] + ux * s, a0[1] + uy * s
+        z_end = z_out + (z_in - z_out) * f
+        rod((px, py, z_out + 0.025), (px + nx * depth * f, py + ny * depth * f, z_end + 0.025), 0.030,
+            TILE if random.random() > 0.3 else TILE_DARK, verts=6)
+    for d in (0.30, 0.55):
+        t = d / depth
+        if t >= 0.95:
+            continue
+        p0 = (a0[0] + (b0[0] - a0[0]) * t, a0[1] + (b0[1] - a0[1]) * t, z_out + (z_in - z_out) * t + 0.005)
+        p1 = (a1[0] + (b1[0] - a1[0]) * t, a1[1] + (b1[1] - a1[1]) * t, z_out + (z_in - z_out) * t + 0.005)
+        bar(p0, p1, 0.012, TILE_DARK)
+    il = math.hypot(b1[0] - b0[0], b1[1] - b0[1])
+    n = max(2, round(il / 0.18))
+    yaw = math.degrees(math.atan2(b1[1] - b0[1], b1[0] - b0[0]))
+    for k in range(n + 1):
+        t = k / n
+        box((0.06, 0.016, 0.07), (b0[0] + (b1[0] - b0[0]) * t - nx * 0.008, b0[1] + (b1[1] - b0[1]) * t - ny * 0.008,
+                                  z_in + 0.035), rot=(0, 0, yaw), material=TILE_DARK)
+    bar((b0[0], b0[1], z_in - 0.03), (b1[0], b1[1], z_in - 0.03), 0.035, WOOD_DARK)
+
+
+def entablature(p0, p1, z_top, depth=0.15):
+    """Gebälk über einer Säulenreihe von p0 nach p1: Architrav, Fries und vorspringendes Gesims, Oberkante bei z_top."""
+    (xa, ya), (xb, yb) = p0, p1
+    length = math.hypot(xb - xa, yb - ya) + 0.16
+    yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+    mx, my = (xa + xb) / 2, (ya + yb) / 2
+    box((length, depth * 0.80, 0.060), (mx, my, z_top - 0.095), rot=(0, 0, yaw), material=LIME)
+    box((length + 0.01, depth * 0.72, 0.045), (mx, my, z_top - 0.0425), rot=(0, 0, yaw), material=PLASTER_MARBLE)
+    box((length + 0.04, depth * 1.05, 0.028), (mx, my, z_top - 0.014), rot=(0, 0, yaw), material=LIME_DARK)
+
+
+def classic_door(face, plane, u, w=0.36, h=0.70, leaf=None, z0=0.09, pediment=True):
+    """Eingang mit Bronzetür, zwei Pilastern, Gebälk und kleinem Dreiecksgiebel (Wand nach -y, +y, -x oder +x)."""
+    leaf = leaf or BRONZE_DOOR
+    door(face, plane, u, w=w, h=h, z0=z0, leaf=leaf, frame=LIME)
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    top = z0 + h + 0.10
+    for s in (-1, 1):
+        box(size(0.065, 0.05, top), at(u + s * (w / 2 + 0.075), 0.025, top / 2), material=LIME)
+        box(size(0.09, 0.06, 0.035), at(u + s * (w / 2 + 0.075), 0.03, top + 0.0175), material=LIME_DARK)
+    box(size(w + 0.30, 0.07, 0.045), at(u, 0.035, top + 0.0575), material=LIME_DARK)
+    if pediment:
+        hw = (w + 0.30) / 2
+        z1 = top + 0.08
+        pts = [(u - hw, z1), (u + hw, z1), (u, z1 + 0.13)]
+        if ny != 0:
+            slab(pts, "xz", plane if ny > 0 else plane - 0.05, 0.05, LIME)
+        else:
+            slab(pts, "yz", plane if nx > 0 else plane - 0.05, 0.05, LIME)
+
+
+def balustrade(p0, p1, z, h=0.15, step=0.07):
+    """Balustrade von p0 nach p1 (x, y) auf einem Boden bei z: Fußleiste, Docken im Abstand step, Handlauf."""
+    (xa, ya), (xb, yb) = p0, p1
+    L = math.hypot(xb - xa, yb - ya)
+    yaw = math.degrees(math.atan2(yb - ya, xb - xa))
+    mx, my = (xa + xb) / 2, (ya + yb) / 2
+    box((L, 0.04, 0.022), (mx, my, z + 0.011), rot=(0, 0, yaw), material=LIME)
+    box((L + 0.02, 0.05, 0.028), (mx, my, z + h + 0.014), rot=(0, 0, yaw), material=LIME)
+    n = max(2, int(L / step))
+    for k in range(n + 1):
+        t = k / n
+        box((0.022, 0.022, h - 0.02), (xa + (xb - xa) * t, ya + (yb - ya) * t, z + 0.022 + (h - 0.02) / 2), material=LIME)
+
+
+def marble_balcony(y_face, u0, u1, z, depth=0.18):
+    """Balkon aus Kalkstein an einer Wand nach -y (y_face = Wandfläche): Konsolen, Platte, Balustrade rundum."""
+    w = u1 - u0
+    cx = (u0 + u1) / 2
+    for k in range(max(2, int(w / 0.40)) + 1):
+        x = u0 + 0.05 + k * (w - 0.10) / max(2, int(w / 0.40))
+        box((0.05, depth, 0.055), (x, y_face - depth / 2, z - 0.045), material=LIME_DARK)
+    box((w + 0.04, depth + 0.02, 0.035), (cx, y_face - depth / 2 - 0.01, z - 0.0175), material=LIME)
+    by = y_face - depth
+    balustrade((u0, by), (u1, by), z, h=0.15)
+    for x in (u0, u1):
+        balustrade((x, y_face - 0.02), (x, by), z, h=0.15)
+
+
+def pool(x0, x1, y0, y1, h=0.12, rim=0.07):
+    """Rechteckiges Wasserbecken: Kalksteinrand, Wasserfläche knapp unter der Oberkante."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    box((x1 - x0, rim, h), (cx, y0 + rim / 2, h / 2), material=LIME)
+    box((x1 - x0, rim, h), (cx, y1 - rim / 2, h / 2), material=LIME)
+    for x in (x0 + rim / 2, x1 - rim / 2):
+        box((rim, y1 - y0 - 2 * rim, h), (x, cy, h / 2), material=LIME)
+    box((x1 - x0 - 2 * rim + 0.01, y1 - y0 - 2 * rim + 0.01, h - 0.02), (cx, cy, (h - 0.02) / 2), material=WATER)
+
+
+def gate_pier(x, y, h=0.66):
+    """Torpfeiler aus Kalkstein mit Sockel, Gesims und Kugel (Gartentor)."""
+    box((0.20, 0.20, 0.07), (x, y, 0.035), material=LIME_DARK)
+    box((0.15, 0.15, h - 0.12), (x, y, 0.07 + (h - 0.12) / 2), material=LIME)
+    box((0.21, 0.21, 0.05), (x, y, h - 0.025), material=LIME_DARK)
+    sphere(0.065, (x, y, h + 0.04), material=LIME, segs=8, rings=5)
+
+
+def topiary_bed(x0, x1, y0, y1, bloom=BLOOM_WHITE, foliage=LEAF, seed=1, spheres=2):
+    """Kleines Zierbeet: Heckenrahmen, heller Kies, geschnittene Kugelbüsche und einige Blüten (wenige Dreiecke)."""
+    rnd = random.Random(seed)
+    t = 0.07
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    hedge(x0, x1, y0, y0 + t, 0.17)
+    hedge(x0, x1, y1 - t, y1, 0.17)
+    hedge(x0, x0 + t, y0 + t, y1 - t, 0.17)
+    hedge(x1 - t, x1, y0 + t, y1 - t, 0.17)
+    box((x1 - x0 - 2 * t, y1 - y0 - 2 * t, 0.025), (cx, cy, 0.0125), material=LIME_DARK)
+    for k in range(spheres):
+        px = x0 + t + (x1 - x0 - 2 * t) * (k + 0.5) / spheres
+        sphere(0.07, (px, cy + rnd.uniform(-0.03, 0.03), 0.09), (1.0, 1.0, 1.05), foliage, segs=7, rings=4)
+    for k in range(5):
+        sphere(0.02, (rnd.uniform(x0 + t + 0.05, x1 - t - 0.05), rnd.uniform(y0 + t + 0.05, y1 - t - 0.05), 0.04),
+               material=bloom, segs=4, rings=2)
+
+
+def pediment_front(xc, y_plane, z_base, half, rise, sign=-1, wreath=True):
+    """Giebelfeld-Schmuck an einer Giebelfront (Ebene y = y_plane, sign = -1: nach -y): vorgesetztes Relieffeld, Kranz in
+    der Mitte und Palmetten auf First und Traufecken. z_base = Fußhöhe des Giebels, half = halbe Breite, rise = Höhe."""
+    ins = 0.09
+    pts = [(xc - half + ins, z_base + 0.045), (xc + half - ins, z_base + 0.045), (xc, z_base + rise - ins * 1.1)]
+    slab(pts, "xz", y_plane - 0.014 if sign < 0 else y_plane - 0.006, 0.020, TYMPANUM)
+    if wreath:
+        ring(xc, y_plane + sign * 0.02, z_base + rise * 0.36, 0.085, 0.014, "y", LEAF_DARK, 10)
+        sphere(0.03, (xc, y_plane + sign * 0.02, z_base + rise * 0.36), material=BRONZE, segs=6, rings=4)
+    palmette(xc, y_plane + sign * 0.01, z_base + rise + 0.09, 0.0 if sign < 0 else 180.0, h=0.15)
+
+
+def oculus(face, plane, u, z, r=0.07):
+    """Rundfenster (dunkel, mit Kalksteinring und Kreuz) in einer Wand nach -y/+y/-x/+x."""
+    at, size, (ux, uy), (nx, ny) = face_frame(face, plane)
+    rot = (90, 0, 0) if ny != 0 else (0, 90, 0)
+    p = at(u, 0.004, z)
+    cyl(r, 0.012, p, rot=rot, material=DARK, verts=14)
+    p2 = at(u, 0.012, z)
+    ring(p2[0], p2[1], p2[2], r + 0.012, 0.012, "y" if ny != 0 else "x", LIME, 14)
+    box(size(2 * r, 0.008, 0.012), at(u, 0.012, z), material=LIME_DARK)
+    box(size(0.012, 0.008, 2 * r), at(u, 0.012, z), material=LIME_DARK)
+
+
+def pilaster_row(face, plane, us, h, w=0.07, out=0.035):
+    """Wandpfeiler (Pilaster) mit Sockel und Kapitell an einer Wand."""
+    at, size, _, _ = face_frame(face, plane)
+    for u in us:
+        box(size(w, out, h), at(u, out / 2, h / 2), material=LIME)
+        box(size(w + 0.03, out + 0.015, 0.035), at(u, (out + 0.015) / 2, h - 0.0175), material=LIME_DARK)
+        box(size(w + 0.02, out + 0.01, 0.03), at(u, (out + 0.01) / 2, 0.095), material=LIME_DARK)
+
+
+def pedestal_urn(x, y, h=0.20):
+    """Kalksteinsockel mit Marmorvase."""
+    box((0.12, 0.12, h), (x, y, h / 2), material=LIME)
+    box((0.15, 0.15, 0.03), (x, y, h + 0.015), material=LIME_DARK)
+    cone(0.05, 0.075, 0.09, (x, y, h + 0.075), MARBLE, verts=8)
+
+
+def prism_up(top, thickness, material):
+    """Wie prism(), richtet die Flächen aber sicher aus: die Oberseite zeigt nach oben (Dachplatten)."""
+    pts = [tuple(p) for p in top]
+    nz = 0.0
+    for i in range(len(pts)):                                   # Newell: z-Anteil der Flächennormalen
+        x0, y0, _ = pts[i]
+        x1, y1, _ = pts[(i + 1) % len(pts)]
+        nz += x0 * y1 - x1 * y0
+    if nz < 0:
+        pts = pts[::-1]
+    return prism(pts, thickness, material)
+
+
+def atrium_roof_fixed(x0, x1, y0, y1, ox0, ox1, oy0, oy1, z_out, z_in, spout=TERRACOTTA):
+    """Wie atrium_roof(), mit sicher nach oben zeigenden Dachplatten (prism_up): vier Flächen aus einem Stück, Gehrung mit
+    Gratziegeln, Halbrohre an den Graten gekürzt, Stirnziegel an der Öffnung, Wasserspeier."""
+    outer = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    inner = [(ox0, oy0), (ox1, oy0), (ox1, oy1), (ox0, oy1)]
+    for i in range(4):
+        j = (i + 1) % 4
+        a0, a1, b0, b1 = outer[i], outer[j], inner[i], inner[j]
+        prism_up([(a0[0], a0[1], z_out), (a1[0], a1[1], z_out), (b1[0], b1[1], z_in), (b0[0], b0[1], z_in)], T, TILE)
+        ax, ay = a1[0] - a0[0], a1[1] - a0[1]
+        length = math.hypot(ax, ay)
+        ux, uy = ax / length, ay / length
+        nx, ny = -uy, ux
+        depth = abs((b0[0] - a0[0]) * nx + (b0[1] - a0[1]) * ny)
+        s0 = (b0[0] - a0[0]) * ux + (b0[1] - a0[1]) * uy
+        s1 = (b1[0] - a0[0]) * ux + (b1[1] - a0[1]) * uy
+        count = max(2, int(length / 0.18))
+        for k in range(1, count):
+            s = k * length / count
+            run = depth * min(1.0, s / s0 if s0 > 0 else 1.0, (length - s) / (length - s1) if length > s1 else 1.0)
+            if run < 0.08:
+                continue
+            px, py = a0[0] + ux * s, a0[1] + uy * s
+            z_end = z_out + (z_in - z_out) * run / depth
+            rod((px, py, z_out + 0.02), (px + nx * run, py + ny * run, z_end + 0.02), 0.032,
+                TILE if random.random() > 0.3 else TILE_DARK, verts=6)
+        rod((a0[0], a0[1], z_out + 0.03), (b0[0], b0[1], z_in + 0.03), 0.045, TILE_DARK, verts=8)
+        il = math.hypot(b1[0] - b0[0], b1[1] - b0[1])
+        for k in range(max(2, int(il / 0.16)) + 1):
+            t = k / max(2, int(il / 0.16))
+            px, py = b0[0] + (b1[0] - b0[0]) * t, b0[1] + (b1[1] - b0[1]) * t
+            box((0.06, 0.06, 0.07), (px + nx * 0.01, py + ny * 0.01, z_in + 0.04), rot=(0, 0, math.degrees(math.atan2(uy, ux))),
+                material=TILE_DARK)
+        mx, my = (b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2
+        rod((mx - nx * 0.02, my - ny * 0.02, z_in - 0.01), (mx + nx * 0.16, my + ny * 0.16, z_in - 0.05), 0.025, spout, verts=6)
+
+
+def inner_wall_paint(face, plane, lo, hi, z_top, doors=()):
+    """Bemalte Innenseite einer Hofwand (Wand nach face, Fläche bei plane, von lo bis hi entlang der Wand): rote Zone,
+    heller Fries, dunkler Sockel, dunkle Türen an den Stellen in doors."""
+    at, size, _, _ = face_frame(face, plane)
+    mid, span = (lo + hi) / 2, hi - lo
+    box(size(span, 0.008, z_top - 0.30), at(mid, 0.004, 0.14 + (z_top - 0.30) / 2), material=SOCLE_RED)
+    box(size(span, 0.010, 0.07), at(mid, 0.006, z_top - 0.14), material=CLOTH_OCHRE)
+    box(size(span, 0.010, 0.12), at(mid, 0.006, 0.08), material=DARK)
+    for u in doors:
+        box(size(0.32, 0.012, 0.62), at(u, 0.008, 0.40), material=DARK)
+        box(size(0.40, 0.014, 0.05), at(u, 0.010, 0.73), material=LIME_DARK)

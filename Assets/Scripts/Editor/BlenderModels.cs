@@ -268,6 +268,36 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Werkstaettenblock.fbx", prefab = "Werkstaettenblock", building = "Bld_Werkstaettenblock",
                 cells = new Vector2Int(4, 4), ground = "Mat_Boden_Pflaster", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Gelehrtenhaus.fbx", prefab = "Gelehrtenhaus", building = "Bld_Gelehrtenhaus",
+                cells = new Vector2Int(1, 2), ground = "Mat_Boden_Pflaster", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Stadtvilla.fbx", prefab = "Stadtvilla", building = "Bld_Stadtvilla",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Pflaster", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Villa.fbx", prefab = "Villa", building = "Bld_Villa",
+                cells = new Vector2Int(2, 3), ground = "Mat_Boden_Pflaster", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Peristylhaus.fbx", prefab = "Peristylhaus", building = "Bld_Peristylhaus",
+                cells = new Vector2Int(3, 3), ground = "Mat_Boden_Pflaster", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Stadtpalast.fbx", prefab = "Stadtpalast", building = "Bld_Stadtpalast",
+                cells = new Vector2Int(4, 4), ground = "Mat_Boden_Pflaster", variants = true
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Gartenzeile.fbx", prefab = "Gartenzeile", building = "Bld_Gartenzeile",
+                cells = new Vector2Int(2, 4), ground = "Mat_Boden_Kies", variants = true
             }
         };
 
