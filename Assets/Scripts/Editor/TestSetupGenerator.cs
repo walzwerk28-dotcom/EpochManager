@@ -512,8 +512,8 @@ namespace EpochCity
             // Dezent dunklerer Waldboden unter den Bäumen; die Bäume trägt „Gebäude-Modelle erzeugen“ ein
             forest.tilePrefab = CreatePrefab("Prefab_Vorkommen_Wald", Vector2Int.one, 0.015f,
                 new Color(0.30f, 0.38f, 0.19f), 1f);
-            forest.decorPerCell = new Vector2Int(2, 3);
-            forest.decorScale = new Vector2(0.8f, 1.2f);
+            forest.decorPerCell = new Vector2Int(3, 4);
+            forest.decorScale = new Vector2(0.8f, 1.15f);
 
             var stoneDeposit = GetOrCreate<DepositDefinition>("Dep_Stein");
             stoneDeposit.displayName = "Steinvorkommen";
