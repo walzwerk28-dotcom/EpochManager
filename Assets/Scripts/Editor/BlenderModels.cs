@@ -25,6 +25,9 @@ namespace EpochCity
             public Vector2Int cells;
             /// <summary>Die FBX enthält je Variante ein Objekt (nach Namen sortiert); das Prefab bekommt RandomVariant.</summary>
             public bool variants;
+            /// <summary>Steuer-Scripts, die am Prefab hängen müssen (z. B. CropStages, ConstructionStages): Die Varianten sind dann
+            /// Zustände in fester Reihenfolge, die das Script zeigt, keine Zufallsauswahl.</summary>
+            public System.Type[] components;
         }
 
         private static readonly Entry[] Models =
@@ -298,6 +301,18 @@ namespace EpochCity
             {
                 fbx = "Assets/Content/Models/Gartenzeile.fbx", prefab = "Gartenzeile", building = "Bld_Gartenzeile",
                 cells = new Vector2Int(2, 4), ground = "Mat_Boden_Kies", variants = true
+            },
+            // Zustands-Varianten (Reihenfolge der Objekte in der FBX = Reihenfolge der Stufen), gesteuert von CropStages bzw.
+            // ConstructionStages am Prefab
+            new Entry
+            {
+                fbx = "Assets/Content/Models/Feld.fbx", prefab = "Feld", building = "Bld_Feld",
+                cells = new Vector2Int(2, 2), ground = "Mat_Boden_Acker", variants = true, components = new[] { typeof(CropStages) }
+            },
+            new Entry
+            {
+                fbx = "Assets/Content/Models/GrossesTheater.fbx", prefab = "GrossesTheater", building = "Bld_GrossesTheater",
+                cells = new Vector2Int(4, 4), ground = "Mat_Boden_Pflaster", variants = true, components = new[] { typeof(ConstructionStages) }
             }
         };
 
@@ -327,6 +342,9 @@ namespace EpochCity
                     instance.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
                     AddGroundPlate(root, e.cells, ground);
                 }
+                if (e.components != null)
+                    foreach (var type in e.components)
+                        if (root.GetComponent(type) == null) root.AddComponent(type);
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{Out}/{e.prefab}.prefab");
                 Object.DestroyImmediate(root);
 

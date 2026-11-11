@@ -4642,3 +4642,95 @@ def inner_wall_paint(face, plane, lo, hi, z_top, doors=()):
     for u in doors:
         box(size(0.32, 0.012, 0.62), at(u, 0.008, 0.40), material=DARK)
         box(size(0.40, 0.014, 0.05), at(u, 0.010, 0.73), material=LIME_DARK)
+
+
+# ================================================================ Feld und Großes Theater (Stufenmodelle)
+
+
+def raw_mesh(verts, faces, mat_index, materials, name="Teil"):
+    """Netz mit vorgegebener Flächenrichtung (keine automatische Ausrichtung der Normalen, auch offene Netze); mat_index
+    gibt je Fläche den Platz in materials an."""
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    for m in materials:
+        mesh.materials.append(m)
+    mesh.update()
+    for p, i in zip(mesh.polygons, mat_index):
+        p.material_index = i
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    PARTS.append(obj)
+    bpy.context.view_layer.update()
+    return obj
+
+
+def sector_ring(cx, cy, r0, r1, z0, z1, a0=180.0, a1=360.0, segs=24, top_m=None, side_m=None, outer=False, caps=True):
+    """Kreisringausschnitt als Stufe (Sitzreihe, Mauerring): von Radius r0 bis r1 um (cx, cy), von Winkel a0 bis a1 (Grad,
+    aufsteigend), Höhe z0 bis z1. Oberseite top_m, innere Stirnfläche (Setzstufe) und Enden side_m; die Außenfläche nur mit
+    outer=True (sonst verdeckt die nächste Reihe sie)."""
+    top_m = top_m or LIME
+    side_m = side_m or LIME_DARK
+    verts = []
+    for i in range(segs + 1):
+        a = math.radians(a0 + (a1 - a0) * i / segs)
+        c, s = math.cos(a), math.sin(a)
+        for r, z in ((r0, z0), (r0, z1), (r1, z1), (r1, z0)):          # innen unten, innen oben, außen oben, außen unten
+            verts.append((cx + r * c, cy + r * s, z))
+    faces, mi = [], []
+    for i in range(segs):
+        a, b = 4 * i, 4 * (i + 1)
+        faces.append((a + 1, a + 2, b + 2, b + 1))
+        mi.append(0)
+        if r0 > 0.02:
+            faces.append((a, a + 1, b + 1, b))
+            mi.append(1)
+        if outer:
+            faces.append((a + 3, b + 3, b + 2, a + 2))
+            mi.append(1)
+    if caps:
+        n = 4 * segs
+        faces.append((0, 3, 2, 1))
+        faces.append((n + 1, n + 2, n + 3, n))
+        mi += [1, 1]
+    return raw_mesh(verts, faces, mi, [top_m, side_m], "Rang")
+
+
+def lift(z, fn):
+    """Baut mit fn() Teile und hebt sie um z (Dinge auf einer Bühne, einem Podium oder einem Rang)."""
+    n = len(PARTS)
+    fn()
+    for o in PARTS[n:]:
+        o.location.z += z
+
+
+def scaffold(p0, p1, normal, z_top, w=0.24, bay=0.8, lvl=0.5):
+    """Holzgerüst vor einer Mauer: parallel zur Strecke p0 -> p1 (Mauerfuß) im Abstand w nach normal (nach außen), Pfosten
+    je bay, Streckbalken je lvl Höhe, Querhölzer zur Mauer, Bohlenlage auf jeder zweiten Höhe, Diagonalen und eine Leiter."""
+    a, b = Vector((p0[0], p0[1], 0.0)), Vector((p1[0], p1[1], 0.0))
+    d = b - a
+    length = d.length
+    u = d / length
+    nn = Vector((normal[0], normal[1], 0.0)).normalized()
+    nb = max(1, round(length / bay))
+    levels = max(1, int(z_top / lvl))
+    yaw = math.degrees(math.atan2(u.y, u.x))
+    for i in range(nb + 1):
+        q = a + u * (length * i / nb)
+        p = q + nn * w
+        bar((p.x, p.y, 0.0), (p.x, p.y, z_top), 0.034, WOOD_DARK)
+        for k in range(1, levels + 1):
+            z = k * lvl
+            bar((p.x, p.y, z), (q.x + nn.x * 0.02, q.y + nn.y * 0.02, z), 0.022, WOOD)
+    for k in range(1, levels + 1):
+        z = k * lvl
+        pa, pb = a + nn * w, b + nn * w
+        bar((pa.x, pa.y, z), (pb.x, pb.y, z), 0.028, WOOD)
+        if k % 2 == 0:
+            c = (a + b) / 2 + nn * (w / 2)
+            box((length, w, 0.025), (c.x, c.y, z + 0.0125), rot=(0, 0, yaw), material=WOOD_FRESH)
+    for i in range(nb):
+        q0 = a + u * (length * i / nb) + nn * w
+        q1 = a + u * (length * (i + 1) / nb) + nn * w
+        bar((q0.x, q0.y, 0.0), (q1.x, q1.y, levels * lvl), 0.022, WOOD)
+    lad = a + u * (length / nb * 0.5) + nn * (w + 0.06)
+    ladder((lad.x, lad.y, 0.0), (lad.x, lad.y, levels * lvl + 0.18), tuple(u), width=0.20)

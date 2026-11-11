@@ -49,12 +49,12 @@ namespace EpochCity
                 grounds[n] = gravel;
             foreach (var n in new[] { "Markt", "Bibliothek", "Tempel", "Brunnen",
                          "Schreibschule", "Feuerwache",
-                         "Akademie", "GrossesTheater" })
+                         "Akademie" })
                 grounds[n] = paving;
             foreach (var n in new[] { "Lager", "Muehle",
                          "Holzfaeller" })
                 grounds[n] = earth;
-            grounds["Feld"] = GroundMaterial("Acker", GroundKind.Furrows);
+            GroundMaterial("Acker", GroundKind.Furrows); // Bodenplatte von Feld (BlenderModels, Mat_Boden_Acker)
 
             // Antike: Kalkstein und Terrakotta-Dächer
             // Wohnhaus und Schmalhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
@@ -65,12 +65,7 @@ namespace EpochCity
             // Tempel und Brunnen: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Schreibschule: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Feuerwache: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
-            // Feld: vier Wachstumsstufen als Varianten in fester Reihenfolge; CropStages zeigt die passende
-            var field = Make("Feld", 2, original,
-                b => Field(b, FieldStage.Stubble), b => Field(b, FieldStage.Sown),
-                b => Field(b, FieldStage.Green), b => Field(b, FieldStage.Ripe));
-            AddToPrefab<CropStages>(field);
-            Assign("Bld_Feld", field);
+            // Feld: vier Wachstumsstufen aus Blender (BlenderModels, CropStages am Prefab), hier nicht mehr erzeugen
             // Holzfäller: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Holzhacker, Förster, Zimmerei und Steinbruch: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Olivenhain, Ölpresse, Lehmgrube und Töpferei: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
@@ -87,11 +82,7 @@ namespace EpochCity
             // Gelehrtenhaus, Stadtvilla, Villa, Peristylhaus: Modelle aus Blender (BlenderModels), hier nicht mehr erzeugen
             // Gelehrtenzone und Akademie: Steinbauten mit Säulen, Innenhöfen und Gärten, auf Pflaster
             // Akademie: Modell aus Blender (BlenderModels), hier nicht mehr erzeugen
-            // Großes Theater (Wunderbau): fünf Baustufen in fester Reihenfolge, ConstructionStages zeigt die zur Bauphase
-            var theater = Make("GrossesTheater", 4, antique,
-                b => Theater(b, 0), b => Theater(b, 1), b => Theater(b, 2), b => Theater(b, 3), b => Theater(b, 4));
-            AddToPrefab<ConstructionStages>(theater);
-            Assign("Bld_GrossesTheater", theater);
+            // Großes Theater (Wunderbau): fünf Baustufen aus Blender (BlenderModels, ConstructionStages am Prefab), hier nicht mehr erzeugen
 
             // Mittelalter: Fachwerk mit der Originalpalette (grüne Dächer)
             Assign("Bld_Fachwerkhaus", Make("Fachwerkhaus", 2, original,
@@ -165,202 +156,6 @@ namespace EpochCity
         // ---------------------------------------------------------------- Rechteckige Zonengebäude
 
 
-
-        /// <summary>
-        /// Großes Theater 4 × 4 in einer Baustufe (0 = Baustelle, 1 = Fundament, 2 = Sitzränge, 3 = Bühnenhaus,
-        /// 4 = fertig): halbrunde Sitzränge hinten (+z), Orchestra in der Mitte, Bühnenhaus mit Säulen vorn zur Straße
-        /// (−z). Vier Ecksteine in allen Stufen, damit alle Varianten gleich skaliert werden.
-        /// </summary>
-        private static void Theater(Builder b, int stage)
-        {
-            NatureColors(b);
-            var limestone = Solid("Kalkstein", new Color(0.86f, 0.82f, 0.72f));
-            var limestoneDark = Solid("KalksteinDunkel", new Color(0.76f, 0.72f, 0.62f));
-            var foundation = Solid("Fundament", new Color(0.62f, 0.58f, 0.52f));
-            var dirt = Solid("Baugrube", new Color(0.45f, 0.34f, 0.24f));
-            var marble = Solid("Marmor", new Color(0.93f, 0.92f, 0.88f));
-            var timber = Solid("Gerüstholz", new Color(0.55f, 0.40f, 0.25f));
-            const float edge = 4f;
-            var center = new Vector3(0f, 0f, -1.2f); // Mitte der Orchestra
-
-            // Ecksteine (in allen Stufen gleich)
-            foreach (var x in new[] { -edge + 0.15f, edge - 0.15f })
-                foreach (var z in new[] { -edge + 0.15f, edge - 0.15f })
-                    b.PutBox(new Vector3(x, 0.15f, z), new Vector3(0.3f, 0.3f, 0.3f), limestoneDark);
-
-            if (stage == 0)
-            {
-                // Baustelle: ausgehobene Grube in Theaterform, Pflöcke, Baustoffe, Karren
-                b.PutBox(new Vector3(0f, 0.02f, 0.6f), new Vector3(7.4f, 0.04f, 5.2f), dirt);
-                for (int k = 0; k <= 8; k++)
-                {
-                    float a = Mathf.PI * k / 8f;
-                    b.PutBox(center + new Vector3(Mathf.Cos(a) * 3.8f, 0.25f, Mathf.Sin(a) * 3.8f),
-                        new Vector3(0.08f, 0.5f, 0.08f), timber);
-                }
-                b.Put(NK + "stone_largeA", new Vector3(-2.8f, 0f, -3.2f), 20f, 0.9f);
-                b.Put(NK + "stone_largeC", new Vector3(-1.6f, 0f, -3.3f), 70f, 0.9f);
-                b.Put(FT + "planks-half", new Vector3(2.2f, 0f, -3.2f), 0f);
-                b.Put(FT + "planks-half", new Vector3(2.2f, 0.2f, -3.2f), 90f);
-                b.Put(FT + "cart", new Vector3(0.4f, 0f, -3.3f), 90f);
-                return;
-            }
-
-            // Fundament: Sockel der Sitzränge als Halbring, Orchestra-Boden, Platte des Bühnenhauses
-            const int segments = 14;
-            for (int k = 0; k < segments; k++)
-            {
-                float a = Mathf.PI * (k + 0.5f) / segments;
-                float deg = -a * Mathf.Rad2Deg + 90f;
-                b.At(center.x + Mathf.Cos(a) * 2.6f, center.z + Mathf.Sin(a) * 2.6f, deg)
-                    .PutBox(new Vector3(0f, 0.1f, 0f), new Vector3(2.6f * Mathf.PI / segments + 0.05f, 0.2f, 2.6f), foundation);
-            }
-            b.PutBox(center + new Vector3(0f, 0.04f, 0f), new Vector3(2.4f, 0.08f, 2.4f), stage >= 4 ? marble : foundation);
-            b.PutBox(new Vector3(0f, 0.15f, -3.1f), new Vector3(7.2f, 0.3f, 1.3f), foundation);
-
-            if (stage == 1)
-            {
-                b.Put(NK + "stone_largeA", new Vector3(-3.2f, 0f, 2.8f), 40f, 0.9f);
-                b.Put(NK + "stone_largeC", new Vector3(3.2f, 0f, 2.8f), 10f, 0.9f);
-                b.Put(FT + "cart", new Vector3(2.6f, 0f, -2.2f), 0f);
-                return;
-            }
-
-            // Sitzränge: konzentrische Stufen, nach außen höher
-            const int rows = 6;
-            for (int r = 0; r < rows; r++)
-            {
-                float radius = 1.45f + r * 0.42f;
-                float height = 0.25f + r * 0.22f;
-                int segs = 10 + r * 2;
-                for (int k = 0; k < segs; k++)
-                {
-                    float a = Mathf.PI * (k + 0.5f) / segs;
-                    float deg = -a * Mathf.Rad2Deg + 90f;
-                    b.At(center.x + Mathf.Cos(a) * radius, center.z + Mathf.Sin(a) * radius, deg)
-                        .PutBox(new Vector3(0f, height * 0.5f, 0f),
-                            new Vector3(radius * Mathf.PI / segs + 0.04f, height, 0.44f), r % 2 == 0 ? limestone : limestoneDark);
-                }
-            }
-
-            if (stage == 2)
-            {
-                // Gerüst für das Bühnenhaus
-                for (int k = 0; k < 4; k++)
-                    b.Put(FT + "poles", new Vector3(-2.7f + k * 1.8f, 0.3f, -3.1f), 0f);
-                b.Put(FT + "planks-half", new Vector3(3.3f, 0f, -2.2f), 0f);
-                return;
-            }
-
-            // Bühnenhaus: Wand mit Bogentor, zur Straße eine Säulenhalle unter einem Gesims, innen die Holzbühne
-            b.PutBox(new Vector3(-2.15f, 1.3f, -3.1f), new Vector3(2.7f, 2.0f, 0.4f), limestone);
-            b.PutBox(new Vector3(2.15f, 1.3f, -3.1f), new Vector3(2.7f, 2.0f, 0.4f), limestone);
-            b.PutBox(new Vector3(0f, 1.95f, -3.1f), new Vector3(1.6f, 0.7f, 0.4f), limestone); // über dem Tor
-            b.PutBox(new Vector3(0f, 2.45f, -3.45f), new Vector3(7.3f, 0.3f, 1.1f), limestoneDark);
-            b.PutBox(new Vector3(0f, 0.45f, -2.4f), new Vector3(6.6f, 0.3f, 1.0f), timber);
-            for (int k = 0; k < 8; k++)
-                b.Put(FT + "pillar-stone", new Vector3(-3.5f + k, 0.3f, -3.75f), 0f, new Vector3(0.7f, 1.8f, 0.7f));
-
-            if (stage == 3)
-            {
-                b.Put(FT + "cart", new Vector3(3.2f, 0f, 3.2f), 30f);
-                return;
-            }
-
-            // Fertig: Banner, Laternen, Büsche an den Rängen
-            // Banner hängen an der Wand zur Straße (die Kenney-Banner sitzen an einer Zellkante, +x nach außen)
-            b.Put(FT + "banner-red", new Vector3(-2.15f, 0.3f, -3.8f), 90f);
-            b.Put(FT + "banner-red", new Vector3(2.15f, 0.3f, -3.8f), 90f);
-            b.Put(FT + "lantern", new Vector3(-3.6f, 0f, -2.0f), 0f);
-            b.Put(FT + "lantern", new Vector3(3.6f, 0f, -2.0f), 0f);
-            foreach (var x in new[] { -3.6f, 3.6f })
-                b.Put(NK + "plant_bushLarge", new Vector3(x, 0f, 1.6f), 0f, 0.8f);
-        }
-
-        private enum FieldStage { Stubble, Sown, Green, Ripe }
-
-        /// <summary>
-        /// Feld in einer Wachstumsstufe: Furchenboden (Bodenplatte), 6 Reihen entlang x, Zaun hinten und links (in allen
-        /// Stufen gleich, damit alle Varianten gleich skaliert werden). Reihen aus Quadern mit welliger Oberkante, damit
-        /// das Feld von oben geschlossen wirkt; Kenney-Halme obendrauf für die Struktur.
-        /// </summary>
-        private static void Field(Builder b, FieldStage stage)
-        {
-            // Zwei Töne je Stufe, damit die Reihen nicht wie Blöcke wirken; Kenney-Halme nur im reifen Feld
-            var ripe = Solid("Weizen", new Color(0.84f, 0.67f, 0.30f));
-            var ripeDark = Solid("WeizenDunkel", new Color(0.74f, 0.56f, 0.24f));
-            var green = Solid("WeizenGruen", new Color(0.42f, 0.58f, 0.22f));
-            var greenDark = Solid("WeizenGruenDunkel", new Color(0.33f, 0.49f, 0.18f));
-            var stubble = Solid("Stoppeln", new Color(0.60f, 0.48f, 0.28f));
-            var stubbleDark = Solid("StoppelnDunkel", new Color(0.50f, 0.39f, 0.22f));
-            b.Overrides["woodInner"] = ripe;
-            b.Overrides["_defaultMat"] = ripe;
-
-            const int rows = 6, segments = 12;
-            const float rowSpacing = 0.64f, segment = 0.293f, rowStart = -1.8f;
-            for (int r = 0; r < rows; r++)
-            {
-                float z = (r - (rows - 1) * 0.5f) * rowSpacing;
-                for (int s = 0; s < segments; s++)
-                {
-                    float x = rowStart + (s + 0.5f) * segment;
-                    float jitter = Hash(r, s, 7);
-                    bool dark = Hash(r, s, 11) < 0.4f;
-                    switch (stage)
-                    {
-                        case FieldStage.Stubble:
-                        {
-                            float h = 0.05f * (0.6f + 0.8f * jitter);
-                            b.PutBox(new Vector3(x, h * 0.5f, z), new Vector3(segment, h, 0.42f), dark ? stubbleDark : stubble);
-                            break;
-                        }
-                        case FieldStage.Sown:
-                            b.PutBox(new Vector3(x, 0.025f, z), new Vector3(segment, 0.05f, 0.3f),
-                                     Solid("AckerDamm", new Color(0.40f, 0.28f, 0.18f)));
-                            b.PutBox(new Vector3(x, 0.07f, z + (jitter - 0.5f) * 0.1f), new Vector3(0.06f, 0.06f, 0.06f), green);
-                            break;
-                        case FieldStage.Green:
-                        {
-                            float h = 0.18f * (0.75f + 0.5f * jitter);
-                            b.PutBox(new Vector3(x, h * 0.5f, z), new Vector3(segment, h, 0.48f), dark ? greenDark : green);
-                            break;
-                        }
-                        default:
-                        {
-                            float h = 0.28f * (0.75f + 0.5f * jitter);
-                            b.PutBox(new Vector3(x, h * 0.5f, z), new Vector3(segment, h, 0.52f), dark ? ripeDark : ripe);
-                            if (s % 3 == r % 3) b.Put(NK + "crops_wheatStageB", new Vector3(x, 0f, z), jitter * 360f);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Nach der Ernte: Garben am Feldrand
-            if (stage == FieldStage.Stubble)
-                for (int k = 0; k < 3; k++)
-                    b.Put(NK + "crops_wheatStageB", new Vector3(1.85f, 0f, -1.1f + k * 0.8f), k * 70f, 0.9f);
-
-            FieldFence(b);
-        }
-
-        /// <summary>Niedriger Holzzaun hinten und links: Pfosten je Meter, zwei Latten.</summary>
-        private static void FieldFence(Builder b)
-        {
-            var wood = Solid("Zaunholz", new Color(0.45f, 0.32f, 0.20f));
-            const float edge = 2f, post = 0.08f, height = 0.38f;
-            for (int k = 0; k <= 4; k++)
-            {
-                float t = k - edge;
-                b.PutBox(new Vector3(t, height * 0.5f, edge), new Vector3(post, height, post), wood);
-                if (k < 4) b.PutBox(new Vector3(-edge, height * 0.5f, t), new Vector3(post, height, post), wood);
-            }
-            foreach (float y in new[] { 0.16f, 0.32f })
-            {
-                b.PutBox(new Vector3(0f, y, edge), new Vector3(edge * 2f, 0.04f, 0.03f), wood);
-                b.PutBox(new Vector3(-edge, y, 0f), new Vector3(0.03f, 0.04f, edge * 2f), wood);
-            }
-        }
 
         /// <summary>
         /// Eigene Farben für Holz, Laub und Stein aus dem Nature Kit; dessen Materialfarben wirken im Spiel blass
